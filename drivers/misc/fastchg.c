@@ -1,7 +1,7 @@
 /*
  * Author: Chad Froebel <chadfroebel@gmail.com>
  *
- * Port to cheeseburger: engstk <eng.stk@sapo.pt>
+ * Port to guacamole: engstk <eng.stk@sapo.pt>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -27,19 +27,7 @@
 #include <linux/string.h>
 #include <linux/module.h>
 
-#ifdef CONFIG_UCI
-#include <linux/uci/uci.h>
-#endif
-
-int force_fast_charge = 1;
-int get_force_fast_charge(void) {
-#ifdef CONFIG_UCI
-	return uci_get_user_property_int_mm("fastcharge", force_fast_charge, 0, 1);
-#else
-	return force_fast_charge;
-#endif
-}
-EXPORT_SYMBOL(get_force_fast_charge);
+int force_fast_charge = 0;
 
 static int __init get_fastcharge_opt(char *ffc)
 {
