@@ -17,6 +17,8 @@
 #ifndef _LINUX_FASTCHG_H
 #define _LINUX_FASTCHG_H
 
+extern int get_force_fast_charge(void);
+
 extern int force_fast_charge;
 
 #endif
