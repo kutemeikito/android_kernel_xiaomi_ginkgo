@@ -3949,8 +3949,8 @@ drop:
 static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 				     struct bpf_prog *xdp_prog)
 {
+	u32 metalen, act = XDP_DROP;
 	struct xdp_buff xdp;
-	u32 act = XDP_DROP;
 	void *orig_data;
 	int hlen, off;
 	u32 mac_len;
@@ -3961,8 +3961,24 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 	if (skb_cloned(skb))
 		return XDP_PASS;
 
-	if (skb_linearize(skb))
-		goto do_drop;
+	/* XDP packets must be linear and must have sufficient headroom
+	 * of XDP_PACKET_HEADROOM bytes. This is the guarantee that also
+	 * native XDP provides, thus we need to do it here as well.
+	 */
+	if (skb_is_nonlinear(skb) ||
+	    skb_headroom(skb) < XDP_PACKET_HEADROOM) {
+		int hroom = XDP_PACKET_HEADROOM - skb_headroom(skb);
+		int troom = skb->tail + skb->data_len - skb->end;
+		/* In case we have to go down the path and also linearize,
+		 * then lets do the pskb_expand_head() work just once here.
+		 */
+		if (pskb_expand_head(skb,
+				     hroom > 0 ? ALIGN(hroom, NET_SKB_PAD) : 0,
+				     troom > 0 ? troom + 128 : 0, GFP_ATOMIC))
+			goto do_drop;
+		if (troom > 0 && __skb_linearize(skb))
+			goto do_drop;
+	}
 
 	/* The XDP program wants to see the packet starting at the MAC
 	 * header.
@@ -3971,6 +3987,7 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 	hlen = skb_headlen(skb) + mac_len;
 	xdp.data = skb->data - mac_len;
 	xdp.data_end = xdp.data + hlen;
+	xdp.data_meta = xdp.data;
 	xdp.data_hard_start = skb->data - skb_headroom(skb);
 	orig_data = xdp.data;
 
@@ -3987,8 +4004,11 @@ static u32 netif_receive_generic_xdp(struct sk_buff *skb,
 	case XDP_REDIRECT:
 	case XDP_TX:
 		__skb_push(skb, mac_len);
-		/* fall through */
+		break;
 	case XDP_PASS:
+		metalen = xdp.data - xdp.data_meta;
+		if (metalen)
+			skb_metadata_set(skb, metalen);
 		break;
 
 	default:
@@ -4816,6 +4836,7 @@ static void gro_list_prepare(struct napi_struct *napi, struct sk_buff *skb)
 		diffs = (unsigned long)p->dev ^ (unsigned long)skb->dev;
 		diffs |= p->vlan_tci ^ skb->vlan_tci;
 		diffs |= skb_metadata_dst_cmp(p, skb);
+		diffs |= skb_metadata_differs(p, skb);
 		if (maclen == ETH_HLEN)
 			diffs |= compare_ether_header(skb_mac_header(p),
 						      skb_mac_header(skb));
