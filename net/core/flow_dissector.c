@@ -600,7 +600,7 @@ bool __skb_flow_dissect(const struct sk_buff *skb,
 		cb->qdisc_cb.flow_keys = &flow_keys;
 		flow_keys.nhoff = nhoff;
 
-		bpf_compute_data_end((struct sk_buff *)skb);
+		bpf_compute_data_pointers((struct sk_buff *)skb);
 		result = BPF_PROG_RUN(attached, skb);
 
 		/* Restore state */
