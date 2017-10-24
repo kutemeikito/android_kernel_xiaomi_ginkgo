@@ -1530,6 +1530,20 @@ struct bpf_prog *bpf_prog_select_runtime(struct bpf_prog *fp, int *err)
 }
 EXPORT_SYMBOL_GPL(bpf_prog_select_runtime);
 
+static unsigned int __bpf_prog_ret1(const void *ctx,
+				    const struct bpf_insn *insn)
+{
+	return 1;
+}
+
+static struct bpf_prog_dummy {
+	struct bpf_prog prog;
+} dummy_bpf_prog = {
+	.prog = {
+		.bpf_func = __bpf_prog_ret1,
+	},
+};
+
 /* to avoid allocating empty bpf_prog_array for cgroups that
  * don't have bpf program attached use one global 'empty_prog_array'
  * It will not be modified the caller of bpf_prog_array_alloc()
@@ -1561,7 +1575,6 @@ void bpf_prog_array_free(struct bpf_prog_array __rcu *progs)
 	kfree_rcu(progs, rcu);
 }
 
-<<<<<<< HEAD
 void bpf_prog_array_delete_safe(struct bpf_prog_array __rcu *progs,
 				struct bpf_prog *old_prog)
 {
@@ -1629,8 +1642,6 @@ int bpf_prog_array_copy(struct bpf_prog_array __rcu *old_array,
 	return 0;
 }
 
-=======
->>>>>>> 6b48d868d3d3... UPSTREAM: bpf: multi program support for cgroup+bpf
 static void bpf_prog_free_deferred(struct work_struct *work)
 {
 	struct bpf_prog_aux *aux;
