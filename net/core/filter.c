@@ -3386,7 +3386,6 @@ BPF_CALL_5(bpf_getsockopt, struct bpf_sock_ops_kern *, bpf_sock,
 	   int, level, int, optname, char *, optval, int, optlen)
 {
 	struct sock *sk = bpf_sock->sk;
-	int ret = 0;
 
 	if (!sk_fullsock(sk))
 		goto err_clear;
@@ -3406,7 +3405,7 @@ BPF_CALL_5(bpf_getsockopt, struct bpf_sock_ops_kern *, bpf_sock,
 	} else {
 		goto err_clear;
 	}
-	return ret;
+	return 0;
 #endif
 err_clear:
 	memset(optval, 0, optlen);
