@@ -274,7 +274,6 @@ struct fuse_file_lock {
 #define FUSE_HANDLE_KILLPRIV	(1 << 19)
 #define FUSE_POSIX_ACL		(1 << 20)
 #define FUSE_ABORT_ERROR        (1 << 21)
-#define FUSE_PASSTHROUGH	(1 << 30)
 
 /**
  * CUSE INIT request/reply flags
