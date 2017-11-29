@@ -3211,7 +3211,7 @@ void free_workqueue_attrs(struct workqueue_attrs *attrs)
 struct workqueue_attrs *alloc_workqueue_attrs(gfp_t gfp_mask)
 {
 	struct workqueue_attrs *attrs;
-	const unsigned long allowed_cpus = 0xf;
+	const unsigned long allowed_cpus = 0x3f;
 
 	attrs = kzalloc(sizeof(*attrs), gfp_mask);
 	if (!attrs)
