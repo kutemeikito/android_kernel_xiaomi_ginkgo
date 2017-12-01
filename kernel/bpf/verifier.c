@@ -246,6 +246,17 @@ static const char * const reg_type_str[] = {
 	[PTR_TO_SOCKET_OR_NULL] = "sock_or_null",
 };
 
+static void print_liveness(struct bpf_verifier_env *env,
+			   enum bpf_reg_liveness live)
+{
+	if (live & (REG_LIVE_READ | REG_LIVE_WRITTEN))
+	    verbose(env, "_");
+	if (live & REG_LIVE_READ)
+		verbose(env, "r");
+	if (live & REG_LIVE_WRITTEN)
+		verbose(env, "w");
+}
+
 static void print_verifier_state(struct bpf_verifier_env *env,
 				 struct bpf_verifier_state *state)
 {
@@ -258,7 +269,9 @@ static void print_verifier_state(struct bpf_verifier_env *env,
 		t = reg->type;
 		if (t == NOT_INIT)
 			continue;
-		verbose(env, " R%d=%s", i, reg_type_str[t]);
+		verbose(env, " R%d", i);
+		print_liveness(env, reg->live);
+		verbose(env, "=%s", reg_type_str[t]);
 		if ((t == SCALAR_VALUE || t == PTR_TO_STACK) &&
 		    tnum_is_const(reg->var_off)) {
 			/* reg->off should be 0 for SCALAR_VALUE */
@@ -307,10 +320,13 @@ static void print_verifier_state(struct bpf_verifier_env *env,
 		}
 	}
 	for (i = 0; i < state->allocated_stack / BPF_REG_SIZE; i++) {
-		if (state->stack[i].slot_type[0] == STACK_SPILL)
-			verbose(env, " fp%d=%s",
-				(-i - 1) * BPF_REG_SIZE,
+		if (state->stack[i].slot_type[0] == STACK_SPILL) {
+			verbose(env, " fp%d",
+				(-i - 1) * BPF_REG_SIZE);
+			print_liveness(env, state->stack[i].spilled_ptr.live);
+			verbose(env, "=%s",
 				reg_type_str[state->stack[i].spilled_ptr.type]);
+		}
 	}
 	verbose(env, "\n");
 }
