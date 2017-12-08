@@ -198,9 +198,7 @@ extern bool initcall_debug;
 		__attribute__((__section__(#__sec ".init"))) = fn;
 #endif
 
-#define __define_initcall(fn, id) \
-	static initcall_t __initcall_##fn##id __used \
-	__attribute__((__section__(".initcall" #id ".init"))) = fn;
+#define __define_initcall(fn, id) ___define_initcall(fn, id, .initcall##id)
 
 /*
  * Early initcalls run before initializing SMP.
