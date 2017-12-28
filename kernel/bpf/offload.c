@@ -106,6 +106,9 @@ static void __bpf_prog_offload_destroy(struct bpf_prog *prog)
 	if (offload->dev_state)
 		WARN_ON(__bpf_offload_ndo(prog, BPF_OFFLOAD_DESTROY, &data));
 
+	/* Make sure BPF_PROG_GET_NEXT_ID can't find this dead program */
+	bpf_prog_free_id(prog, true);
+
 	offload->dev_state = false;
 	list_del_init(&offload->offloads);
 	offload->netdev = NULL;
