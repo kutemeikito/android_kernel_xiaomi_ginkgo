@@ -17,7 +17,7 @@ static LIST_HEAD(bpf_prog_offload_devs);
 
 int bpf_prog_offload_init(struct bpf_prog *prog, union bpf_attr *attr)
 {
-	struct bpf_dev_offload *offload;
+	struct bpf_prog_offload *offload;
 
 	if (!capable(CAP_SYS_ADMIN))
 		return -EPERM;
@@ -93,7 +93,7 @@ exit_unlock:
 int bpf_prog_offload_verify_insn(struct bpf_verifier_env *env,
 				 int insn_idx, int prev_insn_idx)
 {
-	struct bpf_dev_offload *offload;
+	struct bpf_prog_offload *offload;
 	int ret = -ENODEV;
 	down_read(&bpf_devs_lock);
 	offload = env->prog->aux->offload;
@@ -105,7 +105,7 @@ int bpf_prog_offload_verify_insn(struct bpf_verifier_env *env,
 
 static void __bpf_prog_offload_destroy(struct bpf_prog *prog)
 {
-	struct bpf_dev_offload *offload = prog->aux->offload;
+	struct bpf_prog_offload *offload = prog->aux->offload;
 	struct netdev_bpf data = {};
 
 	data.offload.prog = prog;
@@ -123,7 +123,7 @@ static void __bpf_prog_offload_destroy(struct bpf_prog *prog)
 
 void bpf_prog_offload_destroy(struct bpf_prog *prog)
 {
-	struct bpf_dev_offload *offload = prog->aux->offload;
+	struct bpf_prog_offload *offload = prog->aux->offload;
 
 	rtnl_lock();
 	down_write(&bpf_devs_lock);
@@ -229,7 +229,7 @@ static int bpf_offload_notification(struct notifier_block *notifier,
 				    ulong event, void *ptr)
 {
 	struct net_device *netdev = netdev_notifier_info_to_dev(ptr);
-	struct bpf_dev_offload *offload, *tmp;
+	struct bpf_prog_offload *offload, *tmp;
 
 	ASSERT_RTNL();
 
