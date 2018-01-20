@@ -1872,6 +1872,19 @@ static int check_helper_mem_access(struct bpf_verifier_env *env, int regno,
 	}
 }
 
+static bool arg_type_is_mem_ptr(enum bpf_arg_type type)
+{
+	return type == ARG_PTR_TO_MEM ||
+	       type == ARG_PTR_TO_MEM_OR_NULL ||
+	       type == ARG_PTR_TO_UNINIT_MEM;
+}
+
+static bool arg_type_is_mem_size(enum bpf_arg_type type)
+{
+	return type == ARG_CONST_SIZE ||
+	       type == ARG_CONST_SIZE_OR_ZERO;
+}
+
 static int check_func_arg(struct bpf_verifier_env *env, u32 regno,
 			  enum bpf_arg_type arg_type,
 			  struct bpf_call_arg_meta *meta)
@@ -1927,9 +1940,7 @@ static int check_func_arg(struct bpf_verifier_env *env, u32 regno,
 		expected_type = PTR_TO_SOCKET;
 		if (type != expected_type)
 			goto err_type;
-	} else if (arg_type == ARG_PTR_TO_MEM ||
-		   arg_type == ARG_PTR_TO_MEM_OR_NULL ||
-		   arg_type == ARG_PTR_TO_UNINIT_MEM) {
+	} else if (arg_type_is_mem_ptr(arg_type)) {
 		expected_type = PTR_TO_STACK;
 		/* One exception here. In case function allows for NULL to be
 		 * passed in as argument, it's a SCALAR_VALUE type. Final test
@@ -1988,8 +1999,7 @@ static int check_func_arg(struct bpf_verifier_env *env, u32 regno,
 			err = check_stack_boundary(env, regno,
 						   meta->map_ptr->value_size,
 						   false, NULL);
-	} else if (arg_type == ARG_CONST_SIZE ||
-		   arg_type == ARG_CONST_SIZE_OR_ZERO) {
+	} else if (arg_type_is_mem_size(arg_type)) {
 		bool zero_size_allowed = (arg_type == ARG_CONST_SIZE_OR_ZERO);
 
 		/* remember the mem_size which may be used later
@@ -1997,16 +2007,6 @@ static int check_func_arg(struct bpf_verifier_env *env, u32 regno,
 		 */
 		meta->msize_smax_value = reg->smax_value;
 		meta->msize_umax_value = reg->umax_value;
-
-		/* bpf_xxx(..., buf, len) call will access 'len' bytes
-		 * from stack pointer 'buf'. Check it
-		 * note: regno == len, regno - 1 == buf
-		 */
-		if (regno == 0) {
-			/* kernel subsystem misconfigured verifier */
-			verbose(env, "ARG_CONST_SIZE cannot be first argument\n");
-			return -EACCES;
-		}
 
 		/* The register is SCALAR_VALUE; the access check
 		 * happens using its boundaries.
@@ -2161,7 +2161,7 @@ error:
 	return -EINVAL;
 }
 
-static int check_raw_mode(const struct bpf_func_proto *fn)
+static bool check_raw_mode_ok(const struct bpf_func_proto *fn)
 {
 	int count = 0;
 
@@ -2175,8 +2175,43 @@ static int check_raw_mode(const struct bpf_func_proto *fn)
 		count++;
 	if (fn->arg5_type == ARG_PTR_TO_UNINIT_MEM)
 		count++;
+	/* We only support one arg being in raw mode at the moment,
+	 * which is sufficient for the helper functions we have
+	 * right now.
+	 */
+	return count <= 1;
+}
 
-	return count > 1 ? -EINVAL : 0;
+static bool check_args_pair_invalid(enum bpf_arg_type arg_curr,
+				    enum bpf_arg_type arg_next)
+{
+	return (arg_type_is_mem_ptr(arg_curr) &&
+	        !arg_type_is_mem_size(arg_next)) ||
+	       (!arg_type_is_mem_ptr(arg_curr) &&
+		arg_type_is_mem_size(arg_next));
+}
+
+static bool check_arg_pair_ok(const struct bpf_func_proto *fn)
+{
+	/* bpf_xxx(..., buf, len) call will access 'len'
+	 * bytes from memory 'buf'. Both arg types need
+	 * to be paired, so make sure there's no buggy
+	 * helper function specification.
+	 */
+	if (arg_type_is_mem_size(fn->arg1_type) ||
+	    arg_type_is_mem_ptr(fn->arg5_type)  ||
+	    check_args_pair_invalid(fn->arg1_type, fn->arg2_type) ||
+	    check_args_pair_invalid(fn->arg2_type, fn->arg3_type) ||
+	    check_args_pair_invalid(fn->arg3_type, fn->arg4_type) ||
+	    check_args_pair_invalid(fn->arg4_type, fn->arg5_type))
+		return false;
+	return true;
+}
+
+static int check_func_proto(const struct bpf_func_proto *fn)
+{
+	return check_raw_mode_ok(fn) &&
+	       check_arg_pair_ok(fn) ? 0 : -EINVAL;
 }
 
 /* Packet data might have moved, any old PTR_TO_PACKET[_END] are now invalid,
@@ -2364,10 +2399,7 @@ static int check_helper_call(struct bpf_verifier_env *env, int func_id, int insn
 	memset(&meta, 0, sizeof(meta));
 	meta.pkt_access = fn->pkt_access;
 
-	/* We only support one arg being in raw mode at the moment, which
-	 * is sufficient for the helper functions we have right now.
-	 */
-	err = check_raw_mode(fn);
+	err = check_func_proto(fn);
 	if (err) {
 		verbose(env, "kernel subsystem misconfigured func %s#%d\n",
 			func_id_name(func_id), func_id);
