@@ -54,7 +54,6 @@ static void proc_evict_inode(struct inode *inode)
 }
 
 static struct kmem_cache *proc_inode_cachep __ro_after_init;
-static struct kmem_cache *pde_opener_cache __ro_after_init;
 
 static struct inode *proc_alloc_inode(struct super_block *sb)
 {
