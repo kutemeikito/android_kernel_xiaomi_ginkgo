@@ -56,9 +56,6 @@ else ifeq ($(cc-name),clang)
 ccflags-y += -mcpu=cortex-a53+crypto
 endif
 
-AFLAGS_aes-ce.o		:= -DINTERLEAVE=4
-AFLAGS_aes-neon.o	:= -DINTERLEAVE=4
-
 CFLAGS_aes-glue-ce.o	:= -DUSE_V8_CRYPTO_EXTENSIONS
 
 $(obj)/aes-glue-%.o: $(src)/aes-glue.c FORCE
