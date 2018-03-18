@@ -1463,7 +1463,8 @@ out_free_tp:
 
 #define BPF_PROG_ATTACH_LAST_FIELD attach_flags
 
-static int sockmap_get_from_fd(const union bpf_attr *attr, bool attach)
+static int sockmap_get_from_fd(const union bpf_attr *attr,
+				int type, bool attach)
 {
 	struct bpf_prog *prog = NULL;
 	int ufd = attr->target_fd;
@@ -1477,8 +1478,7 @@ static int sockmap_get_from_fd(const union bpf_attr *attr, bool attach)
 		return PTR_ERR(map);
 
 	if (attach) {
-		prog = bpf_prog_get_type(attr->attach_bpf_fd,
-					 BPF_PROG_TYPE_SK_SKB);
+		prog = bpf_prog_get_type(attr->attach_bpf_fd, type);
 		if (IS_ERR(prog)) {
 			fdput(f);
 			return PTR_ERR(prog);
@@ -1542,9 +1542,11 @@ static int bpf_prog_attach(const union bpf_attr *attr)
         case BPF_CGROUP_DEVICE:
                 ptype = BPF_PROG_TYPE_CGROUP_DEVICE;
                 break;
+	case BPF_SK_MSG_VERDICT:
+		return sockmap_get_from_fd(attr, BPF_PROG_TYPE_SK_MSG, true);
 	case BPF_SK_SKB_STREAM_PARSER:
 	case BPF_SK_SKB_STREAM_VERDICT:
-		return sockmap_get_from_fd(attr, true);
+		return sockmap_get_from_fd(attr, BPF_PROG_TYPE_SK_SKB, true);
 	case BPF_FLOW_DISSECTOR:
 		ptype = BPF_PROG_TYPE_FLOW_DISSECTOR;
 		break;
@@ -1620,9 +1622,11 @@ static int bpf_prog_detach(const union bpf_attr *attr)
         case BPF_CGROUP_DEVICE:
                 ptype = BPF_PROG_TYPE_CGROUP_DEVICE;
                 break;
+	case BPF_SK_MSG_VERDICT:
+		return sockmap_get_from_fd(attr, BPF_PROG_TYPE_SK_MSG, false);
 	case BPF_SK_SKB_STREAM_PARSER:
 	case BPF_SK_SKB_STREAM_VERDICT:
-		return sockmap_get_from_fd(attr, false);
+		return sockmap_get_from_fd(attr, BPF_PROG_TYPE_SK_SKB, false);
 	case BPF_FLOW_DISSECTOR:
 		return skb_flow_dissector_bpf_prog_detach(attr);
 	case BPF_CGROUP_SYSCTL:

@@ -578,6 +578,22 @@ struct xdp_buff {
 	void *data_hard_start;
 };
 
+struct sk_msg_buff {
+	void *data;
+	void *data_end;
+	__u32 apply_bytes;
+	__u32 cork_bytes;
+	int sg_copybreak;
+	int sg_start;
+	int sg_curr;
+	int sg_end;
+	struct scatterlist sg_data[MAX_SKB_FRAGS];
+	bool sg_copy[MAX_SKB_FRAGS];
+	__u32 key;
+	__u32 flags;
+	struct bpf_map *map;
+};
+
 /* compute the linear packet data range [data, data_end) which
  * will be accessed by cls_bpf, act_bpf and lwt programs
  */
@@ -811,6 +827,7 @@ void bpf_warn_invalid_xdp_action(u32 act);
 void bpf_warn_invalid_xdp_redirect(u32 ifindex);
 
 struct sock *do_sk_redirect_map(struct sk_buff *skb);
+struct sock *do_msg_redirect_map(struct sk_msg_buff *md);
 
 #ifdef CONFIG_BPF_JIT
 extern int bpf_jit_enable;
