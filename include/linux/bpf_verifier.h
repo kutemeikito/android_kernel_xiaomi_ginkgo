@@ -187,7 +187,7 @@ static inline bool bpf_verifier_log_needed(const struct bpf_verifier_log *log)
 	return log->level && log->ubuf && !bpf_verifier_log_full(log);
 }
 
-__printf(2, 3) void bpf_verifier_log_write(struct bpf_verifier_log *log,
+__printf(2, 3) void bpf_verifier_log_write(struct bpf_verifier_env *env,
 					   const char *fmt, ...);
 
 void bpf_verifier_vlog(struct bpf_verifier_log *log, const char *fmt,
