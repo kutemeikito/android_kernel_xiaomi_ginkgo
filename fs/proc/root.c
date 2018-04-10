@@ -167,6 +167,8 @@ static struct file_system_type proc_fs_type = {
 
 void __init proc_root_init(void)
 {
+	int err;
+
 	proc_init_kmemcache();
 	set_proc_pid_nlink();
 	proc_self_init();
