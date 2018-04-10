@@ -351,7 +351,7 @@ static int proc_reg_open(struct inode *inode, struct file *file)
 
 	release = pde->proc_fops->release;
 	if (release) {
-		pdeo = kmem_cache_alloc(pde_opener_cache, GFP_KERNEL);
+		pdeo = kmalloc(sizeof(struct pde_opener), GFP_KERNEL);
 		if (!pdeo) {
 			rv = -ENOMEM;
 			goto out_unuse;
@@ -372,7 +372,7 @@ static int proc_reg_open(struct inode *inode, struct file *file)
 			list_add(&pdeo->lh, &pde->pde_openers);
 			spin_unlock(&pde->pde_unload_lock);
 		} else
-			kmem_cache_free(pde_opener_cache, pdeo);
+			kfree(pdeo);
 	}
 
 out_unuse:
