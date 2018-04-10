@@ -176,7 +176,7 @@ static void close_pdeo(struct proc_dir_entry *pde, struct pde_opener *pdeo)
 		spin_unlock(&pde->pde_unload_lock);
 		if (unlikely(c))
 			complete(c);
-		kmem_cache_free(pde_opener_cache, pdeo);
+		kfree(pdeo);
 	}
 }
 
