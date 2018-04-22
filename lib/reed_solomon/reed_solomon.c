@@ -72,8 +72,7 @@ static struct rs_control *rs_init(int symsize, int gfpoly, int (*gffunc)(int),
 	int i, j, sr, root, iprim;
 	struct rs_codec *rs;
 
-	/* Allocate the control structure */
-	rs = kmalloc(sizeof(*rs), gfp);
+	rs = kzalloc(sizeof(*rs), gfp);
 	if (!rs)
 		return NULL;
 
