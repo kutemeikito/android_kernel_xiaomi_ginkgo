@@ -31,7 +31,7 @@
  * @users:	Users of this structure
  * @list:	List entry for the rs codec list
 */
-struct rs_codec {
+struct rs_control {
 	int		mm;
 	int		nn;
 	uint16_t	*alpha_to;
