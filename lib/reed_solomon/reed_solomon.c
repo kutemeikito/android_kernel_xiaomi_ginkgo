@@ -11,22 +11,23 @@
  *
  * The generic Reed Solomon library provides runtime configurable
  * encoding / decoding of RS codes.
- * Each user must call init_rs to get a pointer to a rs_control
- * structure for the given rs parameters. This structure is either
- * generated or a already available matching control structure is used.
- * If a structure is generated then the polynomial arrays for
- * fast encoding / decoding are built. This can take some time so
- * make sure not to call this function from a time critical path.
- * Usually a module / driver should initialize the necessary
- * rs_control structure on module / driver init and release it
- * on exit.
- * The encoding puts the calculated syndrome into a given syndrome
- * buffer.
- * The decoding is a two step process. The first step calculates
- * the syndrome over the received (data + syndrome) and calls the
- * second stage, which does the decoding / error correction itself.
- * Many hw encoders provide a syndrome calculation over the received
- * data + syndrome and can call the second stage directly.
+ *
+ * Each user must call init_rs to get a pointer to a rs_control structure
+ * for the given rs parameters. The control struct is unique per instance.
+ * It points to a codec which can be shared by multiple control structures.
+ * If a codec is newly allocated then the polynomial arrays for fast
+ * encoding / decoding are built. This can take some time so make sure not
+ * to call this function from a time critical path.  Usually a module /
+ * driver should initialize the necessary rs_control structure on module /
+ * driver init and release it on exit.
+ *
+ * The encoding puts the calculated syndrome into a given syndrome buffer.
+ *
+ * The decoding is a two step process. The first step calculates the
+ * syndrome over the received (data + syndrome) and calls the second stage,
+ * which does the decoding / error correction itself.  Many hw encoders
+ * provide a syndrome calculation over the received data + syndrome and can
+ * call the second stage directly.
  */
 #include <linux/errno.h>
 #include <linux/kernel.h>
@@ -35,18 +36,6 @@
 #include <linux/rslib.h>
 #include <linux/slab.h>
 #include <linux/mutex.h>
-
-enum {
-	RS_DECODE_LAMBDA,
-	RS_DECODE_SYN,
-	RS_DECODE_B,
-	RS_DECODE_T,
-	RS_DECODE_OMEGA,
-	RS_DECODE_ROOT,
-	RS_DECODE_REG,
-	RS_DECODE_LOC,
-	RS_DECODE_NUM_BUFFERS
-};
 
 /* This list holds all currently allocated rs codec structures */
 static LIST_HEAD(codec_list);
@@ -66,8 +55,8 @@ static DEFINE_MUTEX(rslistlock);
  * Allocate a codec structure and the polynom arrays for faster
  * en/decoding. Fill the arrays according to the given parameters.
  */
-static struct rs_control *rs_init(int symsize, int gfpoly, int (*gffunc)(int),
-				  int fcr, int prim, int nroots, gfp_t gfp)
+static struct rs_codec *codec_init(int symsize, int gfpoly, int (*gffunc)(int),
+				   int fcr, int prim, int nroots, gfp_t gfp)
 {
 	int i, j, sr, root, iprim;
 	struct rs_codec *rs;
@@ -226,13 +215,7 @@ static struct rs_control *init_rs_internal(int symsize, int gfpoly,
 	if (nroots < 0 || nroots >= (1<<symsize))
 		return NULL;
 
-	/*
-	 * The decoder needs buffers in each control struct instance to
-	 * avoid variable size or large fixed size allocations on
-	 * stack. Size the buffers to arrays of [nroots + 1].
-	 */
-	bsize = sizeof(uint16_t) * RS_DECODE_NUM_BUFFERS * (nroots + 1);
-	rs = kzalloc(sizeof(*rs) + bsize, gfp);
+	rs = kzalloc(sizeof(*rs), GFP_KERNEL);
 	if (!rs)
 		return NULL;
 
@@ -261,10 +244,10 @@ static struct rs_control *init_rs_internal(int symsize, int gfpoly,
 	}
 
 	/* Create a new one */
-	rs = rs_init(symsize, gfpoly, gffunc, fcr, prim, nroots, gfp);
-	if (rs) {
-		rs->users = 1;
-		list_add(&rs->list, &rslist);
+	rs->codec = codec_init(symsize, gfpoly, gffunc, fcr, prim, nroots, gfp);
+	if (!rs->codec) {
+		kfree(rs);
+		rs = NULL;
 	}
 out:
 	mutex_unlock(&rslistlock);
@@ -272,7 +255,7 @@ out:
 }
 
 /**
- * init_rs_gfp - Find a matching or allocate a new rs control structure
+ * init_rs_gfp - Create a RS control struct and initialize it
  *  @symsize:	the symbol size (number of bits)
  *  @gfpoly:	the extended Galois field generator polynomial coefficients,
  *		with the 0th coefficient in the low order bit. The polynomial
