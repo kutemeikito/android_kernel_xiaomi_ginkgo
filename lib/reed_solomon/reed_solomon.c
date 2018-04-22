@@ -37,6 +37,18 @@
 #include <linux/slab.h>
 #include <linux/mutex.h>
 
+enum {
+	RS_DECODE_LAMBDA,
+	RS_DECODE_SYN,
+	RS_DECODE_B,
+	RS_DECODE_T,
+	RS_DECODE_OMEGA,
+	RS_DECODE_ROOT,
+	RS_DECODE_REG,
+	RS_DECODE_LOC,
+	RS_DECODE_NUM_BUFFERS
+};
+
 /* This list holds all currently allocated rs codec structures */
 static LIST_HEAD(codec_list);
 /* Protection for the list */
@@ -204,6 +216,7 @@ static struct rs_control *init_rs_internal(int symsize, int gfpoly,
 {
 	struct list_head *tmp;
 	struct rs_control *rs;
+	unsigned int bsize;
 
 	/* Sanity checks */
 	if (symsize < 1)
@@ -215,7 +228,13 @@ static struct rs_control *init_rs_internal(int symsize, int gfpoly,
 	if (nroots < 0 || nroots >= (1<<symsize))
 		return NULL;
 
-	rs = kzalloc(sizeof(*rs), GFP_KERNEL);
+	/*
+	 * The decoder needs buffers in each control struct instance to
+	 * avoid variable size or large fixed size allocations on
+	 * stack. Size the buffers to arrays of [nroots + 1].
+	 */
+	bsize = sizeof(uint16_t) * RS_DECODE_NUM_BUFFERS * (nroots + 1);
+	rs = kzalloc(sizeof(*rs) + bsize, gfp);
 	if (!rs)
 		return NULL;
 
