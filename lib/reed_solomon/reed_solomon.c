@@ -7,27 +7,30 @@
  * Reed Solomon code lifted from reed solomon library written by Phil Karn
  * Copyright 2002 Phil Karn, KA9Q
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
  * Description:
  *
  * The generic Reed Solomon library provides runtime configurable
  * encoding / decoding of RS codes.
- *
- * Each user must call init_rs to get a pointer to a rs_control structure
- * for the given rs parameters. The control struct is unique per instance.
- * It points to a codec which can be shared by multiple control structures.
- * If a codec is newly allocated then the polynomial arrays for fast
- * encoding / decoding are built. This can take some time so make sure not
- * to call this function from a time critical path.  Usually a module /
- * driver should initialize the necessary rs_control structure on module /
- * driver init and release it on exit.
- *
- * The encoding puts the calculated syndrome into a given syndrome buffer.
- *
- * The decoding is a two step process. The first step calculates the
- * syndrome over the received (data + syndrome) and calls the second stage,
- * which does the decoding / error correction itself.  Many hw encoders
- * provide a syndrome calculation over the received data + syndrome and can
- * call the second stage directly.
+ * Each user must call init_rs to get a pointer to a rs_control
+ * structure for the given rs parameters. This structure is either
+ * generated or a already available matching control structure is used.
+ * If a structure is generated then the polynomial arrays for
+ * fast encoding / decoding are built. This can take some time so
+ * make sure not to call this function from a time critical path.
+ * Usually a module / driver should initialize the necessary
+ * rs_control structure on module / driver init and release it
+ * on exit.
+ * The encoding puts the calculated syndrome into a given syndrome
+ * buffer.
+ * The decoding is a two step process. The first step calculates
+ * the syndrome over the received (data + syndrome) and calls the
+ * second stage, which does the decoding / error correction itself.
+ * Many hw encoders provide a syndrome calculation over the received
+ * data + syndrome and can call the second stage directly.
  */
 #include <linux/errno.h>
 #include <linux/kernel.h>
