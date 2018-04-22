@@ -67,13 +67,14 @@ static DEFINE_MUTEX(rslistlock);
  * Allocate a codec structure and the polynom arrays for faster
  * en/decoding. Fill the arrays according to the given parameters.
  */
-static struct rs_codec *codec_init(int symsize, int gfpoly, int (*gffunc)(int),
-				   int fcr, int prim, int nroots, gfp_t gfp)
+static struct rs_control *rs_init(int symsize, int gfpoly, int (*gffunc)(int),
+				  int fcr, int prim, int nroots, gfp_t gfp)
 {
 	int i, j, sr, root, iprim;
 	struct rs_codec *rs;
 
-	rs = kzalloc(sizeof(*rs), gfp);
+	/* Allocate the control structure */
+	rs = kmalloc(sizeof(*rs), gfp);
 	if (!rs)
 		return NULL;
 
@@ -216,7 +217,6 @@ static struct rs_control *init_rs_internal(int symsize, int gfpoly,
 {
 	struct list_head *tmp;
 	struct rs_control *rs;
-	unsigned int bsize;
 
 	/* Sanity checks */
 	if (symsize < 1)
@@ -263,10 +263,10 @@ static struct rs_control *init_rs_internal(int symsize, int gfpoly,
 	}
 
 	/* Create a new one */
-	rs->codec = codec_init(symsize, gfpoly, gffunc, fcr, prim, nroots, gfp);
-	if (!rs->codec) {
-		kfree(rs);
-		rs = NULL;
+	rs = rs_init(symsize, gfpoly, gffunc, fcr, prim, nroots, gfp);
+	if (rs) {
+		rs->users = 1;
+		list_add(&rs->list, &rslist);
 	}
 out:
 	mutex_unlock(&rslistlock);
@@ -274,7 +274,7 @@ out:
 }
 
 /**
- * init_rs_gfp - Create a RS control struct and initialize it
+ * init_rs_gfp - Find a matching or allocate a new rs control structure
  *  @symsize:	the symbol size (number of bits)
  *  @gfpoly:	the extended Galois field generator polynomial coefficients,
  *		with the 0th coefficient in the low order bit. The polynomial

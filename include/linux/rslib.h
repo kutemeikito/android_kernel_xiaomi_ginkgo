@@ -79,6 +79,7 @@ int decode_rs16(struct rs_control *rs, uint16_t *data, uint16_t *par, int len,
 		uint16_t *corr);
 #endif
 
+/* Create or get a matching rs control structure */
 struct rs_control *init_rs_gfp(int symsize, int gfpoly, int fcr, int prim,
 			       int nroots, gfp_t gfp);
 
