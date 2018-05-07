@@ -144,7 +144,6 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 		ret = -EINVAL;
 		goto err1;
 	}
-
 	table = buffer->sg_table;
 
 	INIT_LIST_HEAD(&buffer->attachments);
