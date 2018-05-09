@@ -2928,6 +2928,7 @@ static inline bool f2fs_is_time_consistent(struct inode *inode)
 
 static inline bool f2fs_skip_inode_update(struct inode *inode, int dsync)
 {
+	struct timespec ts;
 	bool ret;
 
 	if (dsync) {
