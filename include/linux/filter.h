@@ -601,9 +601,8 @@ struct sk_msg_buff {
 	int sg_end;
 	struct scatterlist sg_data[MAX_SKB_FRAGS];
 	bool sg_copy[MAX_SKB_FRAGS];
-	__u32 key;
 	__u32 flags;
-	struct bpf_map *map;
+	struct sock *sk_redir;
 };
 
 /* Compute the linear packet data range [data, data_end) which
