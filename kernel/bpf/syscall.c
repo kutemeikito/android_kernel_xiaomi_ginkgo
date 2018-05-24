@@ -2079,6 +2079,7 @@ static int bpf_prog_get_info_by_fd(struct bpf_prog *prog,
 	if (!capable(CAP_SYS_ADMIN)) {
 		info.jited_prog_len = 0;
 		info.xlated_prog_len = 0;
+		info.nr_jited_ksyms = 0;
 		goto done;
 	}
 
@@ -2119,6 +2120,30 @@ static int bpf_prog_get_info_by_fd(struct bpf_prog *prog,
 		err = bpf_prog_offload_info_fill(&info, prog);
 		if (err)
 			return err;
+	}
+
+	ulen = info.nr_jited_ksyms;
+	info.nr_jited_ksyms = prog->aux->func_cnt;
+	if (info.nr_jited_ksyms && ulen) {
+		if (bpf_dump_raw_ok()) {
+			u64 __user *user_ksyms;
+			ulong ksym_addr;
+			u32 i;
+
+			/* copy the address of the kernel symbol
+			 * corresponding to each function
+			 */
+			ulen = min_t(u32, info.nr_jited_ksyms, ulen);
+			user_ksyms = u64_to_user_ptr(info.jited_ksyms);
+			for (i = 0; i < ulen; i++) {
+				ksym_addr = (ulong) prog->aux->func[i]->bpf_func;
+				ksym_addr &= PAGE_MASK;
+				if (put_user((u64) ksym_addr, &user_ksyms[i]))
+					return -EFAULT;
+			}
+		} else {
+			info.jited_ksyms = 0;
+		}
 	}
 
 done:
