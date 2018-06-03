@@ -743,6 +743,11 @@ union bpf_attr {
  *		the shared data.
  *	Return
  *		Pointer to the local storage area.
+ *
+ * u64 bpf_get_current_cgroup_id(void)
+ * 	Return
+ * 		A 64-bit integer containing the current cgroup id based
+ * 		on the cgroup within which the current task is running.
  */
 #define __BPF_FUNC_MAPPER(FN)		\
 	FN(unspec),			\
