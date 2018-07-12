@@ -6147,7 +6147,8 @@ static int jit_subprogs(struct bpf_verifier_env *env)
 	}
 	func = kzalloc(sizeof(prog) * env->subprog_cnt, GFP_KERNEL);
 	if (!func)
-		return -ENOMEM;
+		goto out_undo_insn;
+
 	for (i = 0; i < env->subprog_cnt; i++) {
 		subprog_start = subprog_end;
 		if (env->subprog_cnt == i + 1)
@@ -6205,7 +6206,7 @@ static int jit_subprogs(struct bpf_verifier_env *env)
 		tmp = bpf_int_jit_compile(func[i]);
 		if (tmp != func[i] || func[i]->bpf_func != old_bpf_func) {
 			verbose(env, "JIT doesn't support bpf-to-bpf calls\n");
-			err = -EFAULT;
+			err = -ENOTSUPP;
 			goto out_free;
 		}
 		cond_resched();
@@ -6227,6 +6228,10 @@ static int jit_subprogs(struct bpf_verifier_env *env)
 		    insn->src_reg != BPF_PSEUDO_CALL)
 			continue;
 		insn->off = env->insn_aux_data[i].call_imm;
+		/* Upon error here we cannot fall back to interpreter but
+		 * need a hard reject of the program. Thus -EFAULT is
+		 * propagated in any case.
+		 */
 		subprog = find_subprog(env, i + insn->off + 1);
 		insn->imm = subprog;
 	}
@@ -6241,6 +6246,7 @@ out_free:
 		if (func[i])
 			bpf_jit_free(func[i]);
 	kfree(func);
+out_undo_insn:
 	/* cleanup main prog to be interpreted */
 	prog->jit_requested = 0;
 	for (i = 0, insn = prog->insnsi; i < prog->len; i++, insn++) {
