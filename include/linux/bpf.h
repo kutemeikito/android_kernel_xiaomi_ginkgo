@@ -228,6 +228,7 @@ struct bpf_prog_aux {
 	void *security;
 #endif
 	u64 load_time; /* ns since boottime */
+	struct bpf_map *cgroup_storage;
 	char name[BPF_OBJ_NAME_LEN];
 	struct bpf_dev_offload *offload;
 	union {
