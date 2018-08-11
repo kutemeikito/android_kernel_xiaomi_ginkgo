@@ -100,6 +100,7 @@ static int check_uarg_tail_zero(void __user *uaddr,
 const struct bpf_map_ops bpf_map_offload_ops = {
 	.map_alloc = bpf_map_offload_map_alloc,
 	.map_free = bpf_map_offload_map_free,
+	.map_check_btf = map_check_no_btf,
 };
 
 static struct bpf_map *find_and_alloc_map(union bpf_attr *attr)
@@ -443,6 +444,34 @@ static int bpf_obj_name_cpy(char *dst, const char *src)
 	return 0;
 }
 
+int map_check_no_btf(const struct bpf_map *map,
+		     const struct btf_type *key_type,
+		     const struct btf_type *value_type)
+{
+	return -ENOTSUPP;
+}
+
+static int map_check_btf(const struct bpf_map *map, const struct btf *btf,
+			 u32 btf_key_id, u32 btf_value_id)
+{
+	const struct btf_type *key_type, *value_type;
+	u32 key_size, value_size;
+	int ret = 0;
+	key_type = btf_type_id_size(btf, &btf_key_id, &key_size);
+
+	if (!key_type || key_size != map->key_size)
+		return -EINVAL;
+
+	value_type = btf_type_id_size(btf, &btf_value_id, &value_size);
+	if (!value_type || value_size != map->value_size)
+		return -EINVAL;
+
+	if (map->ops->map_check_btf)
+		ret = map->ops->map_check_btf(map, key_type, value_type);
+
+	return ret;
+}
+
 #define BPF_MAP_CREATE_LAST_FIELD btf_value_id
 /* called via syscall */
 static int map_create(union bpf_attr *attr)
@@ -489,7 +518,7 @@ static int map_create(union bpf_attr *attr)
 			err = PTR_ERR(btf);
 			goto free_map_nouncharge;
 		}
-		err = map->ops->map_check_btf(map, btf, attr->btf_key_id,
+		err = map_check_btf(map, btf, attr->btf_key_id,
 					      attr->btf_value_id);
 		if (err) {
 			btf_put(btf);
