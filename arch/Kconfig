@@ -336,6 +336,9 @@ config HAVE_ARCH_JUMP_LABEL
 config HAVE_ARCH_JUMP_LABEL_RELATIVE
 	bool
 
+config HAVE_RCU_TABLE_FREE
+	bool
+
 config MMU_GATHER_TABLE_FREE
 	bool
 

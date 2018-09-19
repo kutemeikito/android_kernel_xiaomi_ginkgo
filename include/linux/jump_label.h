@@ -141,7 +141,7 @@ static inline unsigned long jump_entry_target(const struct jump_entry *entry)
 
 static inline struct static_key *jump_entry_key(const struct jump_entry *entry)
 {
-	long offset = entry->key & ~3L;
+	long offset = entry->key & ~1L;
 
 	return (struct static_key *)((unsigned long)&entry->key + offset);
 }
