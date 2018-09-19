@@ -172,12 +172,12 @@ static inline bool jump_entry_is_branch(const struct jump_entry *entry)
 
 static inline bool jump_entry_is_init(const struct jump_entry *entry)
 {
-	return (unsigned long)entry->key & 2UL;
+	return entry->code == 0;
 }
 
 static inline void jump_entry_set_init(struct jump_entry *entry)
 {
-	entry->key |= 2;
+	entry->code = 0;
 }
 
 #endif
