@@ -285,7 +285,6 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 	struct menu_device *data = this_cpu_ptr(&menu_devices);
 	int latency_req = cpuidle_governor_latency_req(dev->cpu);
 	int i;
-	int first_idx;
 	int idx;
 	unsigned int interactivity_req;
 	unsigned int expected_interval;
@@ -376,15 +375,28 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 	 * our constraints.
 	 */
 	idx = -1;
-	for (i = first_idx; i < drv->state_count; i++) {
+	for (i = 0; i < drv->state_count; i++) {
 		struct cpuidle_state *s = &drv->states[i];
 		struct cpuidle_state_usage *su = &dev->states_usage[i];
 
 		if (s->disabled || su->disable)
 			continue;
+
 		if (idx == -1)
 			idx = i; /* first enabled state */
+
 		if (s->target_residency > predicted_us) {
+			/*
+			 * Use a physical idle state, not busy polling, unless
+			 * a timer is going to trigger really really soon.
+			 */
+			if ((drv->states[idx].flags & CPUIDLE_FLAG_POLLING) &&
+			    i == idx + 1 && latency_req > s->exit_latency &&
+			    data->next_timer_us > max_t(unsigned int, 20,
+							s->target_residency)) {
+				idx = i;
+				break;
+			}
 			if (predicted_us < TICK_USEC)
 				break;
 
