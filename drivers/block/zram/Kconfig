@@ -40,3 +40,7 @@ config ZRAM_WRITEBACK
 	 /sys/block/zramX/backing_dev.
 
 	 See zram.txt for more infomration.
+
+config ZRAM_DEFAULT_COMP_ALGORITHM
+	string "Default ZRAM algorithm"
+	default "lzo"
