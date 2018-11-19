@@ -289,13 +289,15 @@ struct bpf_prog_aux {
 	struct bpf_map **used_maps;
 	struct bpf_prog *prog;
 	struct user_struct *user;
-#ifdef CONFIG_SECURITY
-	void *security;
-#endif
 	u64 load_time; /* ns since boottime */
 	struct bpf_map *cgroup_storage[MAX_BPF_CGROUP_STORAGE_TYPE];
 	char name[BPF_OBJ_NAME_LEN];
+#ifdef CONFIG_SECURITY
+	void *security;
+#endif
 	struct bpf_prog_offload *offload;
+	struct btf *btf;
+	u32 type_id; /* type id for this prog/func */
 	union {
 		struct work_struct work;
 		struct rcu_head	rcu;
@@ -506,7 +508,8 @@ static inline void bpf_long_memcpy(void *dst, const void *src, u32 size)
 }
 
 /* verify correctness of eBPF program */
-int bpf_check(struct bpf_prog **fp, union bpf_attr *attr);
+int bpf_check(struct bpf_prog **fp, union bpf_attr *attr,
+	      union bpf_attr __user *uattr);
 #ifndef CONFIG_BPF_JIT_ALWAYS_ON
 void bpf_patch_call_args(struct bpf_insn *insn, u32 stack_depth);
 #endif
