@@ -69,6 +69,9 @@
 		qcom,min-access-length = <64>;
 		qcom,highest-bank-bit = <14>;
 
+		/* Avoid L2PC on big cluster CPUs (CPU 4,5,6,7) */
+		qcom,l2pc-cpu-mask = <0x000000f0>;
+
 		/* size in bytes */
 		qcom,snapshot-size = <1048576>;
 
