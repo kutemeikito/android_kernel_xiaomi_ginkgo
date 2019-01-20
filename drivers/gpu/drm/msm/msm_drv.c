@@ -2250,6 +2250,9 @@ static int msm_pdev_probe(struct platform_device *pdev)
 
 	device_enable_async_suspend(&pdev->dev);
 
+	if (!match)
+		return -ENODEV;
+
 	pdev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
 
 	ret = component_master_add_with_match(&pdev->dev, &msm_drm_ops, match);
