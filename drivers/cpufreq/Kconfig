@@ -265,8 +265,81 @@ config CPU_FREQ_GOV_INTERACTIVE
 	select CPU_FREQ_GOV_ATTR_SET
 	select IRQ_WORK
 	help
-	  'interactive' - This driver adds a dynamic cpufreq policy governor
-	  designed for latency-sensitive workloads.
+	  This governor makes decisions based on the utilization data provided
+	  by the scheduler.  It sets the CPU frequency to be proportional to
+	  the utilization/capacity ratio coming from the scheduler.  If the
+	  utilization is frequency-invariant, the new frequency is also
+	  proportional to the maximum available frequency.  If that is not the
+	  case, it is proportional to the current frequency of the CPU.  The
+	  frequency tipping point is at utilization/capacity equal to 80% in
+	  both cases.
+
+	  To compile this driver as a module, choose M here: the module will
+	  be called cpufreq_blu_schedutil.
+
+	  If in doubt, say N.
+
+config CPU_FREQ_GOV_SCHEDALUCARD
+	bool "'schedalucard' cpufreq policy governor"
+	depends on CPU_FREQ && SMP
+	select CPU_FREQ_GOV_ATTR_SET
+	select IRQ_WORK
+	help
+	  This governor makes decisions based on the utilization data provided
+	  by the scheduler.  It sets the CPU frequency to be proportional to
+          the utilization/capacity ratio coming from the scheduler. The
+	  frequency tipping point is at utilization/capacity equal to 80%
+	  by default.
+
+config CPU_INPUT_BOOST
+	bool "CPU Input Boost"
+	help
+	  Boosts the CPU on touchscreen and touchpad input, and allows for
+	  boosting on other custom events, mainly which is intended to be for
+	  boosting when there is a new frame ready to be rendered to the
+	  display. The boost frequencies for this driver should be set so that
+	  frame drops are near-zero at the boosted frequencies and power
+	  consumption is minimized at said frequency combination.
+
+if CPU_INPUT_BOOST
+
+config INPUT_BOOST_DURATION_MS
+	int "Input boost duration"
+	default "100"
+	help
+	  Input boost duration in milliseconds.
+
+config WAKE_BOOST_DURATION_MS
+	int "Wake boost duration"
+	default "1000"
+	help
+	  Wake boost duration in milliseconds.
+
+config BASE_BOOST_FREQ_LP
+	int "Low-power cluster base frequency"
+	default "0"
+	help
+	  Base frequency for the low-power CPU cluster. The cluster will revert
+	  to this frequency after all boosts have expired.
+
+config BASE_BOOST_FREQ_PERF
+	int "Performance cluster base frequency"
+	default "0"
+	help
+	  Base frequency for the performance CPU cluster. The cluster will
+	  revert to this frequency after all boosts have expired.
+
+config INPUT_BOOST_FREQ_LP
+	int "Low-power cluster boost freq"
+	default "0"
+	help
+	  Input boost frequency for the low-power CPU cluster.
+
+config INPUT_BOOST_FREQ_PERF
+	int "Performance cluster boost freq"
+	default "0"
+	help
+	  Input boost frequency for the performance CPU cluster.
 
 	  This governor attempts to reduce the latency of clock
 	  increases so that the system is more responsive to
