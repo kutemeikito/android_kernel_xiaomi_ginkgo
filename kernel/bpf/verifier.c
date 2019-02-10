@@ -283,14 +283,16 @@ static bool type_is_pkt_pointer(enum bpf_reg_type type)
 static bool type_is_sk_pointer(enum bpf_reg_type type)
 {
 	return type == PTR_TO_SOCKET ||
-		type == PTR_TO_SOCK_COMMON;
+		type == PTR_TO_SOCK_COMMON ||
+		type == PTR_TO_TCP_SOCK;
 }
 
 static bool reg_type_may_be_null(enum bpf_reg_type type)
 {
 	return type == PTR_TO_MAP_VALUE_OR_NULL ||
 	       type == PTR_TO_SOCKET_OR_NULL ||
-	       type == PTR_TO_SOCK_COMMON_OR_NULL;
+	       type == PTR_TO_SOCK_COMMON_OR_NULL ||
+	       type == PTR_TO_TCP_SOCK_OR_NULL;
 }
 
 static bool type_is_refcounted(enum bpf_reg_type type)
@@ -356,6 +358,8 @@ static const char * const reg_type_str[] = {
 	[PTR_TO_SOCKET_OR_NULL] = "sock_or_null",
 	[PTR_TO_SOCK_COMMON]	= "sock_common",
 	[PTR_TO_SOCK_COMMON_OR_NULL] = "sock_common_or_null",
+	[PTR_TO_TCP_SOCK]	= "tcp_sock",
+	[PTR_TO_TCP_SOCK_OR_NULL] = "tcp_sock_or_null",
 };
 
 static void print_liveness(struct bpf_verifier_env *env,
@@ -1178,6 +1182,8 @@ static bool is_spillable_regtype(enum bpf_reg_type type)
 	case PTR_TO_SOCKET_OR_NULL:
 	case PTR_TO_SOCK_COMMON:
 	case PTR_TO_SOCK_COMMON_OR_NULL:
+	case PTR_TO_TCP_SOCK:
+	case PTR_TO_TCP_SOCK_OR_NULL:
 		return true;
 	default:
 		return false;
@@ -1606,6 +1612,9 @@ static int check_sock_access(struct bpf_verifier_env *env, int insn_idx,
 	case PTR_TO_SOCKET:
 		valid = bpf_sock_is_valid_access(off, size, t, &info);
 		break;
+	case PTR_TO_TCP_SOCK:
+		valid = bpf_tcp_sock_is_valid_access(off, size, t, &info);
+		break;
 	default:
 		valid = false;
 	}
@@ -1754,6 +1763,9 @@ static int check_ptr_alignment(struct bpf_verifier_env *env,
 		break;
 	case PTR_TO_SOCK_COMMON:
 		pointer_desc = "sock_common ";
+		break;
+	case PTR_TO_TCP_SOCK:
+		pointer_desc = "tcp_sock ";
 		break;
 	default:
 		break;
@@ -3009,6 +3021,10 @@ static int check_helper_call(struct bpf_verifier_env *env, int func_id, int insn
 			/* For mark_ptr_or_null_reg() */
 			regs[BPF_REG_0].id = ++env->id_gen;
 		}
+	} else if (fn->ret_type == RET_PTR_TO_TCP_SOCK_OR_NULL) {
+		mark_reg_known_zero(env, regs, BPF_REG_0);
+		regs[BPF_REG_0].type = PTR_TO_TCP_SOCK_OR_NULL;
+		regs[BPF_REG_0].id = ++env->id_gen;
 	} else {
 		verbose(env, "unknown return type %d of func %s#%d\n",
 			fn->ret_type, func_id_name(func_id), func_id);
@@ -3384,6 +3400,8 @@ static int adjust_ptr_min_max_vals(struct bpf_verifier_env *env,
 	case PTR_TO_SOCKET_OR_NULL:
 	case PTR_TO_SOCK_COMMON:
 	case PTR_TO_SOCK_COMMON_OR_NULL:
+	case PTR_TO_TCP_SOCK:
+	case PTR_TO_TCP_SOCK_OR_NULL:
 		verbose(env, "R%d pointer arithmetic on %s prohibited\n",
 			dst, reg_type_str[ptr_reg->type]);
 		return -EACCES;
@@ -4359,6 +4377,8 @@ static void mark_ptr_or_null_reg(struct bpf_func_state *state,
 			reg->type = PTR_TO_SOCKET;
 		} else if (reg->type == PTR_TO_SOCK_COMMON_OR_NULL) {
 			reg->type = PTR_TO_SOCK_COMMON;
+		} else if (reg->type == PTR_TO_TCP_SOCK_OR_NULL) {
+			reg->type = PTR_TO_TCP_SOCK;
 		}
 
 		if (is_null || !(reg_is_refcounted(reg) ||
@@ -5412,6 +5432,8 @@ static bool regsafe(struct bpf_reg_state *rold, struct bpf_reg_state *rcur,
 	case PTR_TO_SOCKET_OR_NULL:
 	case PTR_TO_SOCK_COMMON:
 	case PTR_TO_SOCK_COMMON_OR_NULL:
+	case PTR_TO_TCP_SOCK:
+	case PTR_TO_TCP_SOCK_OR_NULL:
 		/* Only valid matches are exact, which memcmp() above
 		 * would have accepted
 		 */
@@ -5700,6 +5722,8 @@ static bool reg_type_mismatch_ok(enum bpf_reg_type type)
 	case PTR_TO_SOCKET_OR_NULL:
 	case PTR_TO_SOCK_COMMON:
 	case PTR_TO_SOCK_COMMON_OR_NULL:
+	case PTR_TO_TCP_SOCK:
+	case PTR_TO_TCP_SOCK_OR_NULL:
 		return false;
 	default:
 		return true;
@@ -6430,6 +6454,9 @@ static int convert_ctx_accesses(struct bpf_verifier_env *env)
 		case PTR_TO_SOCKET:
 		case PTR_TO_SOCK_COMMON:
 			convert_ctx_access = bpf_sock_convert_ctx_access;
+			break;
+		case PTR_TO_TCP_SOCK:
+			convert_ctx_access = bpf_tcp_sock_convert_ctx_access;
 			break;
 		default:
 			continue;
