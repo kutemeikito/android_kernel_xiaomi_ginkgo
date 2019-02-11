@@ -425,8 +425,10 @@ static int __hdd_hostapd_open(struct net_device *dev)
 
 	hdd_enter_dev(dev);
 
-	MTRACE(qdf_trace(QDF_MODULE_ID_HDD,
-			 TRACE_CODE_HDD_HOSTAPD_OPEN_REQUEST, NO_SESSION, 0));
+	qdf_mtrace(QDF_MODULE_ID_HDD, QDF_MODULE_ID_HDD,
+		   TRACE_CODE_HDD_HOSTAPD_OPEN_REQUEST,
+		   NO_SESSION, 0);
+
 	/* Nothing to be done if device is unloading */
 	if (cds_is_driver_unloading()) {
 		hdd_err("Driver is unloading can not open the hdd");
@@ -500,6 +502,11 @@ static int __hdd_hostapd_stop(struct net_device *dev)
 	int ret;
 
 	hdd_enter_dev(dev);
+
+	qdf_mtrace(QDF_MODULE_ID_HDD, QDF_MODULE_ID_HDD,
+		   TRACE_CODE_HDD_HOSTAPD_STOP_REQUEST,
+		   NO_SESSION, 0);
+
 	ret = wlan_hdd_validate_context(hdd_ctx);
 	if (ret) {
 		set_bit(DOWN_DURING_SSR, &adapter->event_flags);
@@ -2759,6 +2766,39 @@ static int hdd_softap_unpack_ie(mac_handle_t mac_handle,
 }
 
 /**
+ * hdd_is_any_sta_connecting() - check if any sta is connecting
+ * @hdd_ctx: hdd context
+ *
+ * Return: true if any sta is connecting
+ */
+static bool hdd_is_any_sta_connecting(struct hdd_context *hdd_ctx)
+{
+	struct hdd_adapter *adapter = NULL;
+	struct hdd_station_ctx *sta_ctx;
+
+	if (!hdd_ctx) {
+		hdd_err("HDD context is NULL");
+		return false;
+	}
+
+	hdd_for_each_adapter(hdd_ctx, adapter) {
+		sta_ctx = WLAN_HDD_GET_STATION_CTX_PTR(adapter);
+		if ((adapter->device_mode == QDF_STA_MODE) ||
+		    (adapter->device_mode == QDF_P2P_CLIENT_MODE) ||
+		    (adapter->device_mode == QDF_P2P_DEVICE_MODE)) {
+			if (sta_ctx->conn_info.connState ==
+			    eConnectionState_Connecting) {
+				hdd_debug("vdev_id %d: connecting",
+					  adapter->session_id);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
  * hdd_softap_set_channel_change() -
  * This function to support SAP channel change with CSA IE
  * set in the beacons.
@@ -2791,7 +2831,7 @@ int hdd_softap_set_channel_change(struct net_device *dev, int target_channel,
 	 * user space as it may change the HW mode requirement, for which sta is
 	 * trying to connect.
 	 */
-	if (hdd_get_sta_connection_in_progress(hdd_ctx)) {
+	if (hdd_is_any_sta_connecting(hdd_ctx)) {
 		hdd_err("STA connection is in progress");
 		return -EBUSY;
 	}
@@ -6513,9 +6553,9 @@ int wlan_hdd_set_channel(struct wiphy *wiphy,
 	}
 	adapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
-	MTRACE(qdf_trace(QDF_MODULE_ID_HDD,
-			 TRACE_CODE_HDD_CFG80211_SET_CHANNEL,
-			 adapter->session_id, channel_type));
+	qdf_mtrace(QDF_MODULE_ID_HDD, QDF_MODULE_ID_HDD,
+		   TRACE_CODE_HDD_CFG80211_SET_CHANNEL,
+		   adapter->session_id, channel_type);
 
 	hdd_debug("Device_mode %s(%d)  freq = %d",
 	       hdd_device_mode_to_string(adapter->device_mode),
@@ -7772,7 +7812,8 @@ int wlan_hdd_cfg80211_start_bss(struct hdd_adapter *adapter,
 	}
 
 	/* Mark the indoor channel (passive) to disable */
-	if (iniConfig->force_ssc_disable_indoor_channel) {
+	if (iniConfig->force_ssc_disable_indoor_channel &&
+	    adapter->device_mode == QDF_SAP_MODE) {
 		hdd_update_indoor_channel(hdd_ctx, true);
 		if (QDF_IS_STATUS_ERROR(
 		    sme_update_channel_list(mac_handle))) {
@@ -7781,6 +7822,11 @@ int wlan_hdd_cfg80211_start_bss(struct hdd_adapter *adapter,
 			ret = -EINVAL;
 			goto free;
 		}
+
+		/* check if STA is on indoor channel*/
+		if (policy_mgr_is_force_scc(hdd_ctx->psoc))
+			hdd_check_and_disconnect_sta_on_invalid_channel(
+								       hdd_ctx);
 	}
 	if (adapter->device_mode == QDF_SAP_MODE) {
 		/*
@@ -8128,6 +8174,12 @@ int wlan_hdd_cfg80211_start_bss(struct hdd_adapter *adapter,
 
 		if (pIe != NULL) {
 			pIe++;
+			if (pIe[0] > SIR_MAC_RATESET_EID_MAX) {
+				hdd_err("Invalid supported rates %d",
+					pIe[0]);
+				ret = -EINVAL;
+				goto error;
+			}
 			pConfig->supported_rates.numRates = pIe[0];
 			pIe++;
 			for (i = 0;
@@ -8144,6 +8196,12 @@ int wlan_hdd_cfg80211_start_bss(struct hdd_adapter *adapter,
 					       pBeacon->tail_len);
 		if (pIe != NULL) {
 			pIe++;
+			if (pIe[0] > SIR_MAC_RATESET_EID_MAX) {
+				hdd_err("Invalid supported rates %d",
+					pIe[0]);
+				ret = -EINVAL;
+				goto error;
+			}
 			pConfig->extended_rates.numRates = pIe[0];
 			pIe++;
 			for (i = 0; i < pConfig->extended_rates.numRates; i++) {
@@ -8371,7 +8429,8 @@ error:
 		wlan_hdd_restore_channels(hdd_ctx, true);
 
 	/* Revert the indoor to passive marking if START BSS fails */
-	if (iniConfig->force_ssc_disable_indoor_channel) {
+	if (iniConfig->force_ssc_disable_indoor_channel &&
+	    adapter->device_mode == QDF_SAP_MODE) {
 		hdd_update_indoor_channel(hdd_ctx, false);
 		sme_update_channel_list(mac_handle);
 	}
@@ -8448,9 +8507,9 @@ static int __wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 	if (wlan_hdd_validate_session_id(adapter->session_id))
 		return -EINVAL;
 
-	MTRACE(qdf_trace(QDF_MODULE_ID_HDD,
-			 TRACE_CODE_HDD_CFG80211_STOP_AP,
-			 adapter->session_id, adapter->device_mode));
+	qdf_mtrace(QDF_MODULE_ID_HDD, QDF_MODULE_ID_HDD,
+		   TRACE_CODE_HDD_CFG80211_STOP_AP,
+		   adapter->session_id, adapter->device_mode);
 
 	if (!(adapter->device_mode == QDF_SAP_MODE ||
 	      adapter->device_mode == QDF_P2P_GO_MODE)) {
@@ -8752,9 +8811,10 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 	if (wlan_hdd_validate_session_id(adapter->session_id))
 		return -EINVAL;
 
-	MTRACE(qdf_trace(QDF_MODULE_ID_HDD,
-			 TRACE_CODE_HDD_CFG80211_START_AP, adapter->session_id,
-			 params->beacon_interval));
+	qdf_mtrace(QDF_MODULE_ID_HDD, QDF_MODULE_ID_HDD,
+		   TRACE_CODE_HDD_CFG80211_START_AP,
+		   adapter->session_id, params->beacon_interval);
+
 	if (WLAN_HDD_ADAPTER_MAGIC != adapter->magic) {
 		hdd_err("HDD adapter magic is invalid");
 		return -ENODEV;
@@ -9081,9 +9141,10 @@ static int __wlan_hdd_cfg80211_change_beacon(struct wiphy *wiphy,
 	if (wlan_hdd_validate_session_id(adapter->session_id))
 		return -EINVAL;
 
-	MTRACE(qdf_trace(QDF_MODULE_ID_HDD,
-			 TRACE_CODE_HDD_CFG80211_CHANGE_BEACON,
-			 adapter->session_id, adapter->device_mode));
+	qdf_mtrace(QDF_MODULE_ID_HDD, QDF_MODULE_ID_HDD,
+		   TRACE_CODE_HDD_CFG80211_CHANGE_BEACON,
+		   adapter->session_id, adapter->device_mode);
+
 	hdd_debug("Device_mode %s(%d)",
 	       hdd_device_mode_to_string(adapter->device_mode),
 	       adapter->device_mode);
