@@ -406,7 +406,7 @@
 	};
 
 	chosen {
-		bootargs = "rcu_nocbs=0-7";
+		bootargs = "quiet noirqdebug rcu_nocbs=0-7";
 	};
 
 	soc: soc { };
