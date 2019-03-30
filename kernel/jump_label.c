@@ -211,7 +211,6 @@ static bool static_key_slow_try_dec(struct static_key *key)
 	val = __atomic_add_unless(&key->enabled, -1, 1);
 	if (val == 1)
 		return false;
-	lockdep_assert_cpus_held();
 
 	/*
 	 * The negative count check is valid even when a negative
