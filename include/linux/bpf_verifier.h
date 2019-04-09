@@ -180,8 +180,12 @@ struct bpf_insn_aux_data {
 	union {
 		enum bpf_reg_type ptr_type;	/* pointer type for load/store insns */
 		unsigned long map_state;	/* pointer/poison value for maps */
-		u32 alu_limit;			/* limit for add/sub register with pointer */
 		s32 call_imm;			/* saved imm field of call insn */
+		u32 alu_limit;			/* limit for add/sub register with pointer */
+		struct {
+			u32 map_index;		/* index into used_maps[] */
+			u32 map_off;		/* offset from value base address */
+		};
 	};
 	int ctx_field_size; /* the ctx field size for load insn, maybe 0 */
 	int sanitize_stack_off; /* stack slot to be cleared */
