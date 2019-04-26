@@ -232,6 +232,8 @@ struct sock_common {
 	/* public: */
 };
 
+struct bpf_sk_storage;
+
 struct sk_security_struct {
 #ifdef CONFIG_NETLABEL
 	enum {				/* NetLabel state */
@@ -501,6 +503,9 @@ struct sock {
 						  struct sk_buff *skb);
 	void                    (*sk_destruct)(struct sock *sk);
 	struct sock_reuseport __rcu	*sk_reuseport_cb;
+#ifdef CONFIG_BPF_SYSCALL
+	struct bpf_sk_storage __rcu	*sk_bpf_storage;
+#endif
 	struct rcu_head		sk_rcu;
 };
 
