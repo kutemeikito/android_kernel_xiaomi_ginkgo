@@ -11,3 +11,13 @@ config TOUCHSCREEN_NT36xxx_HOSTDL_SPI_C3J
 
 	  If unsure, say N.
 
+
+if TOUCHSCREEN_NT36xxx_C3J
+
+config TOUCHSCREEN_NT36xxx_C3J_MP
+	bool "Novatek NT36xxx MP"
+	default n
+	help
+	  Say Y here to disable NT36xxx MP
+
+endif
