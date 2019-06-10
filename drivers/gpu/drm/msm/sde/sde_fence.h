@@ -21,7 +21,9 @@
 #define CHAR_BIT 8 /* define this if limits.h not available */
 #endif
 
+#ifdef CONFIG_FENCE_DEBUG
 #define SDE_FENCE_NAME_SIZE	24
+#endif
 
 /**
  * struct sde_fence_context - release/retire fence context/timeline structure
@@ -44,7 +46,9 @@ struct sde_fence_context {
 	spinlock_t list_lock;
 	u64 context;
 	struct list_head fence_list_head;
+#ifdef CONFIG_FENCE_DEBUG
 	char name[SDE_FENCE_NAME_SIZE];
+#endif
 };
 
 /**
