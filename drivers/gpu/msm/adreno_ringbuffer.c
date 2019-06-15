@@ -934,6 +934,8 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	unsigned int numibs = 0;
 	unsigned int *link;
 	unsigned int *cmds;
+	unsigned int link_onstack[SZ_256];
+	bool use_onstack_link;
 	struct kgsl_context *context;
 	struct adreno_context *drawctxt;
 	bool use_preamble = true;
@@ -1067,10 +1069,15 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 	if (gpudev->ccu_invalidate)
 		dwords += 4;
 
-	link = kcalloc(dwords, sizeof(unsigned int), GFP_KERNEL);
-	if (!link) {
-		ret = -ENOMEM;
-		goto done;
+	use_onstack_link = dwords <= ARRAY_SIZE(link_onstack);
+	if (use_onstack_link) {
+		link = link_onstack;
+	} else {
+		link = kmalloc(sizeof(unsigned int) * dwords, GFP_KERNEL);
+		if (!link) {
+			ret = -ENOMEM;
+			goto done;
+		}
 	}
 
 	cmds = link;
@@ -1198,7 +1205,8 @@ done:
 	trace_kgsl_issueibcmds(device, context->id, numibs, drawobj->timestamp,
 			drawobj->flags, ret, drawctxt->type);
 
-	kfree(link);
+	if (!use_onstack_link)
+		kfree(link);
 	return ret;
 }
 
