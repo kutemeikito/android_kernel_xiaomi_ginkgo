@@ -502,8 +502,6 @@ static int popp_trans2(struct kgsl_device *device, int level)
 		break;
 	}
 
-	trace_kgsl_popp_level(device, old_level, psc->popp_level);
-
 	return level;
 }
 
