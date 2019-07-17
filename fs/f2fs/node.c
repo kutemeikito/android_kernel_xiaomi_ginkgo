@@ -2170,7 +2170,7 @@ static int scan_nat_page(struct f2fs_sb_info *sbi,
 			break;
 
 		blk_addr = le32_to_cpu(nat_blk->entries[i].block_addr);
-		f2fs_bug_on(sbi, blk_addr == NEW_ADDR);
+
 		if (blk_addr == NEW_ADDR)
 			return -EINVAL;
 		if (blk_addr == NULL_ADDR) {
