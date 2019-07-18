@@ -1741,6 +1741,14 @@ static int _adreno_start(struct adreno_device *adreno_dev)
 		msm_bus_scale_client_update_request(device->pwrctrl.ahbpath_pcl,
 			KGSL_AHB_PATH_HIGH);
 
+	/*
+	 * Keep high bus vote to reduce AHB latency
+	 * during FW loading and wakeup.
+	 */
+	if (device->pwrctrl.ahbpath_pcl)
+		msm_bus_scale_client_update_request(device->pwrctrl.ahbpath_pcl,
+			KGSL_AHB_PATH_HIGH);
+
 	/* Put the GPU in a responsive state */
 	status = kgsl_pwrctrl_change_state(device, KGSL_STATE_AWARE);
 	if (status)
