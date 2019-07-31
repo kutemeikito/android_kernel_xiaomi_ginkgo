@@ -32,12 +32,7 @@
 #define DBG_EVENT_LEN  143
 
 #define ENABLE_EVENT_LOG 1
-
-#define USB_BAM_NR_PORTS	4
-
-#define ARRAY_INDEX_FROM_ADDR(base, addr) ((addr) - (base))
-
-static unsigned int enable_event_log = ENABLE_EVENT_LOG;
+static unsigned int enable_event_log;
 module_param(enable_event_log, uint, 0644);
 MODULE_PARM_DESC(enable_event_log, "enable event logging in debug buffer");
 
