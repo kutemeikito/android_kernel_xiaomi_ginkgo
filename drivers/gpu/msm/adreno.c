@@ -60,7 +60,6 @@ MODULE_PARM_DESC(swfdetect, "Enable soft fault detection");
 
 #define KGSL_LOG_LEVEL_DEFAULT 0
 
-static void adreno_pwr_on_work(struct work_struct *work);
 static unsigned int counter_delta(struct kgsl_device *device,
 	unsigned int reg, unsigned int *counter);
 
@@ -105,8 +104,6 @@ static struct adreno_device device_3d0 = {
 	.profile.enabled = false,
 	.active_list = LIST_HEAD_INIT(device_3d0.active_list),
 	.active_list_lock = __SPIN_LOCK_UNLOCKED(device_3d0.active_list_lock),
-	.pwr_on_work = __WORK_INITIALIZER(device_3d0.pwr_on_work,
-		adreno_pwr_on_work),
 	.gpu_llc_slice_enable = true,
 	.gpuhtw_llc_slice_enable = true,
 	.preempt = {
@@ -362,17 +359,6 @@ void adreno_fault_detect_stop(struct adreno_device *adreno_dev)
 	}
 
 	adreno_dev->fast_hang_detect = 0;
-}
-
-static void adreno_pwr_on_work(struct work_struct *work)
-{
-	struct adreno_device *adreno_dev =
-		container_of(work, typeof(*adreno_dev), pwr_on_work);
-	struct kgsl_device *device = KGSL_DEVICE(adreno_dev);
-
-	mutex_lock(&device->mutex);
-	kgsl_pwrctrl_change_state(device, KGSL_STATE_ACTIVE);
-	mutex_unlock(&device->mutex);
 }
 
 /*
