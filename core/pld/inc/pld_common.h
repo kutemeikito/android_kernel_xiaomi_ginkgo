@@ -336,6 +336,10 @@ struct pld_driver_ops {
 			     enum pld_bus_type bus_type);
 	int (*resume_noirq)(struct device *dev,
 			    enum pld_bus_type bus_type);
+	int (*idle_shutdown)(struct device *dev,
+			     enum pld_bus_type bus_type);
+	int (*idle_restart)(struct device *dev,
+			    enum pld_bus_type bus_type);
 };
 
 int pld_init(void);
@@ -573,7 +577,6 @@ void pld_get_msi_address(struct device *dev, uint32_t *msi_addr_low,
 unsigned int pld_socinfo_get_serial_number(struct device *dev);
 int pld_is_qmi_disable(struct device *dev);
 int pld_is_fw_down(struct device *dev);
-void pld_block_shutdown(struct device *dev, bool status);
 int pld_force_assert_target(struct device *dev);
 bool pld_is_fw_dump_skipped(struct device *dev);
 
@@ -637,4 +640,23 @@ static inline int pld_nbuf_pre_alloc_free(struct sk_buff *skb)
 	return 0;
 }
 #endif
+/**
+ * pld_idle_shutdown - request idle shutdown callback from platform driver
+ * @dev: pointer to struct dev
+ * @shutdown_cb: pointer to hdd psoc idle shutdown callback handler
+ *
+ * Return: 0 for success and non-zero negative error code for failure
+ */
+int pld_idle_shutdown(struct device *dev,
+		      int (*shutdown_cb)(struct device *dev));
+
+/**
+ * pld_idle_restart - request idle restart callback from platform driver
+ * @dev: pointer to struct dev
+ * @restart_cb: pointer to hdd psoc idle restart callback handler
+ *
+ * Return: 0 for success and non-zero negative error code for failure
+ */
+int pld_idle_restart(struct device *dev,
+		     int (*restart_cb)(struct device *dev));
 #endif

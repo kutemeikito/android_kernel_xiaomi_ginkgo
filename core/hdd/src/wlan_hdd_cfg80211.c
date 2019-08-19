@@ -5802,9 +5802,6 @@ __wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 	struct nlattr *tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_GET_MAX + 1];
 	tSirVersionString driver_version;
 	tSirVersionString firmware_version;
-	const char *hw_version;
-	uint32_t major_spid = 0, minor_spid = 0, siid = 0, crmid = 0;
-	uint32_t sub_id = 0;
 	int status;
 	struct sk_buff *reply_skb;
 	uint32_t skb_len = 0, count = 0;
@@ -5838,13 +5835,15 @@ __wlan_hdd_cfg80211_get_wifi_info(struct wiphy *wiphy,
 
 	if (tb_vendor[QCA_WLAN_VENDOR_ATTR_WIFI_INFO_FIRMWARE_VERSION]) {
 		hdd_debug("Rcvd req for FW version");
-		hdd_get_fw_version(hdd_ctx, &major_spid, &minor_spid, &siid,
-				   &crmid);
-		sub_id = (hdd_ctx->target_fw_vers_ext & 0xf0000000) >> 28;
-		hw_version = hdd_ctx->target_hw_name;
 		snprintf(firmware_version, sizeof(firmware_version),
-			"FW:%d.%d.%d.%d.%d HW:%s", major_spid, minor_spid,
-			siid, crmid, sub_id, hw_version);
+			"FW:%d.%d.%d.%d.%d.%d HW:%s",
+			hdd_ctx->fw_version_info.major_spid,
+			hdd_ctx->fw_version_info.minor_spid,
+			hdd_ctx->fw_version_info.siid,
+			hdd_ctx->fw_version_info.rel_id,
+			hdd_ctx->fw_version_info.crmid,
+			hdd_ctx->fw_version_info.sub_id,
+			hdd_ctx->target_hw_name);
 		skb_len += strlen(firmware_version) + 1;
 		count++;
 	}
@@ -6017,6 +6016,7 @@ void wlan_hdd_save_gtk_offload_params(struct hdd_adapter *adapter,
 	uint8_t *buf;
 	int i;
 	struct pmo_gtk_req *gtk_req = NULL;
+	struct wlan_objmgr_vdev *vdev;
 	QDF_STATUS status = QDF_STATUS_E_FAILURE;
 
 	gtk_req = qdf_mem_malloc(sizeof(*gtk_req));
@@ -6048,10 +6048,14 @@ void wlan_hdd_save_gtk_offload_params(struct hdd_adapter *adapter,
 	for (i = 0; i < 8; i++)
 		buf[7 - i] = replay_ctr[i];
 
+	vdev = hdd_objmgr_get_vdev(adapter);
+	if (!vdev)
+		goto end;
 	status = pmo_ucfg_cache_gtk_offload_req(adapter->vdev, gtk_req);
+	hdd_objmgr_put_vdev(vdev);
 	if (status != QDF_STATUS_SUCCESS)
 		hdd_err("Failed to cache GTK Offload");
-
+end:
 	qdf_mem_free(gtk_req);
 }
 #else
@@ -6493,29 +6497,27 @@ static int wlan_hdd_handle_restrict_offchan_config(struct hdd_adapter *adapter,
 {
 	struct hdd_context *hdd_ctx = WLAN_HDD_GET_CTX(adapter);
 	enum QDF_OPMODE dev_mode = adapter->device_mode;
+	struct wlan_objmgr_vdev *vdev;
 	int ret_val = 0;
-	QDF_STATUS status;
 
 	if (!(dev_mode == QDF_SAP_MODE || dev_mode == QDF_P2P_GO_MODE)) {
 		hdd_err("Invalid interface type:%d", dev_mode);
 		return -EINVAL;
 	}
-	status = wlan_objmgr_vdev_try_get_ref(adapter->vdev, WLAN_OSIF_ID);
-	if (status != QDF_STATUS_SUCCESS) {
-		hdd_err("Access vdev failed: %d", status);
+	vdev = hdd_objmgr_get_vdev(adapter);
+	if (!vdev)
 		return -EINVAL;
-	}
 	if (restrict_offchan == 1) {
 		enum policy_mgr_con_mode pmode =
 		policy_mgr_convert_device_mode_to_qdf_type(dev_mode);
 		int chan;
 
-		u32 vdev_id = wlan_vdev_get_id(adapter->vdev);
+		u32 vdev_id = wlan_vdev_get_id(vdev);
 
-		wlan_vdev_obj_lock(adapter->vdev);
-		wlan_vdev_mlme_cap_set(adapter->vdev,
+		wlan_vdev_obj_lock(vdev);
+		wlan_vdev_mlme_cap_set(vdev,
 				       WLAN_VDEV_C_RESTRICT_OFFCHAN);
-		wlan_vdev_obj_unlock(adapter->vdev);
+		wlan_vdev_obj_unlock(vdev);
 		chan = policy_mgr_get_channel(hdd_ctx->psoc, pmode,
 					      &vdev_id);
 		if (!chan ||
@@ -6525,10 +6527,10 @@ static int wlan_hdd_handle_restrict_offchan_config(struct hdd_adapter *adapter,
 		}
 		hdd_info("vdev %d mode %d dnbs enabled", vdev_id, dev_mode);
 	} else if (restrict_offchan == 0) {
-		wlan_vdev_obj_lock(adapter->vdev);
-		wlan_vdev_mlme_cap_clear(adapter->vdev,
+		wlan_vdev_obj_lock(vdev);
+		wlan_vdev_mlme_cap_clear(vdev,
 					 WLAN_VDEV_C_RESTRICT_OFFCHAN);
-		wlan_vdev_obj_unlock(adapter->vdev);
+		wlan_vdev_obj_unlock(vdev);
 		if (wlan_hdd_send_avoid_freq_for_dnbs(hdd_ctx, 0)) {
 			hdd_err("unable to clear avoid_freq");
 			ret_val = -EINVAL;
@@ -6538,7 +6540,7 @@ static int wlan_hdd_handle_restrict_offchan_config(struct hdd_adapter *adapter,
 		ret_val = -EINVAL;
 		hdd_err("Invalid RESTRICT_OFFCHAN setting");
 	}
-	wlan_objmgr_vdev_release_ref(adapter->vdev, WLAN_OSIF_ID);
+	hdd_objmgr_put_vdev(vdev);
 	return ret_val;
 }
 
@@ -16393,7 +16395,7 @@ static int __wlan_hdd_cfg80211_change_iface(struct wiphy *wiphy,
 	hdd_debug("Device_mode = %d, IFTYPE = 0x%x",
 	       adapter->device_mode, type);
 
-	status = hdd_wlan_start_modules(hdd_ctx, false);
+	status = hdd_trigger_psoc_idle_restart(hdd_ctx);
 	if (status) {
 		hdd_err("Failed to start modules");
 		return -EINVAL;
@@ -16687,8 +16689,14 @@ static int __wlan_hdd_change_station(struct wiphy *wiphy,
 		   (adapter->device_mode == QDF_P2P_CLIENT_MODE)) {
 		if (params->sta_flags_set & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
 #if defined(FEATURE_WLAN_TDLS)
-			ret = wlan_cfg80211_tdls_update_peer(hdd_ctx->pdev,
-							     dev, mac, params);
+			struct wlan_objmgr_vdev *vdev;
+
+			vdev = hdd_objmgr_get_vdev(adapter);
+			if (!vdev)
+				return -EINVAL;
+			ret = wlan_cfg80211_tdls_update_peer(vdev,
+							     mac, params);
+			hdd_objmgr_put_vdev(vdev);
 #endif
 		}
 	}
@@ -21238,9 +21246,16 @@ static int __wlan_hdd_cfg80211_add_station(struct wiphy *wiphy,
 		MAC_ADDR_ARRAY(mac));
 
 	if (mask & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
-		if (set & BIT(NL80211_STA_FLAG_TDLS_PEER))
-			status = wlan_cfg80211_tdls_add_peer(hdd_ctx->pdev,
-							     dev, mac);
+		if (set & BIT(NL80211_STA_FLAG_TDLS_PEER)) {
+			struct wlan_objmgr_vdev *vdev;
+
+			vdev = hdd_objmgr_get_vdev(adapter);
+			if (vdev) {
+				status = wlan_cfg80211_tdls_add_peer(vdev,
+								     mac);
+				hdd_objmgr_put_vdev(vdev);
+			}
+		}
 	}
 #endif
 	hdd_exit();
