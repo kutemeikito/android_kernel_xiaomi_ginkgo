@@ -8190,6 +8190,7 @@ static int find_energy_efficient_cpu(struct sched_domain *sd,
 	int boosted = (schedtune_task_boost(p) > 0 || per_task_boost(p) > 0);
 	bool prefer_high_cap = schedtune_prefer_high_cap(p);
 	fbt_env.fastpath = 0;
+	fbt_env.need_idle = 0;
 
 	if (trace_sched_task_util_enabled())
 		start_t = sched_clock();
