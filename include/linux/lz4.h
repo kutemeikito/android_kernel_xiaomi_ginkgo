@@ -180,6 +180,54 @@ static inline int LZ4_compressBound(size_t isize)
 int LZ4_compress_default(const char *source, char *dest, int inputSize,
 	int maxOutputSize, void *wrkmem);
 
+/**
+ * LZ4_compress_fast() - As LZ4_compress_default providing an acceleration param
+ * @source: source address of the original data
+ * @dest: output buffer address of the compressed data
+ * @inputSize: size of the input data. Max supported value is LZ4_MAX_INPUT_SIZE
+ * @maxOutputSize: full or partial size of buffer 'dest'
+ *	which must be already allocated
+ * @acceleration: acceleration factor
+ * @wrkmem: address of the working memory.
+ *	This requires 'workmem' of LZ4_MEM_COMPRESS.
+ *
+ * Same as LZ4_compress_default(), but allows to select an "acceleration"
+ * factor. The larger the acceleration value, the faster the algorithm,
+ * but also the lesser the compression. It's a trade-off. It can be fine tuned,
+ * with each successive value providing roughly +~3% to speed.
+ * An acceleration value of "1" is the same as regular LZ4_compress_default()
+ * Values <= 0 will be replaced by LZ4_ACCELERATION_DEFAULT, which is 1.
+ *
+ * Return: Number of bytes written into buffer 'dest'
+ *	(necessarily <= maxOutputSize) or 0 if compression fails
+ */
+static int LZ4_compress_fast(const char *source, char *dest, int inputSize,
+	int maxOutputSize, int acceleration, void *wrkmem);
+
+/**
+ * LZ4_compress_destSize() - Compress as much data as possible
+ *	from source to dest
+ * @source: source address of the original data
+ * @dest: output buffer address of the compressed data
+ * @sourceSizePtr: will be modified to indicate how many bytes where read
+ *	from 'source' to fill 'dest'. New value is necessarily <= old value.
+ * @targetDestSize: Size of buffer 'dest' which must be already allocated
+ * @wrkmem: address of the working memory.
+ *	This requires 'workmem' of LZ4_MEM_COMPRESS.
+ *
+ * Reverse the logic, by compressing as much data as possible
+ * from 'source' buffer into already allocated buffer 'dest'
+ * of size 'targetDestSize'.
+ * This function either compresses the entire 'source' content into 'dest'
+ * if it's large enough, or fill 'dest' buffer completely with as much data as
+ * possible from 'source'.
+ *
+ * Return: Number of bytes written into 'dest' (necessarily <= targetDestSize)
+ *	or 0 if compression fails
+ */
+static int LZ4_compress_destSize(const char *source, char *dest, int *sourceSizePtr,
+	int targetDestSize, void *wrkmem);
+
 /*-************************************************************************
  *	Decompression Functions
  **************************************************************************/
@@ -227,6 +275,34 @@ int LZ4_decompress_fast(const char *source, char *dest, int originalSize);
 int LZ4_decompress_safe(const char *source, char *dest, int compressedSize,
 	int maxDecompressedSize);
 
+/**
+ * LZ4_decompress_safe_partial() - Decompress a block of size 'compressedSize'
+ *	at position 'source' into buffer 'dest'
+ * @source: source address of the compressed data
+ * @dest: output buffer address of the decompressed data which must be
+ *	already allocated
+ * @compressedSize: is the precise full size of the compressed block.
+ * @targetOutputSize: the decompression operation will try
+ *	to stop as soon as 'targetOutputSize' has been reached
+ * @maxDecompressedSize: is the size of destination buffer
+ *
+ * This function decompresses a compressed block of size 'compressedSize'
+ * at position 'source' into destination buffer 'dest'
+ * of size 'maxDecompressedSize'.
+ * The function tries to stop decompressing operation as soon as
+ * 'targetOutputSize' has been reached, reducing decompression time.
+ * This function never writes outside of output buffer,
+ * and never reads outside of input buffer.
+ * It is therefore protected against malicious data packets.
+ *
+ * Return: the number of bytes decoded in the destination buffer
+ *	(necessarily <= maxDecompressedSize)
+ *	or a negative result in case of error
+ *
+ */
+static int LZ4_decompress_safe_partial(const char *source, char *dest,
+	int compressedSize, int targetOutputSize, int maxDecompressedSize);
+
 /*-************************************************************************
  *	LZ4 HC Compression
  **************************************************************************/
@@ -265,7 +341,7 @@ int LZ4_compress_HC(const char *src, char *dst, int srcSize, int dstCapacity,
  * Use this function to init an allocated `LZ4_streamHC_t` structure
  * and start a new compression.
  */
-void LZ4_resetStreamHC(LZ4_streamHC_t *streamHCPtr, int compressionLevel);
+static void LZ4_resetStreamHC(LZ4_streamHC_t *streamHCPtr, int compressionLevel);
 
 /**
  * LZ4_loadDictHC() - Load a static dictionary into LZ4_streamHC
@@ -280,7 +356,7 @@ void LZ4_resetStreamHC(LZ4_streamHC_t *streamHCPtr, int compressionLevel);
  *
  * Return : dictionary size, in bytes (necessarily <= 64 KB)
  */
-int	LZ4_loadDictHC(LZ4_streamHC_t *streamHCPtr, const char *dictionary,
+static int	LZ4_loadDictHC(LZ4_streamHC_t *streamHCPtr, const char *dictionary,
 	int dictSize);
 
 /**
@@ -319,7 +395,7 @@ int	LZ4_loadDictHC(LZ4_streamHC_t *streamHCPtr, const char *dictionary,
  *
  * Return: Number of bytes written into buffer 'dst'  or 0 if compression fails
  */
-int LZ4_compress_HC_continue(LZ4_streamHC_t *streamHCPtr, const char *src,
+static int LZ4_compress_HC_continue(LZ4_streamHC_t *streamHCPtr, const char *src,
 	char *dst, int srcSize, int maxDstSize);
 
 /**
@@ -338,7 +414,7 @@ int LZ4_compress_HC_continue(LZ4_streamHC_t *streamHCPtr, const char *src,
  * Return : saved dictionary size in bytes (necessarily <= maxDictSize),
  *	or 0 if error.
  */
-int LZ4_saveDictHC(LZ4_streamHC_t *streamHCPtr, char *safeBuffer,
+static int LZ4_saveDictHC(LZ4_streamHC_t *streamHCPtr, char *safeBuffer,
 	int maxDictSize);
 
 /*-*********************************************
@@ -354,7 +430,7 @@ int LZ4_saveDictHC(LZ4_streamHC_t *streamHCPtr, char *safeBuffer,
  * Use this function to init an allocated `LZ4_stream_t` structure
  * and start a new compression.
  */
-void LZ4_resetStream(LZ4_stream_t *LZ4_stream);
+static __always_inline void LZ4_resetStream(LZ4_stream_t *LZ4_stream);
 
 /**
  * LZ4_loadDict() - Load a static dictionary into LZ4_stream
@@ -411,7 +487,7 @@ int LZ4_saveDict(LZ4_stream_t *streamPtr, char *safeBuffer, int dictSize);
  *
  * Return: Number of bytes written into buffer 'dst'  or 0 if compression fails
  */
-int LZ4_compress_fast_continue(LZ4_stream_t *streamPtr, const char *src,
+static int LZ4_compress_fast_continue(LZ4_stream_t *streamPtr, const char *src,
 	char *dst, int srcSize, int maxDstSize, int acceleration);
 
 /**
@@ -425,7 +501,7 @@ int LZ4_compress_fast_continue(LZ4_stream_t *streamPtr, const char *src,
  *
  * Return: 1 if OK, 0 if error
  */
-int LZ4_setStreamDecode(LZ4_streamDecode_t *LZ4_streamDecode,
+static int LZ4_setStreamDecode(LZ4_streamDecode_t *LZ4_streamDecode,
 	const char *dictionary, int dictSize);
 
 /**
@@ -464,7 +540,7 @@ int LZ4_setStreamDecode(LZ4_streamDecode_t *LZ4_streamDecode,
  *	(necessarily <= maxDecompressedSize)
  *	or a negative result in case of error
  */
-int LZ4_decompress_safe_continue(LZ4_streamDecode_t *LZ4_streamDecode,
+static int LZ4_decompress_safe_continue(LZ4_streamDecode_t *LZ4_streamDecode,
 	const char *source, char *dest, int compressedSize,
 	int maxDecompressedSize);
 
@@ -503,7 +579,7 @@ int LZ4_decompress_safe_continue(LZ4_streamDecode_t *LZ4_streamDecode,
  *	(necessarily <= maxDecompressedSize)
  *	or a negative result in case of error
  */
-int LZ4_decompress_fast_continue(LZ4_streamDecode_t *LZ4_streamDecode,
+static int LZ4_decompress_fast_continue(LZ4_streamDecode_t *LZ4_streamDecode,
 	const char *source, char *dest, int originalSize);
 
 /**
@@ -526,7 +602,7 @@ int LZ4_decompress_fast_continue(LZ4_streamDecode_t *LZ4_streamDecode,
  *	(necessarily <= maxDecompressedSize)
  *	or a negative result in case of error
  */
-int LZ4_decompress_safe_usingDict(const char *source, char *dest,
+static int LZ4_decompress_safe_usingDict(const char *source, char *dest,
 	int compressedSize, int maxDecompressedSize, const char *dictStart,
 	int dictSize);
 
@@ -549,7 +625,7 @@ int LZ4_decompress_safe_usingDict(const char *source, char *dest,
  *	(necessarily <= maxDecompressedSize)
  *	or a negative result in case of error
  */
-int LZ4_decompress_fast_usingDict(const char *source, char *dest,
+static int LZ4_decompress_fast_usingDict(const char *source, char *dest,
 	int originalSize, const char *dictStart, int dictSize);
 
 #endif
