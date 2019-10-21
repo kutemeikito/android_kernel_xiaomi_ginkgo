@@ -338,6 +338,10 @@ struct cpufreq_governor *cpufreq_default_governor(void)
 {
 	return &CPU_FREQ_GOV_CONSERVATIVE;
 }
+
+core_initcall(cpufreq_gov_dbs_init);
+#else
+module_init(cpufreq_gov_dbs_init);
 #endif
 
 cpufreq_governor_init(CPU_FREQ_GOV_CONSERVATIVE);

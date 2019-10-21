@@ -886,4 +886,8 @@ struct cpufreq_governor *cpufreq_default_governor(void)
 }
 #endif
 
-cpufreq_governor_init(schedutil_gov);
+static int __init sugov_register(void)
+{
+	return cpufreq_register_governor(&schedutil_gov);
+}
+core_initcall(sugov_register);
