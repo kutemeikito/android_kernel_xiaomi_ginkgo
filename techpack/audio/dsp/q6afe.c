@@ -437,7 +437,11 @@ static int32_t sp_make_afe_callback(uint32_t opcode, uint32_t *payload,
 		data_dest = (u32*) this_afe.dsm_payload;
 		break;
 	case AFE_PARAM_ID_CALIB:
+#ifdef CONFIG_MACH_XIAOMI_C3J
+		expected_size = 76;
+#else
 		expected_size += sizeof(uint32_t) * 14;
+#endif
 		data_dest = (u32*) this_afe.dsm_payload;
 		break;
 #endif

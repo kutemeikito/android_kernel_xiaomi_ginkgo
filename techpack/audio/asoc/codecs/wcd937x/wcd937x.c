@@ -128,7 +128,11 @@ static int wcd937x_init_reg(struct snd_soc_codec *codec)
 	snd_soc_update_bits(codec, WCD937X_ANA_BIAS, 0x40, 0x40);
 	usleep_range(10000, 10010);
 	snd_soc_update_bits(codec, WCD937X_ANA_BIAS, 0x40, 0x00);
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	snd_soc_update_bits(codec, WCD937X_HPH_OCP_CTL, 0xFF, 0x7A);
+#else
 	snd_soc_update_bits(codec, WCD937X_HPH_OCP_CTL, 0xFF, 0x3A);
+#endif
 	snd_soc_update_bits(codec, WCD937X_RX_OCP_CTL, 0x0F, 0x02);
 	snd_soc_update_bits(codec, WCD937X_HPH_SURGE_HPHLR_SURGE_EN, 0xFF,
 			    0xD9);
@@ -1510,6 +1514,9 @@ static int __wcd937x_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		wcd937x_micbias_control(codec, micb_num, MICB_ENABLE, true);
+#ifdef CONFIG_MACH_XIAOMI_C3J
+		usleep_range(10000, 11000); //add 10ms delay
+#endif
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		usleep_range(1000, 1100);

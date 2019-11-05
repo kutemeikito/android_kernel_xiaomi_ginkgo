@@ -135,12 +135,20 @@ int max98937_reg_common_map[][2] = {
 	{MAX98937_PCM_Rx_Enables_B, 0x00},
 	{MAX98937_PCM_Tx_DOUT_Control_2, 0x03},
 	{MAX98937_PCM_Tx_HiZ_Control_B, 0xFF},
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	{MAX98937_Measurement_enables, 0x03},
+#else
 	{MAX98937_Measurement_enables, 0x00},
+#endif
 	{MAX98937_PDM_Rx_Enable,  0x00},
 	{MAX98937_AMP_volume_control,  0x38},
 	{MAX98937_AMP_DSP_Config,  0x0f},
 	{MAX98937_Speaker_Gain,  0x55},
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	{MAX98937_SSM_Configuration,  0xA0},
+#else
 	{MAX98937_SSM_Configuration,  0x85},
+#endif
 	{MAX98937_Boost_Control_0, 0x1c},
 	{MAX98937_Boost_Control_1, 0x40},
 	{MAX98937_Meas_ADC_Base_Divide_MSByte, 0x00},
@@ -156,7 +164,9 @@ int max98937_reg_common_map[][2] = {
 	{MAX98937_Boost_Bypass_1, 0x45},
 	{MAX98937_Boost_Bypass_2, 0x2B},
 	{MAX98937_Boost_Bypass_3, 0x04},
+#ifndef CONFIG_MACH_XIAOMI_C3J
 	{MAX98937_AMP_enables, 0x80},
+#endif
 };
 
 int max98927_reg_channel_map[][7][2] = {
@@ -569,6 +579,19 @@ struct param_info {
 
 //MULTIPLE = 3.33,  rdc/(1<<27) * MULTIPLE = [min, max] ohm
 //
+#ifdef CONFIG_MACH_XIAOMI_C3J
+//Speaker DC resistance is 6.8 +/-15% (5.4 --> 8.2)
+//1<<27 is 134217728, for example: 5.4 / 3.33 * 134217728 = 217650370
+#define SPEAKER_RDC_MIN  (217650370)  // 5.4 / 3.33 * (1<<27)
+#define SPEAKER_RDC_MAX  (330506117)  // 8.2 / 3.33 * (1<<27)
+#define SPEAKER_RDC_DEFAULT (274078243)  // 6.8 / 3.33 * 134217728
+
+//Receiver DC resistance is 6.8 +/-15% (5.4 --> 8.2)
+//1<<27 is 134217728, for example: 5.4 / 3.33 * 134217728 = 217650370
+#define EAR_RDC_MIN  (201528120)  // 5 / 3.33 * (1<<27)
+#define EAR_RDC_MAX  (362750616)  // 9 / 3.33 * (1<<27)
+#define EAR_RDC_DEFAULT (274078243)  // 6.8 / 3.33 * 134217728
+#else
 //Speaker DC resistance is 6.8 +/-15% (5.4 --> 8.5)
 //1<<27 is 134217728, for example: 5.4 / 3.33 * 134217728 = 217650370
 #define SPEAKER_RDC_MIN  (217650370)  // 5.4 / 3.33 * (1<<27)
@@ -580,6 +603,7 @@ struct param_info {
 #define EAR_RDC_MIN  (217650370)  // 5.4 / 3.33 * (1<<27)
 #define EAR_RDC_MAX  (342597804)  // 8.5 / 3.33 * (1<<27)
 #define EAR_RDC_DEFAULT (274078243)  // 6.8 / 3.33 * 134217728
+#endif
 
 /*
 // Receiver DC resistance is 29, range from 25 to 34
@@ -620,7 +644,7 @@ static inline bool max98927_get_calib_status (int ch) {
 static inline bool max98927_can_use_dsm(struct max989xx_priv *max98927)
 {
 	if (!max98927 || max98927->rcv_mix_mode || max98927->factory_test || !max98927->dsm_enable) {
-		//dev_dbg(max98927->dev, "%s: can not use dsm\n", __func__);
+		dev_dbg(max98927->dev, "%s: can not use dsm\n", __func__);
 		return false;
 	} else {
 		dev_dbg(max98927->dev, "%s: can use dsm\n", __func__);
@@ -710,9 +734,13 @@ static struct miscdevice dsm_ctrl_miscdev = {
 
 /* max. length of a alsa mixer control name */
 #define MAX_CONTROL_NAME        48
-//bug431523,zhanghao1,20190319,add for audio mmitest
+#ifdef CONFIG_MACH_XIAOMI_C3J
+#define CALIBRATE_FILE_L   "/mnt/vendor/persist/spkr_calib_l.bin"
+#define CALIBRATE_FILE_R   "/mnt/vendor/persist/spkr_calib_r.bin"
+#else
 #define CALIBRATE_FILE_L   "/mnt/vendor/persist/audio/spkr_calib_l.bin"
 #define CALIBRATE_FILE_R   "/mnt/vendor/persist/audio/spkr_calib_r.bin"
+#endif
 #define SPK_MUTE_VALUE   (0xCACACACA)
 
 /*static uint32_t max98927_get_default_impedance(int ch)
@@ -769,6 +797,7 @@ static int max989xx_calib_get(uint32_t* calib_value, int ch)
 	return found;
 }
 
+#ifdef CONFIG_KERNEL_CUSTOM_FACTORY
 static int max989xx_calib_save (uint32_t calib_value, int ch)
 {
 	struct file *pfile = NULL;
@@ -804,6 +833,7 @@ static int max989xx_calib_save (uint32_t calib_value, int ch)
 
 	return ret;
 }
+#endif
 
 static inline bool rdc_check_valid(uint32_t rdc, int ch)
 {
@@ -858,15 +888,10 @@ static ssize_t max989xx_dbgfs_calibrate_read(struct file *file,
 			max98927_set_calib_status(true, MAX98927L);
 
 		max98927->ref_RDC[0] = impedance_l;
-		if (max989xx_calib_save(impedance_l, MAX98927L)){
+#ifdef CONFIG_KERNEL_CUSTOM_FACTORY
+		if (max989xx_calib_save(impedance_l, MAX98927L))
 			max98927_set_calib_status(false, MAX98927L);
-			*payload = SPK_MUTE_VALUE;
-            max98927->ref_RDC[0] = SPK_MUTE_VALUE;
-            pr_info("%s: calibrate failed to save the file [impedance_l]=%d \n", __func__, impedance_l);
-            ret = -EIO;
-			goto exit;
-        }
-
+#endif
 		if (max98927->mono_stereo == 3) {
 			if (!rdc_check_valid(impedance_r, MAX98927R)) {
 				impedance_r = SPK_MUTE_VALUE;   //calibration failed specail code
@@ -876,15 +901,12 @@ static ssize_t max989xx_dbgfs_calibrate_read(struct file *file,
 				max98927_set_calib_status(true, MAX98927R);
 
 			max98927->ref_RDC[1] = impedance_r;
-			if (max989xx_calib_save(impedance_r, MAX98927R)){
+#ifdef CONFIG_KERNEL_CUSTOM_FACTORY
+			if (max989xx_calib_save(impedance_r, MAX98927R))
 				max98927_set_calib_status(false, MAX98927R);
-				*(payload+1) = SPK_MUTE_VALUE;
-                max98927->ref_RDC[1] = SPK_MUTE_VALUE;
-                pr_info("%s: calibrate failed to save the file [impedance_r]=%d \n", __func__, impedance_r);
-                ret = -EIO;
-				goto exit;
-			}
+#endif
 		}
+
 		afe_dsm_set_calib((uint8_t *)(payload));
 	} else {
 		max98927_set_calib_status(false, MAX98927R);
@@ -909,11 +931,19 @@ static ssize_t max989xx_dbgfs_calibrate_read(struct file *file,
 		ret += snprintf(str+ret, PAGE_SIZE, "%d\n", impedance_r);
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret);
+#else
 	ret = simple_read_from_buffer(user_buf, count, ppos, str, ret + 1);
+#endif
 	kfree(str);
 
-	afe_dsm_post_calib((uint8_t* )payload);
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	if (calib_status.l_calib_stat == false)
+		ret = -EIO;
+#endif
 exit:
+	afe_dsm_post_calib((uint8_t* )payload);
 	mutex_unlock(&dsm_lock);
 	return ret;
 }
@@ -1067,25 +1097,6 @@ static ssize_t max989xx_dbgfs_status_read(struct file *file,
 	return simple_read_from_buffer(user_buf, count, ppos, kbuf, n+1);
 }
 
-//bug 487235 zhanghao1 20190917 Add Use different boardID loading different audio parameters begin
-static ssize_t max989xx_dbgfs_boardid_read(struct file *file,
-					  char __user *user_buf, size_t count,
-					  loff_t *ppos)
-{
-
-	char str[64] = {0};
-	int ret = 9;
-	char *board_str = NULL;
-
-	board_str = strstr(saved_command_line, "board_id");
-	if (board_str != NULL) {
-		strncpy(str, board_str+9,ret);
-	}
-	pr_err("board_str str is %s\n",str);
-	return copy_to_user(user_buf, str, ret);
-}
-//bug 487235 zhanghao1 20190917 Add Use different boardID loading different audio parameters end
-
 static const struct file_operations max989xx_dbgfs_impedance_fops = {
 	.open = simple_open,
 	.read = max989xx_dbgfs_impedance_read,
@@ -1109,13 +1120,6 @@ static const struct file_operations max989xx_dbgfs_status_fops = {
 	.read = max989xx_dbgfs_status_read,
 };
 
-//bug 487235 zhanghao1 20190917 Add Use different boardID loading different audio parameters begin
-static const struct file_operations max989xx_dbgfs_boardid_fops = {
-	.open = simple_open,
-	.read = max989xx_dbgfs_boardid_read,
-};
-//bug 487235 zhanghao1 20190917 Add Use different boardID loading different audio parameters end
-
 static void max989xx_debug_init(struct max989xx_priv *max98927, struct i2c_client *i2c)
 {
 	char name[60];
@@ -1132,10 +1136,6 @@ static void max989xx_debug_init(struct max989xx_priv *max98927, struct i2c_clien
 		i2c, &max989xx_dbgfs_temperature_fops);
 	debugfs_create_file("status", S_IRUGO, max98927->dbg_dir,
 						i2c, &max989xx_dbgfs_status_fops);
-	//bug 487235 zhanghao1 20190917 Add Use different boardID loading different audio parameters begin
-	debugfs_create_file("boardid", S_IRUGO, max98927->dbg_dir,
-						i2c, &max989xx_dbgfs_boardid_fops);
-	//bug 487235 zhanghao1 20190917 Add Use different boardID loading different audio parameters end
 }
 
 static void max989xx_debug_remove(struct max989xx_priv *max98927)
@@ -1426,11 +1426,11 @@ static int max98927_dai_hw_params(struct snd_pcm_substream *substream,
 						break;
 					case 24:
 						/* regmap_update_bits(max98927->regmap[i], */
-                                /* pcm_mode_config, */
+								/* pcm_mode_config, */
 								/* MAX98927_PCM_Mode_Config_PCM_CHANSZ_Mask, */
 								/* MAX98927_PCM_Mode_Config_PCM_CHANSZ_24); */
 						/* max98927->ch_size = 24; */
-						break;
+						/* break; */
 					case 32:
 						regmap_update_bits(max98927->regmap[i],
 								pcm_mode_config,
@@ -1533,6 +1533,26 @@ static int max98927_dai_set_sysclk(struct snd_soc_dai *dai,
 	return 0;
 }
 
+
+#ifdef CONFIG_MACH_XIAOMI_C3J
+static int max98927_regmap_write(struct regmap *map, unsigned int reg, unsigned int val)
+{
+    int i;
+    int rc;
+
+    for (i = 0; i < 5; i++) {
+        rc = regmap_write(map, reg, val);
+        if (!rc) {
+            break;
+        }
+        pr_err("%s: reg:0x%x, val: 0x%x, retry(%d), rc = %d\n", __func__, reg, val, i+1, rc);
+        msleep(5);
+    }
+
+    return rc;
+}
+#endif
+
 static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int stream)
 {
 	struct snd_soc_codec *codec = codec_dai->codec;
@@ -1588,6 +1608,11 @@ static int max98927_stream_mute(struct snd_soc_dai *codec_dai, int mute, int str
 					}
 					regmap_update_bits(max98927->regmap[i], amp_enable, 1, 1);
 					regmap_update_bits(max98927->regmap[i], global_enable, 1, 1);
+#ifdef CONFIG_MACH_XIAOMI_C3J
+					max98927_regmap_write(max98927->regmap[i], 0x0600, 0x54);
+					max98927_regmap_write(max98927->regmap[i], 0x0600, 0x4D);
+					max98927_regmap_write(max98927->regmap[i], 0x030d, 0x40);
+#endif
 				}
 			}
 
@@ -3021,6 +3046,7 @@ static int max98927_i2c_probe(struct i2c_client *i2c,
 #endif
 		}
 	} else {
+		gpio_free(max98927->reset_gpio_l);
 		pr_err("max98927 detection failed at %s - %x. \n", i2c->name, i2c->addr);
 	}
 
