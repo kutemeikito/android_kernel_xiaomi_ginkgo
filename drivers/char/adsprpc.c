@@ -377,7 +377,7 @@ struct fastrpc_file {
 	int pd;
 	char *spdname;
 	int file_close;
-	int dsp_process_init;
+	int dsp_proc_init;
 	struct fastrpc_apps *apps;
 	struct hlist_head perf;
 	struct dentry *debugfs_file;
@@ -1195,6 +1195,8 @@ static int context_alloc(struct fastrpc_file *fl, uint32_t kernel,
 						bufs * sizeof(*ctx->fds));
 		if (err)
 			goto bail;
+	} else {
+		ctx->fds = NULL;
 	}
 	if (invokefd->attrs) {
 		K_COPY_FROM_USER(err, kernel, ctx->attrs, invokefd->attrs,
@@ -1440,7 +1442,7 @@ static int get_args(uint32_t kernel, struct smq_invoke_ctx *ctx)
 		size_t len = lpra[i].buf.len;
 
 		mutex_lock(&ctx->fl->map_mutex);
-		if (ctx->fds[i] && (ctx->fds[i] != -1))
+		if (ctx->fds && (ctx->fds[i] != -1))
 			fastrpc_mmap_create(ctx->fl, ctx->fds[i],
 					ctx->attrs[i], buf, len,
 					mflags, &ctx->maps[i]);
@@ -1897,12 +1899,13 @@ static int fastrpc_internal_invoke(struct fastrpc_file *fl, uint32_t mode,
 		}
 	}
 
-	VERIFY(err, fl->sctx != NULL);
-	if (err)
+	VERIFY(err, fl->cid >= 0 && fl->cid < NUM_CHANNELS && fl->sctx != NULL);
+	if (err) {
+		pr_err("adsprpc: ERROR: %s: user application %s domain is not set\n",
+			__func__, current->comm);
+		err = -EBADR;
 		goto bail;
-	VERIFY(err, fl->cid >= 0 && fl->cid < NUM_CHANNELS);
-	if (err)
-		goto bail;
+	}
 
 	if (!kernel) {
 		VERIFY(err, 0 == context_restore_interrupted(fl, inv,
@@ -2108,11 +2111,11 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 		inbuf.pageslen = 1;
 		ra[0].buf.pv = (void *)&inbuf;
 		ra[0].buf.len = sizeof(inbuf);
-		fds[0] = 0;
+		fds[0] = -1;
 
 		ra[1].buf.pv = (void *)current->comm;
 		ra[1].buf.len = inbuf.namelen;
-		fds[1] = 0;
+		fds[1] = -1;
 
 		ra[2].buf.pv = (void *)init->file;
 		ra[2].buf.len = inbuf.filelen;
@@ -2122,17 +2125,17 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 		pages[0].size = imem->size;
 		ra[3].buf.pv = (void *)pages;
 		ra[3].buf.len = 1 * sizeof(*pages);
-		fds[3] = 0;
+		fds[3] = -1;
 
 		inbuf.attrs = uproc->attrs;
 		ra[4].buf.pv = (void *)&(inbuf.attrs);
 		ra[4].buf.len = sizeof(inbuf.attrs);
-		fds[4] = 0;
+		fds[4] = -1;
 
 		inbuf.siglen = uproc->siglen;
 		ra[5].buf.pv = (void *)&(inbuf.siglen);
 		ra[5].buf.len = sizeof(inbuf.siglen);
-		fds[5] = 0;
+		fds[5] = -1;
 
 		ioctl.inv.handle = FASTRPC_STATIC_HANDLE_KERNEL;
 		ioctl.inv.sc = REMOTE_SCALARS_MAKE(6, 4, 0);
@@ -2211,18 +2214,18 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 
 		ra[0].buf.pv = (void *)&inbuf;
 		ra[0].buf.len = sizeof(inbuf);
-		fds[0] = 0;
+		fds[0] = -1;
 
 		ra[1].buf.pv = (void *)proc_name;
 		ra[1].buf.len = inbuf.namelen;
-		fds[1] = 0;
+		fds[1] = -1;
 
 		pages[0].addr = phys;
 		pages[0].size = size;
 
 		ra[2].buf.pv = (void *)pages;
 		ra[2].buf.len = sizeof(*pages);
-		fds[2] = 0;
+		fds[2] = -1;
 		ioctl.inv.handle = FASTRPC_STATIC_HANDLE_KERNEL;
 
 		ioctl.inv.sc = REMOTE_SCALARS_MAKE(8, 3, 0);
@@ -2238,7 +2241,7 @@ static int fastrpc_init_process(struct fastrpc_file *fl,
 		err = -ENOTTY;
 		goto bail;
 	}
-	fl->dsp_process_init = 1;
+	fl->dsp_proc_init = 1;
 bail:
 	kfree(proc_name);
 	if (err && (init->flags == FASTRPC_INIT_CREATE_STATIC))
@@ -2298,7 +2301,7 @@ static int fastrpc_release_current_dsp_process(struct fastrpc_file *fl)
 	ioctl.crc = NULL;
 	VERIFY(err, 0 == (err = fastrpc_internal_invoke(fl,
 		FASTRPC_MODE_PARALLEL, 1, &ioctl)));
-	if (err && fl->dsp_process_init)
+	if (err && fl->dsp_proc_init)
 		pr_err("adsprpc: %s: releasing DSP process failed for %s, returned 0x%x",
 					__func__, current->comm, err);
 bail:
@@ -2589,6 +2592,13 @@ static int fastrpc_internal_munmap(struct fastrpc_file *fl,
 	struct fastrpc_buf *rbuf = NULL, *free = NULL;
 	struct hlist_node *n;
 
+	VERIFY(err, fl->dsp_proc_init == 1);
+	if (err) {
+		pr_err("adsprpc: ERROR: %s: user application %s trying to unmap without initialization\n",
+			 __func__, current->comm);
+		err = -EBADR;
+		goto bail;
+	}
 	mutex_lock(&fl->internal_map_mutex);
 
 	spin_lock(&fl->hlock);
@@ -2644,6 +2654,13 @@ static int fastrpc_internal_munmap_fd(struct fastrpc_file *fl,
 	VERIFY(err, (fl && ud));
 	if (err)
 		goto bail;
+	VERIFY(err, fl->dsp_proc_init == 1);
+	if (err) {
+		pr_err("adsprpc: ERROR: %s: user application %s trying to unmap without initialization\n",
+			__func__, current->comm);
+		err = -EBADR;
+		goto bail;
+	}
 	mutex_lock(&fl->map_mutex);
 	if (fastrpc_mmap_find(fl, ud->fd, ud->va, ud->len, 0, 0, &map)) {
 		pr_err("adsprpc: mapping not found to unmap fd 0x%x, va 0x%llx, len 0x%x\n",
@@ -2670,6 +2687,13 @@ static int fastrpc_internal_mmap(struct fastrpc_file *fl,
 	uintptr_t raddr = 0;
 	int err = 0;
 
+	VERIFY(err, fl->dsp_proc_init == 1);
+	if (err) {
+		pr_err("adsprpc: ERROR: %s: user application %s trying to map without initialization\n",
+			__func__, current->comm);
+		err = -EBADR;
+		goto bail;
+	}
 	mutex_lock(&fl->internal_map_mutex);
 	if (ud->flags == ADSP_MMAP_ADD_PAGES) {
 		if (ud->vaddrin) {
@@ -3200,13 +3224,14 @@ static int fastrpc_channel_open(struct fastrpc_file *fl)
 	int cid, err = 0;
 
 
-	VERIFY(err, fl && fl->sctx);
-	if (err)
+	VERIFY(err, fl && fl->sctx && fl->cid >= 0 && fl->cid < NUM_CHANNELS);
+	if (err) {
+		pr_err("adsprpc: ERROR: %s: user application %s domain is not set\n",
+			__func__, current->comm);
+		err = -EBADR;
 		return err;
+	}
 	cid = fl->cid;
-	VERIFY(err, cid >= 0 && cid < NUM_CHANNELS);
-	if (err)
-		return err;
 
 	mutex_lock(&me->channel[cid].rpmsg_mutex);
 	VERIFY(err, NULL != me->channel[cid].rpdev);
@@ -3303,7 +3328,7 @@ static int fastrpc_device_open(struct inode *inode, struct file *filp)
 		fl->debugfs_file = debugfs_file;
 	memset(&fl->perf, 0, sizeof(fl->perf));
 	fl->qos_request = 0;
-	fl->dsp_process_init = 0;
+	fl->dsp_proc_init = 0;
 	filp->private_data = fl;
 	mutex_init(&fl->internal_map_mutex);
 	mutex_init(&fl->map_mutex);
