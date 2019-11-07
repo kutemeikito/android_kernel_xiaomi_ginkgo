@@ -1460,11 +1460,11 @@ static void update_history(struct cpuidle_device *dev, int idx)
 		else
 			history->hptr--;
 
-		history->resi[history->hptr] += dev->last_residency;
+		history->resi[history->hptr] += dev->last_residency_ns;
 		history->htmr_wkup = 0;
 		tmr = 1;
 	} else
-		history->resi[history->hptr] = dev->last_residency;
+		history->resi[history->hptr] = dev->last_residency_ns;
 
 	history->mode[history->hptr] = idx;
 
@@ -1505,7 +1505,7 @@ exit:
 
 	cluster_unprepare(cpu->parent, cpumask, idx, true, end_time, success);
 	cpu_unprepare(cpu, idx, true);
-	dev->last_residency = ktime_us_delta(ktime_get(), start);
+	dev->last_residency_ns = ktime_us_delta(ktime_get(), start);
 	update_history(dev, idx);
 	trace_cpu_idle_exit(idx, success);
 	if (lpm_prediction && cpu->lpm_prediction) {
