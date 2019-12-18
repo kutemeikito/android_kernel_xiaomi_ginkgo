@@ -1583,25 +1583,7 @@ static void hdd_fill_station_info(struct hdd_adapter *adapter,
 		  stainfo->tx_mcs_map);
 }
 
-/**
- * hdd_stop_sap_due_to_invalid_channel() - to stop sap in case of invalid chnl
- * @work: pointer to work structure
- *
- * Let's say SAP detected RADAR and trying to select the new channel and if no
- * valid channel is found due to none of the channels are available or
- * regulatory restriction then SAP needs to be stopped. so SAP state-machine
- * will create a work to stop the bss
- *
- * stop bss has to happen through worker thread because radar indication comes
- * from FW through mc thread or main host thread and if same thread is used to
- * do stopbss then waiting for stopbss to finish operation will halt mc thread
- * to freeze which will trigger stopbss timeout. Instead worker thread can do
- * the stopbss operation while mc thread waits for stopbss to finish.
- *
- * Return: none
- */
-static void
-hdd_stop_sap_due_to_invalid_channel(struct work_struct *work)
+void hdd_stop_sap_due_to_invalid_channel(struct work_struct *work)
 {
 	/*
 	 * Extract the adapter from work structure. sap_stop_bss_work
@@ -1801,6 +1783,9 @@ QDF_STATUS hdd_hostapd_sap_event_cb(tpSap_Event pSapEvent,
 			goto stopbss;
 		}
 		wlansap_get_dfs_ignore_cac(mac_handle, &ignoreCAC);
+		if (!policy_mgr_get_dfs_master_dynamic_enabled(
+				hdd_ctx->psoc, adapter->session_id))
+			ignoreCAC = true;
 
 		/* DFS requirement: DO NOT transmit during CAC. */
 		if (CHANNEL_STATE_DFS !=
@@ -2218,26 +2203,13 @@ QDF_STATUS hdd_hostapd_sap_event_cb(tpSap_Event pSapEvent,
 			QDF_TRACE_DEFAULT_PDEV_ID,
 			QDF_PROTO_TYPE_MGMT, QDF_PROTO_MGMT_ASSOC));
 
-#ifdef MSM_PLATFORM
 		/* start timer in sap/p2p_go */
 		if (ap_ctx->ap_active == false) {
-			spin_lock_bh(&hdd_ctx->bus_bw_lock);
-			adapter->prev_tx_packets =
-				adapter->stats.tx_packets;
-			adapter->prev_rx_packets =
-				adapter->stats.rx_packets;
-
-			cdp_get_intra_bss_fwd_pkts_count(
-				cds_get_context(QDF_MODULE_ID_SOC),
-				adapter->session_id,
-				&adapter->prev_fwd_tx_packets,
-				&adapter->prev_fwd_rx_packets);
-
-			spin_unlock_bh(&hdd_ctx->bus_bw_lock);
+			hdd_bus_bw_compute_prev_txrx_stats(adapter);
 			hdd_bus_bw_compute_timer_start(hdd_ctx);
 		}
-#endif
 		ap_ctx->ap_active = true;
+
 #ifdef FEATURE_WLAN_AUTO_SHUTDOWN
 		wlan_hdd_auto_shutdown_enable(hdd_ctx, false);
 #endif
@@ -2405,18 +2377,13 @@ QDF_STATUS hdd_hostapd_sap_event_cb(tpSap_Event pSapEvent,
 						NULL,
 						adapter->device_mode);
 		}
-#ifdef MSM_PLATFORM
+
 		/*stop timer in sap/p2p_go */
 		if (ap_ctx->ap_active == false) {
-			spin_lock_bh(&hdd_ctx->bus_bw_lock);
-			adapter->prev_tx_packets = 0;
-			adapter->prev_rx_packets = 0;
-			adapter->prev_fwd_tx_packets = 0;
-			adapter->prev_fwd_rx_packets = 0;
-			spin_unlock_bh(&hdd_ctx->bus_bw_lock);
+			hdd_bus_bw_compute_reset_prev_txrx_stats(adapter);
 			hdd_bus_bw_compute_timer_try_stop(hdd_ctx);
 		}
-#endif
+
 		hdd_green_ap_del_sta(hdd_ctx);
 		break;
 
@@ -2604,8 +2571,6 @@ QDF_STATUS hdd_hostapd_sap_event_cb(tpSap_Event pSapEvent,
 	case eSAP_STOP_BSS_DUE_TO_NO_CHNL:
 		hdd_debug("Stop sap session[%d]",
 			  adapter->session_id);
-		INIT_WORK(&adapter->sap_stop_bss_work,
-			  hdd_stop_sap_due_to_invalid_channel);
 		schedule_work(&adapter->sap_stop_bss_work);
 		return QDF_STATUS_SUCCESS;
 
@@ -8061,10 +8026,7 @@ int wlan_hdd_cfg80211_start_bss(struct hdd_adapter *adapter,
 			goto error;
 		}
 
-		if (iniConfig->ignoreCAC ||
-		    ((iniConfig->WlanMccToSccSwitchMode !=
-		    QDF_MCC_TO_SCC_SWITCH_DISABLE) &&
-		    iniConfig->sta_sap_scc_on_dfs_chan))
+		if (iniConfig->ignoreCAC)
 			ignore_cac = 1;
 
 		wlansap_set_dfs_ignore_cac(mac_handle, ignore_cac);
@@ -8693,6 +8655,7 @@ static int __wlan_hdd_cfg80211_stop_ap(struct wiphy *wiphy,
 
 			if (!QDF_IS_STATUS_SUCCESS(qdf_status)) {
 				hdd_err("qdf wait for single_event failed!!");
+				hdd_sap_indicate_disconnect_for_sta(adapter);
 				QDF_ASSERT(0);
 			}
 		}
@@ -8991,11 +8954,14 @@ static int __wlan_hdd_cfg80211_start_ap(struct wiphy *wiphy,
 	/* if sta_sap_scc_on_dfs_chan ini is set, DFS master capability is
 	 * assumed disabled in the driver.
 	 */
-	if ((reg_get_channel_state(hdd_ctx->pdev, channel) ==
-	     CHANNEL_STATE_DFS) && sta_sap_scc_on_dfs_chan && !sta_cnt) {
-		hdd_err("SAP not allowed on DFS channel!!");
+	if ((wlan_reg_get_channel_state(hdd_ctx->pdev, channel) ==
+	     CHANNEL_STATE_DFS) && !sta_cnt && sta_sap_scc_on_dfs_chan &&
+	     !policy_mgr_get_dfs_master_dynamic_enabled(
+				hdd_ctx->psoc, adapter->session_id)) {
+		hdd_err("SAP not allowed on DFS channel if no dfs master capability!!");
 		return -EINVAL;
 	}
+
 	if (!reg_is_etsi13_srd_chan_allowed_master_mode(hdd_ctx->pdev) &&
 	     reg_is_etsi13_srd_chan(hdd_ctx->pdev, channel)) {
 		hdd_err("SAP not allowed on SRD channel.");
@@ -9343,8 +9309,10 @@ void hdd_sap_indicate_disconnect_for_sta(struct hdd_adapter *adapter)
 				 adapter);
 
 			if (qdf_is_macaddr_broadcast(
-				&adapter->sta_info[sta_id].sta_mac))
+				&adapter->sta_info[sta_id].sta_mac)) {
+				hdd_softap_deregister_sta(adapter, sta_id);
 				continue;
+			}
 
 			sap_event.sapHddEventCode = eSAP_STA_DISASSOC_EVENT;
 			qdf_mem_copy(

@@ -1135,7 +1135,7 @@ struct wma_valid_channels {
 typedef struct {
 	void *wmi_handle;
 	void *cds_context;
-	void *mac_context;
+	tAniSirGlobal *mac_context;
 	struct wlan_objmgr_psoc *psoc;
 	struct wlan_objmgr_pdev *pdev;
 	qdf_event_t wma_resume_event;
@@ -2187,6 +2187,18 @@ QDF_STATUS wma_vdev_get_cfg_int(int cfg_id, int *value)
 }
 
 /**
+ * wma_handle_roam_sync_timeout() - Update roaming status at wma layer
+ * @wma_handle: wma handle
+ * @info: Info for roaming start timer
+ *
+ * This function gets called in case of roaming offload timer get expired
+ *
+ * Return: None
+ */
+void wma_handle_roam_sync_timeout(tp_wma_handle wma_handle,
+				  struct roam_sync_timeout_timer_info *info);
+
+/**
  * wma_vdev_get_dtim_period - Get dtim period value from mlme
  * @vdev_id: vdev index number
  * @value: pointer to the value to fill out
@@ -2553,4 +2565,17 @@ void wma_check_and_set_wake_timer(uint32_t time);
  */
 void wma_force_objmgr_vdev_peer_cleanup(tp_wma_handle wma, uint8_t vdev_id);
 
+#ifdef FEATURE_ANI_LEVEL_REQUEST
+/**
+ * wma_send_ani_level_request() - Send get ani level cmd to WMI
+ * @wma_handle: wma handle.
+ * @freqs: pointer to channels for which ANI level has to be retrieved
+ * @num_freqs: number of channels in the above parameter
+ *
+ * Return: QDF_STATUS
+ */
+QDF_STATUS wma_send_ani_level_request(tp_wma_handle wma_handle,
+				      uint32_t *freqs, uint8_t num_freqs);
+#endif /* FEATURE_ANI_LEVEL_REQUEST */
 #endif
+

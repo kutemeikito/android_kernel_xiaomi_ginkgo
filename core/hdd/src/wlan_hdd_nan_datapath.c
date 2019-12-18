@@ -36,6 +36,7 @@
 #include "os_if_nan.h"
 #include "wlan_nan_api.h"
 #include "nan_public_structs.h"
+#include <cdp_txrx_misc.h>
 
 /**
  * hdd_ndp_print_ini_config()- Print nan datapath specific INI configuration
@@ -689,6 +690,12 @@ void hdd_ndi_drv_ndi_create_rsp_handler(uint8_t vdev_id,
 		wlan_hdd_netif_queue_control(adapter,
 					WLAN_START_ALL_NETIF_QUEUE_N_CARRIER,
 					WLAN_CONTROL_PATH);
+
+		sme_cli_set_command(vdev_id,
+				    WMI_VDEV_PARAM_NDP_INACTIVITY_TIMEOUT,
+				    hdd_ctx->config->ndp_inactivity_timeout,
+				    VDEV_CMD);
+
 	} else {
 		hdd_alert("NDI interface creation failed with reason %d",
 			ndi_rsp->reason /* create_reason */);
@@ -829,6 +836,8 @@ int hdd_ndp_new_peer_handler(uint8_t vdev_id, uint16_t sta_id,
 	/* perform following steps for first new peer ind */
 	if (fist_peer) {
 		hdd_info("Set ctx connection state to connected");
+		hdd_bus_bw_compute_prev_txrx_stats(adapter);
+		hdd_bus_bw_compute_timer_start(hdd_ctx);
 		sta_ctx->conn_info.connState = eConnectionState_NdiConnected;
 		hdd_wmm_connect(adapter, &roam_info, eCSR_BSS_TYPE_NDI);
 		wlan_hdd_netif_queue_control(adapter,
@@ -837,7 +846,6 @@ int hdd_ndp_new_peer_handler(uint8_t vdev_id, uint16_t sta_id,
 	hdd_exit();
 	return 0;
 }
-
 
 /**
  * hdd_ndp_peer_departed_handler() - Handle NDP peer departed indication
@@ -890,6 +898,8 @@ void hdd_ndp_peer_departed_handler(uint8_t vdev_id, uint16_t sta_id,
 		hdd_info("Stop netif tx queues.");
 		wlan_hdd_netif_queue_control(adapter, WLAN_STOP_ALL_NETIF_QUEUE,
 					     WLAN_CONTROL_PATH);
+		hdd_bus_bw_compute_reset_prev_txrx_stats(adapter);
+		hdd_bus_bw_compute_timer_try_stop(hdd_ctx);
 	}
 
 	hdd_exit();
