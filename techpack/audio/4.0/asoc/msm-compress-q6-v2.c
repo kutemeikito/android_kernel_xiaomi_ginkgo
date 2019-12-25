@@ -395,8 +395,8 @@ static int msm_compr_set_volume(struct snd_compr_stream *cstream,
 		gain_list[0] = volume_l;
 		gain_list[1] = volume_r;
 		gain_list[2] = volume_l;
-		num_channels = 3;
-		use_default = true;
+		if (use_default)
+			num_channels = 3;
 		rc = q6asm_set_multich_gain(prtd->audio_client, num_channels,
 					gain_list, chmap, use_default);
 	}
@@ -1755,6 +1755,10 @@ static int msm_compr_capture_open(struct snd_compr_stream *cstream)
 	enum apr_subsys_state subsys_state;
 
 	pr_debug("%s\n", __func__);
+	if (!pdata) {
+		pr_err("%s: pdata is NULL\n", __func__);
+		return -EINVAL;
+	}
 
 	subsys_state = apr_get_subsys_state();
 	if (subsys_state == APR_SUBSYS_DOWN) {
@@ -1762,7 +1766,7 @@ static int msm_compr_capture_open(struct snd_compr_stream *cstream)
 		return -ENETRESET;
 	}
 	prtd = kzalloc(sizeof(struct msm_compr_audio), GFP_KERNEL);
-	if (prtd == NULL) {
+	if (!prtd) {
 		pr_err("Failed to allocate memory for msm_compr_audio\n");
 		return -ENOMEM;
 	}
@@ -2301,7 +2305,7 @@ static int msm_compr_trigger(struct snd_compr_stream *cstream, int cmd)
 	struct snd_soc_pcm_runtime *rtd = cstream->private_data;
 	struct msm_compr_pdata *pdata =
 			snd_soc_platform_get_drvdata(rtd->platform);
-	uint32_t *volume = pdata->volume[rtd->dai_link->id];
+	uint32_t *volume = NULL;
 	struct audio_client *ac = prtd->audio_client;
 	unsigned long fe_id = rtd->dai_link->id;
 	int rc = 0;
@@ -2310,6 +2314,12 @@ static int msm_compr_trigger(struct snd_compr_stream *cstream, int cmd)
 	int stream_id;
 	uint32_t stream_index;
 	uint16_t bits_per_sample = 16;
+
+	if (!pdata) {
+		pr_err("%s: pdata is NULL\n", __func__);
+		return -EINVAL;
+	}
+	volume = pdata->volume[rtd->dai_link->id];
 
 	spin_lock_irqsave(&prtd->lock, flags);
 	if (atomic_read(&prtd->error)) {
@@ -3632,8 +3642,7 @@ static int msm_compr_dec_params_put(struct snd_kcontrol *kcontrol,
 	if (fe_id >= MSM_FRONTEND_DAI_MAX) {
 		pr_err("%s Received out of bounds fe_id %lu\n",
 			__func__, fe_id);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 
 	cstream = pdata->cstream[fe_id];
@@ -3641,14 +3650,12 @@ static int msm_compr_dec_params_put(struct snd_kcontrol *kcontrol,
 
 	if (!cstream || !dec_params) {
 		pr_err("%s: stream or dec_params inactive\n", __func__);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 	prtd = cstream->runtime->private_data;
 	if (!prtd) {
 		pr_err("%s: cannot set dec_params\n", __func__);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 
 	mutex_lock(&pdata->lock);
@@ -3905,22 +3912,19 @@ static int msm_compr_adsp_stream_cmd_put(struct snd_kcontrol *kcontrol,
 	if (fe_id >= MSM_FRONTEND_DAI_MAX) {
 		pr_err("%s Received invalid fe_id %lu\n",
 			__func__, fe_id);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	cstream = pdata->cstream[fe_id];
 	if (cstream == NULL) {
 		pr_err("%s cstream is null\n", __func__);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	prtd = cstream->runtime->private_data;
 	if (!prtd) {
 		pr_err("%s: prtd is null\n", __func__);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	mutex_lock(&pdata->lock);
@@ -3971,22 +3975,19 @@ static int msm_compr_ion_fd_map_put(struct snd_kcontrol *kcontrol,
 	if (fe_id >= MSM_FRONTEND_DAI_MAX) {
 		pr_err("%s Received out of bounds invalid fe_id %lu\n",
 			__func__, fe_id);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	cstream = pdata->cstream[fe_id];
 	if (cstream == NULL) {
 		pr_err("%s cstream is null\n", __func__);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	prtd = cstream->runtime->private_data;
 	if (!prtd) {
 		pr_err("%s: prtd is null\n", __func__);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	mutex_lock(&pdata->lock);
@@ -4020,8 +4021,7 @@ static int msm_compr_rtic_event_ack_put(struct snd_kcontrol *kcontrol,
 	if (fe_id >= MSM_FRONTEND_DAI_MAX) {
 		pr_err("%s Received invalid fe_id %lu\n",
 			__func__, fe_id);
-		ret = -EINVAL;
-		goto done;
+		return -EINVAL;
 	}
 
 	mutex_lock(&pdata->lock);

@@ -375,10 +375,10 @@ void q6lsm_client_free(struct lsm_client *client)
 		return;
 	}
 	apr_deregister(client->apr);
+	q6lsm_mmap_apr_dereg();
 	client->mmap_apr = NULL;
 	mutex_lock(&session_lock);
 	q6lsm_session_free(client);
-	q6lsm_mmap_apr_dereg();
 	mutex_destroy(&client->cmd_lock);
 	kfree(client);
 	client = NULL;
@@ -1973,7 +1973,7 @@ int q6lsm_snd_model_buf_alloc(struct lsm_client *client, size_t len,
 	size_t total_mem = 0;
 	struct lsm_sound_model *sm = NULL;
 
-	if (!client || len <= LSM_ALIGN_BOUNDARY)
+	if (!client)
 		return rc;
 
 	pr_debug("%s:Snd Model len = %zd, stage idx %d\n",
