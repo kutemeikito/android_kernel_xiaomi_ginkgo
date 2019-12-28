@@ -1,0 +1,9 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: najahi/oven:latest
+    steps:
+      - checkout
+      - run: wget https://github.com/rama982/scripts/raw/master/build_on_docker.sh
+      - run: bash build_on_docker.sh
