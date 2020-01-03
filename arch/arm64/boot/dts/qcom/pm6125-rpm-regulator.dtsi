@@ -323,13 +323,14 @@
 		qcom,regulator-type = <0>;
 		qcom,regulator-hw-type = "pmic5-ldo";
 		qcom,hpm-min-load = <10000>;
-		status = "disabled";
+		status = "okay";
 
 		regulator-l14 {
 			compatible = "qcom,rpm-smd-regulator";
 			regulator-name = "pm6125_l14";
 			qcom,set = <3>;
-			status = "disabled";
+			status = "okay";
+			regulator-always-on;
 		};
 	};
 
