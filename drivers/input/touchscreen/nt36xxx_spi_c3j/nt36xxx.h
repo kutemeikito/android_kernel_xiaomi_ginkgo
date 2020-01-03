@@ -120,8 +120,8 @@ extern const uint16_t gesture_key_array[];
 //enable tp grip area feature
 #define LCT_TP_GRIP_AREA_EN 1
 
-//enable tp usb plugin feature
-#define NVT_USB_PLUGIN 1
+//disable tp usb plugin feature
+#define NVT_USB_PLUGIN 0
 
 #if NVT_USB_PLUGIN
 typedef struct touchscreen_usb_plugin_data {
