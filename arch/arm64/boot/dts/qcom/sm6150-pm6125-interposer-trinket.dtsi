@@ -78,6 +78,10 @@
 		/delete-property/ thermal-sensors;
 	};
 
+	backlight_therm {
+		/delete-property/ thermal-sensors;
+	};
+
 	rf_pa0_therm-therm {
 		/delete-property/ thermal-sensors;
 	};
@@ -445,7 +449,7 @@
 
 &pm6125_vadc {
 	pinctrl-names = "default";
-	pinctrl-0 = <&camera_therm_default &emmc_therm_default>;
+	pinctrl-0 = <&camera_therm_default &emmc_therm_default &backlight_therm_default>;
 
 	rf_pa0_therm {
 		reg = <ADC_AMUX_THM1_PU2>;
@@ -478,6 +482,14 @@
 		qcom,hw-settle-time = <200>;
 		qcom,pre-scaling = <1 1>;
 	};
+
+	backlight_therm {
+		reg = <ADC_GPIO4_PU2>;
+		label = "backlight_therm";
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+	};
 };
 
 &pm6125_gpios {
@@ -494,6 +506,13 @@
 			bias-high-impedance;
 		};
 	};
+
+	backlight_therm {
+		backlight_therm_default: backlight_therm_default {
+			pins = "gpio7";
+			bias-high-impedance;
+		};
+	};
 };
 
 &spmi_bus {
@@ -503,7 +522,8 @@
 			reg = <0x3400 0x100>;
 			#thermal-sensor-cells = <1>;
 			io-channels = <&pm6125_vadc ADC_GPIO1_PU2>,
-					<&pm6125_vadc ADC_GPIO3_PU2>;
+					<&pm6125_vadc ADC_GPIO3_PU2>,
+					<&pm6125_vadc ADC_GPIO4_PU2>;
 
 			emmc_ufs_therm {
 				reg = <ADC_GPIO1_PU2>;
@@ -513,6 +533,12 @@
 
 			camera_flash_therm {
 				reg = <ADC_GPIO3_PU2>;
+				qcom,ratiometric;
+				qcom,hw-settle-time = <200>;
+			};
+
+			backlight_therm {
+				reg = <ADC_GPIO4_PU2>;
 				qcom,ratiometric;
 				qcom,hw-settle-time = <200>;
 			};
@@ -554,15 +580,15 @@
 	};
 
 	bat_therm {
-		qcom,lut-index = <1>;
+		qcom,lut-index = <0>;
 	};
 
 	bat_therm_30k {
-		qcom,lut-index = <1>;
+		qcom,lut-index = <0>;
 	};
 
 	bat_therm_400k {
-		qcom,lut-index = <1>;
+		qcom,lut-index = <0>;
 	};
 
 	conn_therm {
@@ -630,6 +656,7 @@
 	/delete-node/ conn-therm;
 	/delete-node/ xo-therm;
 	/delete-node/ emmc_ufs-therm;
+	/delete-node/ backlight_therm;
 	/delete-node/ rf_pa0_therm-therm;
 	/delete-node/ camera_flash-therm;
 	/delete-node/ quiet-therm;
@@ -709,6 +736,13 @@
 		polling-delay = <5000>;
 		thermal-governor = "user_space";
 		thermal-sensors = <&pm6125_adc_tm_iio ADC_GPIO1_PU2>;
+	};
+
+	backlight_therm {
+		polling-delay-passive = <0>;
+		polling-delay = <5000>;
+		thermal-governor = "user_space";
+		thermal-sensors = <&pm6125_adc_tm_iio ADC_GPIO4_PU2>;
 	};
 
 	camera-ftherm-adc {

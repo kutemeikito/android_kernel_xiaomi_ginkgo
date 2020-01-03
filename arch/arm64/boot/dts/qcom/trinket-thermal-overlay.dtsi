@@ -322,18 +322,6 @@
 					<&CPU5 (THERMAL_MAX_LIMIT-5)
 						(THERMAL_MAX_LIMIT-5)>;
 			};
-			soc_cpu6 {
-				trip = <&pmi632_low_soc>;
-				cooling-device =
-					<&CPU6 THERMAL_MAX_LIMIT
-						THERMAL_MAX_LIMIT>;
-			};
-			soc_cpu7 {
-				trip = <&pmi632_low_soc>;
-				cooling-device =
-					<&CPU7 THERMAL_MAX_LIMIT
-						THERMAL_MAX_LIMIT>;
-			};
 		};
 	};
 };
