@@ -1659,7 +1659,6 @@ static long do_io_submit(aio_context_t ctx_id, long nr,
 	struct kioctx *ctx;
 	long ret = 0;
 	int i = 0;
-	struct blk_plug plug;
 
 	if (unlikely(nr < 0))
 		return -EINVAL;
@@ -1676,7 +1675,6 @@ static long do_io_submit(aio_context_t ctx_id, long nr,
 		return -EINVAL;
 	}
 
-	blk_start_plug(&plug);
 
 	/*
 	 * AKPM: should this return a partial result if some of the IOs were
@@ -1700,7 +1698,6 @@ static long do_io_submit(aio_context_t ctx_id, long nr,
 		if (ret)
 			break;
 	}
-	blk_finish_plug(&plug);
 
 	percpu_ref_put(&ctx->users);
 	return i ? i : ret;
