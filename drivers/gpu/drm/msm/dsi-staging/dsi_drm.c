@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -47,6 +46,7 @@ struct dsi_bridge *gbridge;
 static struct delayed_work prim_panel_work;
 static atomic_t prim_panel_is_on;
 static struct wakeup_source prim_panel_wakelock;
+extern char g_lcd_id[128];
 
 static void convert_to_dsi_mode(const struct drm_display_mode *drm_mode,
 				struct dsi_display_mode *dsi_mode)
@@ -357,17 +357,17 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 		atomic_set(&prim_panel_is_on, false);
 }
 
-#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J)
 extern int nvt_ts_recovery_callback(void);
-#endif
 
 static void prim_panel_off_delayed_work(struct work_struct *work)
 {
 	mutex_lock(&gbridge->base.lock);
 	if (atomic_read(&prim_panel_is_on)) {
-#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J)
-		nvt_ts_recovery_callback();
-#endif
+		if (strstr(g_lcd_id, "huaxing") != NULL) {
+			pr_err("My name is huaxing\n");
+		} else {
+			nvt_ts_recovery_callback();
+		}
 		dsi_bridge_post_disable(&gbridge->base);
 		__pm_relax(&prim_panel_wakelock);
 		mutex_unlock(&gbridge->base.lock);

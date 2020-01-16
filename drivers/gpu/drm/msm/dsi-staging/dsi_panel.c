@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -350,7 +349,6 @@ int dsi_panel_trigger_esd_attack(struct dsi_panel *panel)
 	return -EINVAL;
 }
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
 typedef int (*lct_tp_reset_enable_cb_t)(bool en);
 static lct_tp_reset_enable_cb_t lct_tp_reset_enable_cb_p = NULL;
 void set_tp_reset_gpio_callback(lct_tp_reset_enable_cb_t p_callback)
@@ -358,7 +356,6 @@ void set_tp_reset_gpio_callback(lct_tp_reset_enable_cb_t p_callback)
 	lct_tp_reset_enable_cb_p = p_callback;
 }
 EXPORT_SYMBOL(set_tp_reset_gpio_callback);
-#endif
 
 static int dsi_panel_reset(struct dsi_panel *panel)
 {
@@ -384,7 +381,6 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 		}
 	}
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
 	if (strstr(g_lcd_id, "huaxing") != NULL) {
 
 		if (!IS_ERR_OR_NULL(lct_tp_reset_enable_cb_p)) {
@@ -421,18 +417,6 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 						(r_config->sequence[i].sleep_ms * 1000) + 100);
 		}
 	}
-#else
-	for (i = 0; i < r_config->count; i++) {
-		gpio_set_value(r_config->reset_gpio,
-			       r_config->sequence[i].level);
-
-		pr_err("[NVT-ts] lcd-reset_gpio = %d\n", r_config->sequence[i].level);
-
-		if (r_config->sequence[i].sleep_ms)
-			usleep_range(r_config->sequence[i].sleep_ms * 1000,
-				(r_config->sequence[i].sleep_ms * 1000) + 100);
-	}
-#endif
 
 	if (gpio_is_valid(panel->bl_config.en_gpio)) {
 		rc = gpio_direction_output(panel->bl_config.en_gpio, 1);
@@ -524,14 +508,12 @@ exit:
 	return rc;
 }
 
-#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_XIAOMI_C3X)
 static bool lcd_reset_keep_high = false;
 void set_lcd_reset_gpio_keep_high(bool en)
 {
 	lcd_reset_keep_high = en;
 }
 EXPORT_SYMBOL(set_lcd_reset_gpio_keep_high);
-#endif
 
 static int dsi_panel_power_off(struct dsi_panel *panel)
 {
@@ -540,17 +522,9 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
-	if (gpio_is_valid(panel->reset_config.reset_gpio)) {
-#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_XIAOMI_C3X)
-		if (lcd_reset_keep_high)
-			pr_warn("%s: lcd-reset-gpio keep high\n", __func__);
-		else {
+	if (!lcd_reset_keep_high) {
+		if (gpio_is_valid(panel->reset_config.reset_gpio))
 			gpio_set_value(panel->reset_config.reset_gpio, 0);
-			pr_err("[NVT-ts] lcd-reset_gpio = 0\n");
-		}
-#else
-		gpio_set_value(panel->reset_config.reset_gpio, 0);
-#endif
 	}
 
 	if (gpio_is_valid(panel->reset_config.lcd_mode_sel_gpio))
