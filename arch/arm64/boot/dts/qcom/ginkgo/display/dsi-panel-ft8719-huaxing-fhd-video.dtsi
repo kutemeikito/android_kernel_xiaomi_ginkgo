@@ -42,6 +42,7 @@
 		qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_dcs";
 		qcom,mdss-dsi-bl-min-level = <1>;
 		qcom,mdss-dsi-bl-max-level = <4095>;
+		qcom,mdss-brightness-max-level = <4095>;
 		qcom,mdss-dsi-reset-sequence = <1 10>, <0 10>, <1 10>;
 		qcom,mdss-pan-physical-width-dimension = <67>;
 		qcom,mdss-pan-physical-height-dimension = <145>;
@@ -118,16 +119,10 @@
 				qcom,mdss-dsi-cabc-off-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-cabc_movie-on-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-cabc_still-on-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-hbm1-on-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-hbm2-on-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-hbm3-on-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-hbm-off-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
-				qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-panel-status-check-mode = "reg_read";
-				qcom,mdss-dsi-panel-status-read-length = <1>;
-				qcom,mdss-dsi-panel-status-value = <0x9c>;
-				qcom,mdss-dsi-panel-max-error-count = <3>;
+		        qcom,mdss-dsi-hbm1-on-command-state = "dsi_hs_mode";
+		        qcom,mdss-dsi-hbm2-on-command-state = "dsi_hs_mode";
+		        qcom,mdss-dsi-hbm3-on-command-state = "dsi_hs_mode";
+		        qcom,mdss-dsi-hbm-off-command-state = "dsi_hs_mode";
 			};
 		};
 	};
