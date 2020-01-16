@@ -135,7 +135,7 @@
 		qcom,dsi-panel = <&dsi_nt36672a_tianma_video>;
 	};
 
-	dsi_td4330_truly_vid_display: qcom,dsi-display@0 {
+	dsi_td4330_truly_vid_display: qcom,dsi-display@4 {
 		label = "dsi_td4330_truly_vid_display";
 		qcom,display-type = "primary";
 
@@ -148,7 +148,7 @@
 		qcom,dsi-panel = <&dsi_td4330_truly_video>;
 	};
 
-	dsi_td4330_truly_cmd_display: qcom,dsi-display@1 {
+	dsi_td4330_truly_cmd_display: qcom,dsi-display@3 {
 		label = "dsi_td4330_truly_cmd_display";
 		qcom,display-type = "primary";
 
@@ -170,7 +170,7 @@
 		qcom,dsi-panel = <&dsi_sim_vid>;
 	};
 
-	dsi_hx83112a_truly_vid_display: qcom,dsi-display@3 {
+	dsi_hx83112a_truly_vid_display: qcom,dsi-display@1 {
 		label = "dsi_hx83112a_truly_vid_display";
 		qcom,display-type = "primary";
 
@@ -181,7 +181,7 @@
 		qcom,dsi-panel = <&dsi_hx83112a_truly_video>;
 	};
 
-	dsi_nt36672_truly_vid_display: qcom,dsi-display@4 {
+	dsi_nt36672_truly_vid_display: qcom,dsi-display@0 {
 		label = "dsi_nt36672_truly_vid_display";
 		qcom,display-type = "primary";
 
@@ -267,8 +267,37 @@
 };
 
 &dsi_nt36672a_shenchao_video {
+    qcom,mdss-dsi-t-clk-post = <0x0f>;
+	qcom,mdss-dsi-t-clk-pre = <0x37>;
+	qcom,esd-check-enabled;
+	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+	qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
+	qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
+	qcom,mdss-dsi-panel-status-value = <0x9c>;
+	qcom,mdss-dsi-panel-status-read-length = <1>;
+	qcom,mdss-dsi-display-timings {
+		timing@0{
+			qcom,mdss-dsi-panel-phy-timings =
+				[26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 21 09 0b 06 02 04 a0
+				26 20 0a 0b 06 02 04 a0];
+			qcom,display-topology = <1 0 1>;
+			qcom,default-topology-index = <0>;
+		};
+	};
+};
+
+&dsi_nt36672a_tianma_video {
 	qcom,mdss-dsi-t-clk-post = <0x0f>;
 	qcom,mdss-dsi-t-clk-pre = <0x37>;
+	qcom,esd-check-enabled;
+	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+	qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
+	qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
+	qcom,mdss-dsi-panel-status-value = <0x9c>;
+	qcom,mdss-dsi-panel-status-read-length = <1>;
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
@@ -285,8 +314,14 @@
 };
 
 &dsi_ft8719_huaxing_video {
-	qcom,mdss-dsi-t-clk-post = <0x0e>;
-	qcom,mdss-dsi-t-clk-pre = <0x34>;
+	qcom,mdss-dsi-t-clk-post = <0x0f>;
+	qcom,mdss-dsi-t-clk-pre = <0x37>;
+	qcom,esd-check-enabled;
+	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+	qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
+	qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
+	qcom,mdss-dsi-panel-status-value = <0x9c>;
+	qcom,mdss-dsi-panel-status-read-length = <1>;
 	qcom,mdss-dsi-display-timings {
 		timing@0{
 			qcom,mdss-dsi-panel-phy-timings =
@@ -295,24 +330,6 @@
 				26 21 09 0B 06 03 04 a0
 				26 21 09 0B 06 03 04 a0
 				26 20 0A 0B 06 03 04 a0];
-
-			qcom,display-topology = <1 0 1>;
-			qcom,default-topology-index = <0>;
-		};
-	};
-};
-
-&dsi_nt36672a_tianma_video {
-	qcom,mdss-dsi-t-clk-post = <0x0f>;
-	qcom,mdss-dsi-t-clk-pre = <0x37>;
-	qcom,mdss-dsi-display-timings {
-		timing@0{
-			qcom,mdss-dsi-panel-phy-timings =
-				[26 21 09 0b 06 02 04 a0
-				26 21 09 0b 06 02 04 a0
-				26 21 09 0b 06 02 04 a0
-				26 21 09 0b 06 02 04 a0
-				26 20 0a 0b 06 02 04 a0];
 
 			qcom,display-topology = <1 0 1>;
 			qcom,default-topology-index = <0>;

@@ -652,27 +652,21 @@ static int dsi_panel_wled_register(struct dsi_panel *panel,
 	bl->raw_bd = bd;
 	return 0;
 }
-/*
+
+extern int sgm_brightness_set(uint16_t brightness);
+
 static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
-	int rc = 0;
-	struct mipi_dsi_device *dsi;
-
 	if (!panel || (bl_lvl > 0xffff)) {
 		pr_err("invalid params\n");
 		return -EINVAL;
 	}
 
-	dsi = &panel->mipi_device;
-
-	rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
-	if (rc < 0)
-		pr_err("failed to update dcs backlight:%d\n", bl_lvl);
-
-	return rc;
+        sgm_brightness_set(bl_lvl);
+	return 0;
 }
-*/
+
 static int dsi_panel_update_pwm_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
@@ -724,20 +718,6 @@ error:
 	return rc;
 }
 
-extern int sgm_brightness_set(uint16_t brightness);
-static int dsi_panel_update_backlight_externel(struct dsi_panel *panel,
-	u32 bl_lvl)
-{
-
-	pr_err("backlight level :%d\n", bl_lvl);
-	if (!panel || (bl_lvl > 0xffff)) {
-		pr_err("invalid params\n");
-		return -EINVAL;
-	}
-
-	sgm_brightness_set(bl_lvl);
-	return 0;
-}
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
@@ -746,13 +726,13 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	if (panel->host_config.ext_bridge_num)
 		return 0;
 
-	pr_info("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
+	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
 	switch (bl->type) {
 	case DSI_BACKLIGHT_WLED:
 		rc = backlight_device_set_brightness(bl->raw_bd, bl_lvl);
 		break;
 	case DSI_BACKLIGHT_DCS:
-	//	rc = dsi_panel_update_backlight(panel, bl_lvl);
+		rc = dsi_panel_update_backlight(panel, bl_lvl);
 		break;
 	case DSI_BACKLIGHT_EXTERNAL:
 		break;
@@ -764,7 +744,6 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = -ENOTSUPP;
 	}
 
-	rc = dsi_panel_update_backlight_externel(panel, bl_lvl);
 	return rc;
 }
 
