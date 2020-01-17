@@ -913,7 +913,6 @@ static void sde_hw_ctl_setup_blendstage(struct sde_hw_ctl *ctx,
 	}
 
 exit:
-
 	SDE_REG_WRITE(c, CTL_LAYER(lm), mixercfg);
 	SDE_REG_WRITE(c, CTL_LAYER_EXT(lm), mixercfg_ext);
 	SDE_REG_WRITE(c, CTL_LAYER_EXT2(lm), mixercfg_ext2);

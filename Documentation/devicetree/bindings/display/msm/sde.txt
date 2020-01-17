@@ -446,8 +446,6 @@ Optional properties:
 				1: priority have to be explicitly configured for a given pair of pipes.
 - qcom,sde-num-mnoc-ports:	A u32 property to indicate the number of mnoc ports
 - qcom,sde-axi-bus-width:	A u32 property to indicate the axi bus width value in bytes
-- qcom,sde-mixer-stage-base-layer: A boolean property to indicate if a layer can be staged on base
-				stage instead of border fill
 - qcom,sde-limits:		A node that lists the limits for different properties. This node
 				can have multiple child nodes. Each child node represents a
 				specific usecase limit. The usecase can be defined for properties like
