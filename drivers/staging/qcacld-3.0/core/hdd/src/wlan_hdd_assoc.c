@@ -1071,8 +1071,9 @@ hdd_send_ft_assoc_response(struct net_device *dev,
 	unsigned int len = 0;
 	u8 *pFTAssocRsp = NULL;
 
-	if (pCsrRoamInfo->nAssocRspLength == 0) {
-		hdd_debug("assoc rsp length is 0");
+	if (pCsrRoamInfo->nAssocRspLength < FT_ASSOC_RSP_IES_OFFSET) {
+		hdd_debug("Invalid assoc rsp length %d",
+			  pCsrRoamInfo->nAssocRspLength);
 		return;
 	}
 
@@ -1089,15 +1090,20 @@ hdd_send_ft_assoc_response(struct net_device *dev,
 		   (unsigned int)pFTAssocRsp[0],
 		   (unsigned int)pFTAssocRsp[1]);
 
+	/* Send the Assoc Resp, the supplicant needs this for initial Auth. */
+	len = pCsrRoamInfo->nAssocRspLength - FT_ASSOC_RSP_IES_OFFSET;
+	if (len > IW_GENERIC_IE_MAX) {
+		hdd_err("Invalid Assoc resp length %d", len);
+		return;
+	}
+	wrqu.data.length = len;
+
 	/* We need to send the IEs to the supplicant. */
 	buff = qdf_mem_malloc(IW_GENERIC_IE_MAX);
 	if (buff == NULL) {
 		hdd_err("unable to allocate memory");
 		return;
 	}
-	/* Send the Assoc Resp, the supplicant needs this for initial Auth. */
-	len = pCsrRoamInfo->nAssocRspLength - FT_ASSOC_RSP_IES_OFFSET;
-	wrqu.data.length = len;
 	memcpy(buff, pFTAssocRsp, len);
 	wireless_send_event(dev, IWEVASSOCRESPIE, &wrqu, buff);
 
@@ -1775,6 +1781,8 @@ static QDF_STATUS hdd_dis_connect_handler(struct hdd_adapter *adapter,
 		 * by kernel
 		 */
 		if (sendDisconInd) {
+			int reason = WLAN_REASON_UNSPECIFIED;
+
 			if (roam_info && roam_info->disconnect_ies) {
 				disconnect_ies.data =
 					roam_info->disconnect_ies->data;
@@ -1785,28 +1793,21 @@ static QDF_STATUS hdd_dis_connect_handler(struct hdd_adapter *adapter,
 			 * To avoid wpa_supplicant sending "HANGED" CMD
 			 * to ICS UI.
 			 */
-			if (eCSR_ROAM_LOSTLINK == roamStatus) {
-				if (roam_info->reasonCode ==
+			if (roam_info && eCSR_ROAM_LOSTLINK == roamStatus) {
+				reason = roam_info->reasonCode;
+				if (reason ==
 				    eSIR_MAC_PEER_STA_REQ_LEAVING_BSS_REASON)
 					pr_info("wlan: disconnected due to poor signal, rssi is %d dB\n",
 						roam_info->rxRssi);
-				wlan_hdd_cfg80211_indicate_disconnect(
-							dev, false,
-							roam_info->reasonCode,
-							disconnect_ies.data,
-							disconnect_ies.len);
-			} else {
-				wlan_hdd_cfg80211_indicate_disconnect(
-							dev, false,
-							WLAN_REASON_UNSPECIFIED,
-							disconnect_ies.data,
-							disconnect_ies.len);
 			}
+			wlan_hdd_cfg80211_indicate_disconnect(
+							dev, false,
+							reason,
+							disconnect_ies.data,
+							disconnect_ies.len);
 
 			hdd_debug("sent disconnected event to nl80211, reason code %d",
-				(eCSR_ROAM_LOSTLINK == roamStatus) ?
-				roam_info->reasonCode :
-				WLAN_REASON_UNSPECIFIED);
+				  reason);
 		}
 
 		/* update P2P connection status */
@@ -1815,18 +1816,19 @@ static QDF_STATUS hdd_dis_connect_handler(struct hdd_adapter *adapter,
 
 	hdd_wmm_adapter_clear(adapter);
 	mac_handle = hdd_ctx->mac_handle;
+
 	sme_ft_reset(mac_handle, adapter->session_id);
 	sme_reset_key(mac_handle, adapter->session_id);
-	if (!hdd_remove_beacon_filter(adapter)) {
-		if (sme_is_beacon_report_started(mac_handle,
-						 adapter->session_id)) {
-			hdd_beacon_recv_pause_indication((hdd_handle_t)hdd_ctx,
-							 adapter->session_id,
-							 SCAN_EVENT_TYPE_MAX,
-							 true);
-		}
-	}
 
+	if (hdd_remove_beacon_filter(adapter))
+		hdd_err("hdd_remove_beacon_filter() failed");
+
+	if (sme_is_beacon_report_started(mac_handle, adapter->session_id)) {
+		hdd_debug("Sending beacon pause indication to userspace");
+		hdd_beacon_recv_pause_indication((hdd_handle_t)hdd_ctx,
+						 adapter->session_id,
+						 SCAN_EVENT_TYPE_MAX, true);
+	}
 	if (eCSR_ROAM_IBSS_LEAVE == roamStatus) {
 		uint8_t i;
 
@@ -1892,11 +1894,13 @@ static QDF_STATUS hdd_dis_connect_handler(struct hdd_adapter *adapter,
 	* eConnectionState_Connecting state mean that connection is in
 	* progress so no need to set state to eConnectionState_NotConnected
 	*/
-	if ((eConnectionState_Connecting != sta_ctx->conn_info.connState)) {
+	if (eConnectionState_Connecting != sta_ctx->conn_info.connState)
 		 hdd_conn_set_connection_state(adapter,
 					       eConnectionState_NotConnected);
-		 hdd_set_roaming_in_progress(false);
-	}
+
+	/* Clear roaming in progress flag */
+	hdd_set_roaming_in_progress(false);
+
 	pmo_ucfg_flush_gtk_offload_req(adapter->vdev);
 
 	if ((QDF_STA_MODE == adapter->device_mode) ||

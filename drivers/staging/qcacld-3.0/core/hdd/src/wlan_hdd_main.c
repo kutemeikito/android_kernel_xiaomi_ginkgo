@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -71,6 +71,9 @@
 #include <linux/semaphore.h>
 #include <linux/ctype.h>
 #include <linux/compat.h>
+#ifdef WLAN_FEATURE_ETHTOOL
+#include <linux/ethtool.h>
+#endif
 #ifdef MSM_PLATFORM
 #include <soc/qcom/subsystem_restart.h>
 #endif
@@ -3072,6 +3075,10 @@ int hdd_wlan_start_modules(struct hdd_context *hdd_ctx, bool reinit)
 			cds_set_rx_thread_cpu_mask(
 				hdd_ctx->config->rx_thread_affinity_mask);
 
+		if (hdd_ctx->config->rx_thread_ul_affinity_mask)
+			cds_set_rx_thread_ul_cpu_mask(
+				hdd_ctx->config->rx_thread_ul_affinity_mask);
+
 		/* initialize components configurations after psoc open */
 		ret = hdd_update_components_config(hdd_ctx);
 		if (ret) {
@@ -3924,6 +3931,44 @@ static void hdd_set_multicast_list(struct net_device *dev)
 	cds_ssr_protect(__func__);
 	__hdd_set_multicast_list(dev);
 	cds_ssr_unprotect(__func__);
+}
+#endif
+
+#ifdef WLAN_FEATURE_ETHTOOL
+static int hdd_ethtool_get_ts_info(struct net_device *dev,
+	struct ethtool_ts_info *info)
+{
+	info->so_timestamping =
+		SOF_TIMESTAMPING_RX_SOFTWARE |
+		SOF_TIMESTAMPING_SOFTWARE |
+		SOF_TIMESTAMPING_TX_SOFTWARE |
+		SOF_TIMESTAMPING_TX_HARDWARE |
+		SOF_TIMESTAMPING_RX_HARDWARE |
+		SOF_TIMESTAMPING_RAW_HARDWARE;
+	/* phc index is required only if ptp clock supported */
+	info->phc_index =  -1;
+	info->tx_types =
+		(1 << HWTSTAMP_TX_OFF) |
+		(1 << HWTSTAMP_TX_ON);
+	info->rx_filters =
+		(1 << HWTSTAMP_FILTER_NONE) |
+		(1 << HWTSTAMP_FILTER_ALL);
+
+	return 0;
+}
+
+static const struct ethtool_ops ethtool_drv_ops = {
+	.get_drvinfo = cfg80211_get_drvinfo,
+	.get_ts_info = hdd_ethtool_get_ts_info,
+};
+
+static void hdd_set_ethtool_ops(struct net_device *dev)
+{
+	dev->ethtool_ops = &ethtool_drv_ops;
+}
+#else
+static void hdd_set_ethtool_ops(struct net_device *dev)
+{
 }
 #endif
 
@@ -5536,6 +5581,7 @@ struct hdd_adapter *hdd_open_adapter(struct hdd_context *hdd_ctx, uint8_t sessio
 	if (adapter->device_mode == QDF_STA_MODE)
 		wlan_hdd_debugfs_csr_init(adapter);
 
+	hdd_set_ethtool_ops(adapter->dev);
 	return adapter;
 
 err_free_netdev:
@@ -6759,9 +6805,26 @@ int wlan_hdd_set_mon_chan(struct hdd_adapter *adapter, uint32_t chan,
 	struct qdf_mac_addr bssid;
 	struct csr_roam_profile roam_profile;
 	struct ch_params ch_params;
+	enum phy_ch_width ch_width;
+	uint8_t max_fw_bw;
 
 	if (QDF_GLOBAL_MONITOR_MODE != hdd_get_conparam()) {
 		hdd_err("Not supported, device is not in monitor mode");
+		return -EINVAL;
+	}
+
+	/* Verify the BW before accepting this request */
+	ch_width = bandwidth;
+
+	max_fw_bw = sme_get_vht_ch_width();
+
+	hdd_debug("max fw BW %d ch width %d", max_fw_bw, ch_width);
+	if ((ch_width == CH_WIDTH_160MHZ &&
+	    max_fw_bw <= WNI_CFG_VHT_CHANNEL_WIDTH_80MHZ) ||
+	    (ch_width == CH_WIDTH_80P80MHZ &&
+	    max_fw_bw <= WNI_CFG_VHT_CHANNEL_WIDTH_160MHZ)) {
+		hdd_err("FW does not support this BW %d max BW supported %d",
+			ch_width, max_fw_bw);
 		return -EINVAL;
 	}
 
@@ -8249,6 +8312,17 @@ static void hdd_pld_request_bus_bandwidth(struct hdd_context *hdd_ctx,
 			}
 			if (hdd_ctx->dynamic_rps)
 				hdd_set_rps_cpu_mask(hdd_ctx);
+		}
+
+		if (hdd_ctx->config->rx_thread_ul_affinity_mask) {
+			if (next_vote_level == PLD_BUS_WIDTH_HIGH &&
+			    (tx_packets >
+			    hdd_ctx->config->busBandwidthHighThreshold) &&
+			    (rx_packets >
+			    hdd_ctx->config->busBandwidthLowThreshold))
+				cds_sched_handle_rx_thread_affinity_req(true);
+			else if (next_vote_level != PLD_BUS_WIDTH_HIGH)
+				cds_sched_handle_rx_thread_affinity_req(false);
 		}
 
 		if (hdd_ctx->config->napi_cpu_affinity_mask)
@@ -11092,6 +11166,7 @@ static int hdd_set_ani_enabled(struct hdd_context *hdd_ctx)
 static int hdd_pre_enable_configure(struct hdd_context *hdd_ctx)
 {
 	int ret;
+	uint8_t max_retry = 0;
 	QDF_STATUS status;
 	void *soc = cds_get_context(QDF_MODULE_ID_SOC);
 
@@ -11130,6 +11205,14 @@ static int hdd_pre_enable_configure(struct hdd_context *hdd_ctx)
 				  PDEV_CMD);
 	if (0 != ret) {
 		hdd_err("WMI_PDEV_PARAM_TX_CHAIN_MASK_1SS failed %d", ret);
+		goto out;
+	}
+
+	max_retry = hdd_ctx->config->mgmt_retry_max;
+	ret = sme_cli_set_command(0, WMI_PDEV_PARAM_MGMT_RETRY_LIMIT, max_retry,
+				  PDEV_CMD);
+	if (0 != ret) {
+		hdd_err("WMI_PDEV_PARAM_MGMT_RETRY_LIMIT failed %d", ret);
 		goto out;
 	}
 
@@ -12575,6 +12658,8 @@ int hdd_register_cb(struct hdd_context *hdd_ctx)
 	if (!QDF_IS_STATUS_SUCCESS(status))
 		hdd_err("Register tx queue callback failed");
 
+	sme_set_oem_data_event_handler_cb(mac_handle, hdd_oem_event_handler_cb);
+
 	hdd_exit();
 
 	return ret;
@@ -12601,6 +12686,9 @@ void hdd_deregister_cb(struct hdd_context *hdd_ctx)
 	}
 
 	mac_handle = hdd_ctx->mac_handle;
+
+	sme_reset_oem_data_event_handler_cb(mac_handle);
+
 	sme_deregister_tx_queue_cb(mac_handle);
 
 	sme_reset_link_layer_stats_ind_cb(mac_handle);
