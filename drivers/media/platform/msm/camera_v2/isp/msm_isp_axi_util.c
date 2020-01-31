@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -2137,6 +2138,10 @@ static int msm_isp_cfg_ping_pong_address(
 		buf = msm_isp_get_stream_buffer(vfe_dev, stream_info);
 
 	if (!buf) {
+		pr_debug("%s: vfe %d stream_id %x buffer not available frame %d\n",
+			 __func__, vfe_dev->pdev->id,
+			 stream_info->stream_id,
+			 vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id);
 		msm_isp_cfg_stream_scratch(stream_info, pingpong_status);
 		if (stream_info->controllable_output)
 			return 1;
@@ -4550,6 +4555,8 @@ void msm_isp_process_axi_irq_stream(struct vfe_device *vfe_dev,
 				stream_info->bufq_handle[
 				VFE_BUF_QUEUE_DEFAULT] & 0xFF]++;
 			vfe_dev->error_info.framedrop_flag = 1;
+			pr_debug("vfe %d stream %x frame %d drop frame\n",
+			vfe_dev->pdev->id, stream_info->stream_id, frame_id);
 			if (vfe_dev->is_split) {
 				other_vfe_id = OTHER_VFE(vfe_dev->pdev->id);
 				temp_dev =

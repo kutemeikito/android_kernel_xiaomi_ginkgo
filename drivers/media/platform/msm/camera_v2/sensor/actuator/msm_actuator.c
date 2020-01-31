@@ -1,4 +1,5 @@
 /* Copyright (c) 2011-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -844,6 +845,9 @@ static int32_t msm_actuator_park_lens(struct msm_actuator_ctrl_t *a_ctrl)
 		a_ctrl->park_lens.max_step = a_ctrl->max_code_size;
 
 	next_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
+	if (next_lens_pos > 100)
+		next_lens_pos = 100;
+
 	while (next_lens_pos) {
 		/* conditions which help to reduce park lens time */
 		if (next_lens_pos > (a_ctrl->park_lens.max_step *
