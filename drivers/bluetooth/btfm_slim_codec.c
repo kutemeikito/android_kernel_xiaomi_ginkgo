@@ -1,4 +1,5 @@
 /* Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -26,8 +27,42 @@
 #include <sound/tlv.h>
 #include "btfm_slim.h"
 
+#ifdef CONFIG_FM_INSIDE_LAN
+#include <sound/fm_lan.h>
+#endif
+
 static int bt_soc_enable_status;
 int btfm_feedback_ch_setting;
+
+#ifdef CONFIG_FM_INSIDE_LAN
+static int g_is_headset_on = false; /*headset plug state pass by audio driver*/
+static bool g_fm_state = false;
+#define wfj_debug pr_info("fm-inside-lan  %s:%d\n", __func__, __LINE__)
+
+void headset_status_change(bool status)
+{
+	if (gpio_is_valid(g_fm_lan_gpio)) {
+		if (!status) {
+			g_is_headset_on = false;
+			if (g_fm_state) {
+				fm_lan_power_set(1);
+				gpio_direction_output(g_fm_lan_gpio, 1);
+				BTFMSLIM_ERR("headset plug out so we need enable fm lan gpio97");
+			}
+		} else {
+			fm_lan_power_set(0);
+			gpio_direction_output(g_fm_lan_gpio, 0);
+			g_is_headset_on = true;
+			BTFMSLIM_ERR("headset plug in so we need disable fm lan gpio97");
+		}
+	} else {
+		BTFMSLIM_ERR("fm lan gpio97 is invalid");
+	}
+
+	return;
+}
+EXPORT_SYMBOL(headset_status_change);
+#endif
 
 static int btfm_slim_codec_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
@@ -119,6 +154,14 @@ static void btfm_slim_dai_shutdown(struct snd_pcm_substream *substream,
 		grp = true; nchan = 2;
 		ch = btfmslim->tx_chs;
 		rxport = 0;
+#ifdef CONFIG_FM_INSIDE_LAN
+		g_fm_state = false;
+		if (!g_is_headset_on) {
+			fm_lan_power_set(0);
+			gpio_direction_output(g_fm_lan_gpio, 0);
+			BTFMSLIM_ERR(" fm-inside-lan disable lan gpio output");
+		}
+#endif
 		break;
 	case BTFM_BT_SCO_SLIM_TX:
 		ch = btfmslim->tx_chs;
@@ -190,6 +233,14 @@ static int btfm_slim_dai_prepare(struct snd_pcm_substream *substream,
 		grp = true; nchan = 2;
 		ch = btfmslim->tx_chs;
 		rxport = 0;
+#ifdef CONFIG_FM_INSIDE_LAN
+		g_fm_state = true;
+		if (!g_is_headset_on) {
+			fm_lan_power_set(1);
+			gpio_direction_output(g_fm_lan_gpio, 1);
+			BTFMSLIM_ERR("fm-inside-lan enable lan gpio output");
+		}
+#endif
 		break;
 	case BTFM_BT_SCO_SLIM_TX:
 		ch = btfmslim->tx_chs;
