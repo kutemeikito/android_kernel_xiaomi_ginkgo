@@ -889,6 +889,12 @@ config THERMAL_SWITCH
 	help
 	  Support thermal config switch.
 
+config DISABLE_DOWNLOAD
+	default n
+	bool "Disable download mode"
+	help
+	  Disable download mode.
+
 # Supported by clang >= 7.0
 config CC_HAVE_SHADOW_CALL_STACK
 	def_bool y if CLANG_VERSION >= 70000
