@@ -1298,4 +1298,6 @@ config TOUCHSCREEN_XIAOMI_C3J
 
 source "drivers/input/touchscreen/nt36xxx_spi_c3j/Kconfig"
 
+source "drivers/input/touchscreen/ft8719_spi_c3j/Kconfig"
+
 endif

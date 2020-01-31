@@ -115,3 +115,4 @@ obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_gesture.o
 obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_grip_area.o
 obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_work.o
 obj-$(CONFIG_TOUCHSCREEN_NT36xxx_C3J) += nt36xxx_spi_c3j/
+obj-$(CONFIG_TOUCHSCREEN_FTS_C3J)     += ft8719_spi_c3j/
