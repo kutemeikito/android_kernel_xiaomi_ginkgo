@@ -883,6 +883,12 @@ config ARCH_HAS_CACHE_LINE_SIZE
 
 source "mm/Kconfig"
 
+config THERMAL_SWITCH
+	default n
+	bool "Support thermal config switch"
+	help
+	  Support thermal config switch.
+
 config ARM64_DMA_USE_IOMMU
 	bool "ARM64 DMA iommu integration"
 	select ARM_HAS_SG_CHAIN
