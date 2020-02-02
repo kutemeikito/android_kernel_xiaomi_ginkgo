@@ -1031,6 +1031,17 @@ reg_dmav1_setup_dspp_pa_hsicv17_apply(struct sde_hw_dspp *ctx,
 	return rc;
 }
 
+static inline void
+reg_dmav1_setup_dspp_pa_hsicv17_kcal(struct sde_hw_dspp *ctx, void *ctl)
+{
+	struct drm_msm_pa_hsic hsic_cfg = sde_hw_kcal_hsic_struct();
+	int rc;
+
+	rc = reg_dmav1_setup_dspp_pa_hsicv17_apply(ctx, &hsic_cfg, ctl);
+	if (rc)
+		pr_err("kernel hsic application failed ret %d\n", rc);
+}
+
 void reg_dmav1_setup_dspp_pccv4(struct sde_hw_dspp *ctx, void *cfg)
 {
 	struct sde_hw_reg_dma_ops *dma_ops;
@@ -1153,6 +1164,7 @@ exit:
 void reg_dmav1_setup_dspp_pa_hsicv17(struct sde_hw_dspp *ctx, void *cfg)
 {
 	struct sde_hw_cp_cfg *hw_cfg = cfg;
+	struct sde_hw_kcal *kcal = sde_hw_kcal_get();
 	u32 opcode = 0;
 	int rc;
 
