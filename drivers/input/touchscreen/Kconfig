@@ -1296,4 +1296,6 @@ config TOUCHSCREEN_XIAOMI_C3J
 	  Say Y here if you have a Xiaomi C3J touchscreen and want to enable
 	  support for the built-in touchscreen.
 
+source "drivers/input/touchscreen/nt36xxx_spi_c3j/Kconfig"
+
 endif
