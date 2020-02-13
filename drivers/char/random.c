@@ -1850,7 +1850,7 @@ _random_read(int nonblock, char __user *buf, size_t nbytes)
 }
 
 static ssize_t
-random_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
+__maybe_unused random_read(struct file *file, char __user *buf, size_t nbytes, loff_t *ppos)
 {
 	return _random_read(file->f_flags & O_NONBLOCK, buf, nbytes);
 }
