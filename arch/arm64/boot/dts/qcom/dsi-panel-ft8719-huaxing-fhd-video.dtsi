@@ -16,6 +16,7 @@
 		qcom,mdss-dsi-panel-name =
 			"ft8719 video mode dsi huaxing panel";
 		qcom,mdss-dsi-panel-type = "dsi_video_mode";
+
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
 		qcom,mdss-dsi-h-left-border = <0>;
@@ -64,6 +65,7 @@
 					39 01 00 00 00 00 04 ff 87 19 01
 					39 01 00 00 00 00 02 00 80
 					39 01 00 00 00 00 03 ff 87 19
+
 					39 01 00 00 00 00 02 00 80
 					39 01 00 00 00 00 0D CA 80 80 80 80 80 80 80 80 80 80 80 80
 					39 01 00 00 00 00 02 00 90
@@ -71,24 +73,23 @@
 					39 01 00 00 00 00 02 00 B5
 					39 01 00 00 00 00 02 CA 06
 					39 01 00 00 00 00 02 00 B2
-					39 01 00 00 00 00 02 CA 0c			
-					15 01 00 00 78 00 02 11 00
-					15 01 00 00 14 00 02 29 00
+					39 01 00 00 00 00 02 CA 0c
+					15 01 00 00 55 00 02 11 00
+					15 01 00 00 00 00 02 29 00
 					15 01 00 00 00 00 02 51 B8
 					15 01 00 00 00 00 02 53 24
 					15 01 00 00 00 00 02 55 00
-				];
+					];
 				qcom,mdss-dsi-off-command = [
 					15 01 00 00 00 00 02 53 24
 					39 01 00 00 14 00 02 28 00
 					39 01 00 00 78 00 02 10 00
 					39 01 00 00 00 00 02 00 00
-					39 01 00 00 00 00 05 f7 5a a5 95 27
-	        	];
-	        	qcom,mdss-dsi-cabc-on-command = [
+					39 01 00 00 00 00 05 f7 5a a5 95 27];
+				qcom,mdss-dsi-cabc-on-command = [
 					39 01 00 00 00 00 02 55 01
-	        	];
-	        	qcom,mdss-dsi-cabc-off-command = [
+					];
+				qcom,mdss-dsi-cabc-off-command = [
 					39 01 00 00 00 00 02 55 00
 				];
 				qcom,mdss-dsi-cabc_movie-on-command = [
@@ -97,33 +98,42 @@
 				qcom,mdss-dsi-cabc_still-on-command = [
 					39 01 00 00 00 00 02 55 02
 				];
-	        	qcom,mdss-dsi-hbm1-on-command = [
+				qcom,mdss-dsi-hbm1-on-command = [
 					15 01 00 00 00 00 02 53 2c
 					15 01 00 00 00 00 02 51 CC
-	        	];
-	        	qcom,mdss-dsi-hbm2-on-command = [
+				];
+				qcom,mdss-dsi-hbm2-on-command = [
 					15 01 00 00 00 00 02 53 2c
 					15 01 00 00 00 00 02 51 E6
-	        	];
-	        	qcom,mdss-dsi-hbm3-on-command = [
+				];
+				qcom,mdss-dsi-hbm3-on-command = [
 					15 01 00 00 00 00 02 53 2c
 					15 01 00 00 00 00 02 51 FF
 				];
-	        	qcom,mdss-dsi-hbm-off-command = [
+				qcom,mdss-dsi-hbm-off-command = [
 					15 01 00 00 00 00 02 53 2c
 					15 01 00 00 00 00 02 51 B8
 				];
-				qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
-				qcom,mdss-dsi-off-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-cabc-on-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-cabc-off-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-cabc_movie-on-command-state = "dsi_hs_mode";
-				qcom,mdss-dsi-cabc_still-on-command-state = "dsi_hs_mode";
-		        qcom,mdss-dsi-hbm1-on-command-state = "dsi_hs_mode";
-		        qcom,mdss-dsi-hbm2-on-command-state = "dsi_hs_mode";
-		        qcom,mdss-dsi-hbm3-on-command-state = "dsi_hs_mode";
-		        qcom,mdss-dsi-hbm-off-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
+			qcom,mdss-dsi-off-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-cabc-on-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-cabc-off-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-cabc_movie-on-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-cabc_still-on-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-hbm1-on-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-hbm2-on-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-hbm3-on-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-hbm-off-command-state = "dsi_hs_mode";
+
+			qcom,esd-check-enabled;
+			qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
+			qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
+			qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+			qcom,mdss-dsi-panel-status-read-length = <1>;
+			qcom,mdss-dsi-panel-status-value = <0x9c>;
+			qcom,mdss-dsi-panel-max-error-count = <3>;
 			};
 		};
 	};
 };
+

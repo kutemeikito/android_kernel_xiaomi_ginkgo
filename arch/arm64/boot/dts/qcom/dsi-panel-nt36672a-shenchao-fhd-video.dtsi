@@ -16,9 +16,8 @@
 		qcom,mdss-dsi-panel-name =
 			"nt36672a video mode dsi shenchao panel";
 		qcom,mdss-dsi-panel-type = "dsi_video_mode";
+
 		qcom,mdss-dsi-virtual-channel-id = <0>;
-		qcom,mdss-pan-physical-width-dimension = <67>;
-		qcom,mdss-pan-physical-height-dimension = <145>;
 		qcom,mdss-dsi-stream = <0>;
 		qcom,mdss-dsi-h-left-border = <0>;
 		qcom,mdss-dsi-h-right-border = <0>;
@@ -46,6 +45,8 @@
 		qcom,mdss-dsi-bl-max-level = <4095>;
 		qcom,mdss-brightness-max-level = <4095>;
 		qcom,mdss-dsi-reset-sequence = <1 10>, <0 10>, <1 10>;
+		qcom,mdss-pan-physical-width-dimension = <67>;
+		qcom,mdss-pan-physical-height-dimension = <145>;
 
 		qcom,mdss-dsi-display-timings {
 			timing@0 {
@@ -282,7 +283,16 @@
 				qcom,mdss-dsi-hbm2-on-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-hbm3-on-command-state = "dsi_hs_mode";
 				qcom,mdss-dsi-hbm-off-command-state = "dsi_hs_mode";
+
+		qcom,esd-check-enabled;
+		qcom,mdss-dsi-panel-status-command = [06 01 00 01 05 00 01 0A];
+		qcom,mdss-dsi-panel-status-command-state = "dsi_hs_mode";
+		qcom,mdss-dsi-panel-status-check-mode = "reg_read";
+		qcom,mdss-dsi-panel-status-read-length = <1>;
+		qcom,mdss-dsi-panel-status-value = <0x9c>;
+		qcom,mdss-dsi-panel-max-error-count = <3>;
 			};
 		};
 	};
 };
+
