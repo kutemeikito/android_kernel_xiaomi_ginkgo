@@ -283,7 +283,7 @@ void ktd3137_brightness_set_workfunc(struct ktd3137_chip *chip, int brightness)
 }
 int sgm_brightness_set(uint16_t brightness)
 {
-	pr_info("[brightness]%s brightness = %d\n", __func__, brightness);
+	pr_debug("[brightness]%s brightness = %d\n", __func__, brightness);
 	if(g_backlight_ic == 1)
 		ktd3137_brightness_set_workfunc(bkl_chip, brightness);
 	else
@@ -350,7 +350,7 @@ int lm_hbm_set(int hbm_mode)
 }
 int backlight_hbm_set(int hbm_mode)
 {
-	pr_info("%s hbm mode = %d\n", __func__, hbm_mode);
+	pr_debug("%s hbm mode = %d\n", __func__, hbm_mode);
 	if(g_backlight_ic == 1)
 		ktd_hbm_set(hbm_mode);
 	else
