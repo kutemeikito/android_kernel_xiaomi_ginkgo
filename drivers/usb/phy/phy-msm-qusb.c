@@ -27,10 +27,6 @@
 #include <linux/regulator/machine.h>
 #include <linux/usb/phy.h>
 #include <linux/reset.h>
-#undef dev_dbg 
-#define dev_dbg dev_err 
-#undef pr_debug 
-#define pr_debug pr_info 
 
 #define QUSB2PHY_PLL_PWR_CTL		0x18
 #define REF_BUF_EN			BIT(0)
@@ -415,8 +411,8 @@ static void qusb_phy_get_tune2_param(struct qusb_phy *qphy)
 	if(panel_info == 1)
 			qphy->tune2_efuse_correction = -1;
 	else if ( panel_info == 0)
-			 qphy->tune2_efuse_correction = 3; 
-	else 
+			 qphy->tune2_efuse_correction = 3;
+	else
 			 qphy->tune2_efuse_correction = 0;
 	if (qphy->tune2_efuse_correction && qphy->tune2_val) {
 		if (qphy->tune2_efuse_correction > 5 ||

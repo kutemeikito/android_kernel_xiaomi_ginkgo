@@ -13,8 +13,7 @@
 #include <linux/platform_device.h>
 #include <linux/kdev_t.h>
 #include <linux/usb/ch9.h>
-#undef pr_debug 
-#define pr_debug pr_info 
+
 #ifdef CONFIG_USB_F_NCM
 #include "function/u_ncm.h"
 #endif
