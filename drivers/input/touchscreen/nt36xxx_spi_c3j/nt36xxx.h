@@ -26,10 +26,6 @@
 #include <linux/uaccess.h>
 #include <linux/regulator/consumer.h>
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
-#endif
-
 #include "nt36xxx_mem_map.h"
 
 #ifdef CONFIG_MTK_SPI
@@ -154,8 +150,6 @@ struct nvt_ts_data {
 #else
 	struct notifier_block fb_notif;
 #endif
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-	struct early_suspend early_suspend;
 #endif
 #ifdef CHECK_TOUCH_VENDOR
 	uint8_t touch_vendor_id;
