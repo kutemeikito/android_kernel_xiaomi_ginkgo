@@ -528,7 +528,7 @@ void nvt_sw_reset(void)
 	//---software reset cmds to SWRST_N8_ADDR---
 	nvt_write_addr(SWRST_N8_ADDR, 0x55);
 
-	msleep(10);
+	usleep_range(10000, 11000);
 }
 
 /*******************************************************
@@ -544,7 +544,7 @@ void nvt_sw_reset_idle(void)
 	//---MCU idle cmds to SWRST_N8_ADDR---
 	nvt_write_addr(SWRST_N8_ADDR, 0xAA);
 
-	msleep(15);
+	usleep_range(15000, 16000);
 }
 
 /*******************************************************
@@ -597,7 +597,7 @@ int32_t nvt_clear_fw_status(void)
 		if (buf[1] == 0x00)
 			break;
 
-		usleep_range(10000, 10000);
+		usleep_range(10000, 11000);
 	}
 
 	if (i >= retry) {
@@ -633,7 +633,7 @@ int32_t nvt_check_fw_status(void)
 		if ((buf[1] & 0xF0) == 0xA0)
 			break;
 
-		usleep_range(10000, 10000);
+		usleep_range(10000, 11000);
 	}
 
 	if (i >= retry) {
@@ -680,7 +680,7 @@ int32_t nvt_check_fw_reset_state(RST_COMPLETE_STATE check_reset_state)
 			break;
 		}
 
-		usleep_range(10000, 10000);
+		usleep_range(10000, 11000);
 	}
 
 	return ret;
@@ -1536,7 +1536,7 @@ static int8_t nvt_ts_check_chip_ver_trim(void)
 			}
 		}
 
-		msleep(10);
+		usleep_range(10000, 11000);
 	}
 
 out:
@@ -1927,7 +1927,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #endif
 
 	// need 10ms delay after POR(power on reset)
-	msleep(10);
+	usleep_range(10000, 11000);
 
 	//---check chip version trim---
 	ret = nvt_ts_check_chip_ver_trim();
