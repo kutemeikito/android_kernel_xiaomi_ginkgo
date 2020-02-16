@@ -941,8 +941,7 @@ static int32_t nvt_flash_close(struct inode *inode, struct file *file)
 {
 	struct nvt_flash_data *dev = file->private_data;
 
-	if (dev)
-		kfree(dev);
+	kfree(dev);
 
 	return 0;
 }
@@ -1824,10 +1823,8 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->xbuf = kzalloc((NVT_TRANSFER_LEN+1), GFP_KERNEL);
 	if(IS_ERR_OR_NULL(ts->xbuf)) {
 		NVT_ERR("kzalloc for xbuf failed!\n");
-		if (ts) {
-			kfree(ts);
-			ts = NULL;
-		}
+		kfree(ts);
+		ts = NULL;
 		return -ENOMEM;
 	}
 
@@ -2248,14 +2245,10 @@ err_ckeck_full_duplex:
 #ifdef CHECK_TOUCH_VENDOR
 err_vendor_check:
 #endif
-	if (ts->xbuf) {
-		kfree(ts->xbuf);
-		ts->xbuf = NULL;
-	}
-	if (ts) {
-		kfree(ts);
-		ts = NULL;
-	}
+	kfree(ts->xbuf);
+	ts->xbuf = NULL;
+	kfree(ts);
+	ts = NULL;
 	return ret;
 }
 
@@ -2345,15 +2338,11 @@ static int32_t nvt_ts_remove(struct spi_device *client)
 
 	spi_set_drvdata(client, NULL);
 
-	if (ts->xbuf) {
-		kfree(ts->xbuf);
-		ts->xbuf = NULL;
-	}
+	kfree(ts->xbuf);
+	ts->xbuf = NULL;
 
-	if (ts) {
-		kfree(ts);
-		ts = NULL;
-	}
+	kfree(ts);
+	ts = NULL;
 
 	return 0;
 }
