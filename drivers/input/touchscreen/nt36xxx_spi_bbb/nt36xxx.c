@@ -765,14 +765,14 @@ static ssize_t nvt_flash_read(struct file *file, char __user *buff, size_t count
 	}
 
 	/* allocate buffer for spi transfer */
-	str = (uint8_t *)kzalloc((count), GFP_KERNEL);
+	str = kzalloc((count), GFP_KERNEL);
 	if(str == NULL) {
 		NVT_ERR("kzalloc for buf failed!\n");
 		ret = -ENOMEM;
 		goto kzalloc_failed;
 	}
 
-	buf = (uint8_t *)kzalloc((count), GFP_KERNEL | GFP_DMA);
+	buf = kzalloc((count), GFP_KERNEL | GFP_DMA);
 	if(buf == NULL) {
 		NVT_ERR("kzalloc for buf failed!\n");
 		ret = -ENOMEM;
@@ -1767,7 +1767,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		return -ENOMEM;
 	}
 
-	ts->xbuf = (uint8_t *)kzalloc((NVT_TRANSFER_LEN+1), GFP_KERNEL);
+	ts->xbuf = kzalloc((NVT_TRANSFER_LEN+1), GFP_KERNEL);
 	if(IS_ERR_OR_NULL(ts->xbuf)) {
 		NVT_ERR("kzalloc for xbuf failed!\n");
 		if (ts) {

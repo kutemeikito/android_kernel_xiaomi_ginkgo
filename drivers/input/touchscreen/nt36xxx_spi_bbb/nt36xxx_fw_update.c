@@ -38,7 +38,7 @@
 struct timeval start, end;
 const struct firmware *fw_entry = NULL;
 static size_t fw_need_write_size = 0;
-static uint8_t *fwbuf = NULL;
+static uint8_t *fwbuf;
 
 struct nvt_ts_bin_map {
 	char name[12];
@@ -93,7 +93,7 @@ static int32_t nvt_download_init(void)
 	//NVT_LOG("NVT_TRANSFER_LEN = 0x%06X\n", NVT_TRANSFER_LEN);
 
 	if (fwbuf == NULL) {
-		fwbuf = (uint8_t *)kzalloc((NVT_TRANSFER_LEN+1), GFP_KERNEL);
+		fwbuf = kzalloc((NVT_TRANSFER_LEN+1), GFP_KERNEL);
 		if(fwbuf == NULL) {
 			NVT_ERR("kzalloc for fwbuf failed!\n");
 			return -ENOMEM;
@@ -173,7 +173,7 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 			ovly_info, ilm_dlm_num, ovly_sec_num, info_sec_num, partition);
 
 	/* allocated memory for header info */
-	bin_map = (struct nvt_ts_bin_map *)kzalloc((partition+1) * sizeof(struct nvt_ts_bin_map), GFP_KERNEL);
+	bin_map = kzalloc((partition+1) * sizeof(struct nvt_ts_bin_map), GFP_KERNEL);
 	if(bin_map == NULL) {
 		NVT_ERR("kzalloc for bin_map failed!\n");
 		return -ENOMEM;
@@ -379,7 +379,7 @@ static int32_t nvt_read_ram_and_save_file(uint32_t addr, uint16_t len, char *nam
 	sprintf(file, "%s/dump_%s.bin", NVT_DUMP_PARTITION_PATH, name);
 	NVT_LOG("Dump [%s] from 0x%08X to 0x%08X\n", file, addr, addr+len);
 
-	fbufp = (uint8_t *)kzalloc(len+1, GFP_KERNEL);
+	fbufp = kzalloc(len+1, GFP_KERNEL);
 	if(fbufp == NULL) {
 		NVT_ERR("kzalloc for fbufp failed!\n");
 		ret = -ENOMEM;
