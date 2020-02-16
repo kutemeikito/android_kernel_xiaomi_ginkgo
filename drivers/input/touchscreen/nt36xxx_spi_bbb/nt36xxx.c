@@ -1733,7 +1733,7 @@ static int lct_tp_set_screen_angle_callback(int angle)
 	}
 	ret = CTP_SPI_WRITE(ts->client, tmp, 2);
 	if (ret < 0) {
-		NVT_LOG("i2c read error!\n");
+		NVT_ERR("i2c read error!\n");
 		goto out;
 	}
 	ret = 0;
