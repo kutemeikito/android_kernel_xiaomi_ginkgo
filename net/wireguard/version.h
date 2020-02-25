@@ -1,3 +1,0 @@
-#ifndef WIREGUARD_VERSION
-#define WIREGUARD_VERSION "0.0.20200128"
-#endif
