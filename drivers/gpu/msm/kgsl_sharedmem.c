@@ -488,12 +488,10 @@ done:
 
 int kgsl_lock_sgt(struct sg_table *sgt, uint64_t size)
 {
-	struct scatterlist *sg;
 	int dest_perms = PERM_READ | PERM_WRITE;
 	int source_vm = VMID_HLOS;
 	int dest_vm = VMID_CP_PIXEL;
 	int ret;
-	int i;
 
 	ret = hyp_assign_table(sgt, &source_vm, 1, &dest_vm, &dest_perms, 1);
 	if (ret) {
@@ -511,10 +509,6 @@ int kgsl_lock_sgt(struct sg_table *sgt, uint64_t size)
 		return ret;
 	}
 
-	/* Set private bit for each sg to indicate that its secured */
-	for_each_sg(sgt->sgl, sg, sgt->nents, i)
-		SetPagePrivate(sg_page(sg));
-
 	return 0;
 }
 
@@ -524,7 +518,6 @@ int kgsl_unlock_sgt(struct sg_table *sgt)
 	int source_vm = VMID_CP_PIXEL;
 	int dest_vm = VMID_HLOS;
 	int ret;
-	struct sg_page_iter sg_iter;
 
 	ret = hyp_assign_table(sgt, &source_vm, 1, &dest_vm, &dest_perms, 1);
 
@@ -533,8 +526,6 @@ int kgsl_unlock_sgt(struct sg_table *sgt)
 		return ret;
 	}
 
-	for_each_sg_page(sgt->sgl, &sg_iter, sgt->nents, 0)
-		ClearPagePrivate(sg_page_iter_page(&sg_iter));
 	return 0;
 }
 
@@ -1423,9 +1414,6 @@ static int kgsl_cma_alloc_secure(struct kgsl_device *device,
 	if (result != 0)
 		goto err;
 
-	/* Set the private bit to indicate that we've secured this */
-	SetPagePrivate(sg_page(memdesc->sgt->sgl));
-
 	memdesc->priv |= KGSL_MEMDESC_TZ_LOCKED;
 
 	/* Record statistics */
@@ -1450,8 +1438,7 @@ static void kgsl_cma_unlock_secure(struct kgsl_memdesc *memdesc)
 	if (memdesc->size == 0 || !(memdesc->priv & KGSL_MEMDESC_TZ_LOCKED))
 		return;
 
-	if (!scm_lock_chunk(memdesc, 0))
-		ClearPagePrivate(sg_page(memdesc->sgt->sgl));
+	scm_lock_chunk(memdesc, 0);
 }
 
 void kgsl_sharedmem_set_noretry(bool val)
