@@ -26,7 +26,7 @@
 #include "u_os_desc.h"
 #undef dev_dbg
 #define dev_dbg dev_info
-#undef pr_debug 
+#undef pr_debug
 #define pr_debug pr_info
 /**
  * struct usb_os_string - represents OS String to be reported by a gadget

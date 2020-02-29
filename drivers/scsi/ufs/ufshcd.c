@@ -6277,6 +6277,9 @@ ufshcd_transfer_rsp_status(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
 		break;
 	} /* end of switch */
 
+	if ((host_byte(result) != DID_OK) && !hba->silence_err_logs)
+		ufshcd_print_trs(hba, 1 << lrbp->task_tag, true);
+
 	if ((host_byte(result) != DID_OK) && !hba->silence_err_logs) {
 		print_prdt = (ocs == OCS_INVALID_PRDT_ATTR ||
 			ocs == OCS_MISMATCH_DATA_BUF_SIZE);
@@ -7050,8 +7053,8 @@ static void ufshcd_err_handler(struct work_struct *work)
 
 	/*
 	 * if host reset is required then skip clearing the pending
-	 * transfers forcefully because they will automatically get
-	 * cleared after link startup.
+	 * transfers forcefully because they will get cleared during
+	 * host reset and restore
 	 */
 	if (needs_reset)
 		goto skip_pending_xfer_clear;
@@ -7861,9 +7864,15 @@ static int ufshcd_host_reset_and_restore(struct ufs_hba *hba)
 	int err;
 	unsigned long flags;
 
-	/* Reset the host controller */
+	/*
+	 * Stop the host controller and complete the requests
+	 * cleared by h/w
+	 */
 	spin_lock_irqsave(hba->host->host_lock, flags);
 	ufshcd_hba_stop(hba, false);
+	hba->silence_err_logs = true;
+	ufshcd_complete_requests(hba);
+	hba->silence_err_logs = false;
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 
 	/* scale up clocks to max frequency before full reinitialization */
@@ -7927,7 +7936,6 @@ static int ufshcd_detect_device(struct ufs_hba *hba)
 static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 {
 	int err = 0;
-	unsigned long flags;
 	int retries = MAX_HOST_RESET_RETRIES;
 
 	ufshcd_enable_irq(hba);
@@ -7942,15 +7950,6 @@ static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 	 */
 	if (err && ufshcd_is_embedded_dev(hba))
 		BUG();
-
-	/*
-	 * After reset the door-bell might be cleared, complete
-	 * outstanding requests in s/w here.
-	 */
-	spin_lock_irqsave(hba->host->host_lock, flags);
-	ufshcd_transfer_req_compl(hba);
-	ufshcd_tmc_handler(hba);
-	spin_unlock_irqrestore(hba->host->host_lock, flags);
 
 	return err;
 }
