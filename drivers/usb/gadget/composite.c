@@ -26,7 +26,7 @@
 #include "u_os_desc.h"
 #undef dev_dbg
 #define dev_dbg dev_info
-#undef pr_debug 
+#undef pr_debug
 #define pr_debug pr_info
 /**
  * struct usb_os_string - represents OS String to be reported by a gadget
@@ -580,11 +580,7 @@ static u8 encode_bMaxPower(enum usb_device_speed speed,
 	default:
 		/* only SuperSpeed and faster support > 500mA */
 		return DIV_ROUND_UP(min(val, 500U), 2);
-	}
-
-	if (speed < USB_SPEED_SUPER)
-		return DIV_ROUND_UP(val, 8);
-	else
+	}	
 }
 
 static int config_buf(struct usb_configuration *config,

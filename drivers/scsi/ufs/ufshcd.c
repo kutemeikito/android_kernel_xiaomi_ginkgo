@@ -7944,26 +7944,12 @@ static int ufshcd_reset_and_restore(struct ufs_hba *hba)
 		err = ufshcd_detect_device(hba);
 	} while (err && --retries);
 
-<<<<<<< HEAD
 	/*
 	 * There is no point proceeding even after failing
 	 * to recover after multiple retries.
 	 */
 	if (err && ufshcd_is_embedded_dev(hba))
 		BUG();
-
-	/*
-	 * After reset the door-bell might be cleared, complete
-	 * outstanding requests in s/w here.
-	 */
-	spin_lock_irqsave(hba->host->host_lock, flags);
-	ufshcd_transfer_req_compl(hba);
-	ufshcd_tmc_handler(hba);
-	spin_unlock_irqrestore(hba->host->host_lock, flags);
-
-=======
->>>>>>> v4.14.172
-	return err;
 }
 
 /**
