@@ -3146,7 +3146,12 @@
 	vdd_l1_l2-supply = <&S6A>;
 };
 
+&pm8008_8 {
+	status = "disabled";
+};
+
 &pm8008_9 {
+	status = "disabled";
 	/* GPIO1 pinctrl config */
 	pinctrl-names = "default";
 	pinctrl-0 = <&pm8008_gpio1_active>;
