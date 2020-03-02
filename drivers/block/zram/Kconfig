@@ -39,9 +39,6 @@ config ZRAM_WRITEBACK
 	 For this feature, admin should set up backing device via
 	 /sys/block/zramX/backing_dev.
 
-<<<<<<< HEAD
-	 See zram.txt for more infomration.
-=======
 	 With /sys/block/zramX/{idle,writeback}, application could ask
 	 idle page's writeback to the backing device to save in memory.
 
@@ -60,4 +57,3 @@ config ZRAM_MEMORY_TRACKING
 config ZRAM_DEFAULT_COMP_ALGORITHM
 	string "Default ZRAM algorithm"
 	default "lzo"
->>>>>>> 524df643cca3... zram: Move default compression algorithm choice to Kconfig
