@@ -1320,7 +1320,9 @@ QDF_STATUS wlansap_set_channel_change_with_csa(struct sap_context *sapContext,
 		       sapContext->channel, targetChannel,
 		       policy_mgr_is_any_mode_active_on_band_along_with_session(
 		       pMac->psoc, sapContext->sessionId, POLICY_MGR_BAND_5),
+#ifdef WLAN_DEBUG
 		       sap_get_csa_reason_str(sapContext->csa_reason),
+#endif
 		       sapContext->csa_reason, strict, sapContext->sessionId);
 
 	sta_sap_scc_on_dfs_chan =
