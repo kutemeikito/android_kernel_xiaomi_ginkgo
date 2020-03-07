@@ -55,22 +55,6 @@ uint8_t esd_check = false;
 uint8_t esd_retry = 0;
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
-#if NVT_TOUCH_EXT_PROC
-extern int32_t nvt_extra_proc_init(void);
-extern void nvt_extra_proc_deinit(void);
-#endif
-
-#if NVT_TOUCH_MP
-extern int32_t nvt_mp_proc_init(void);
-extern void nvt_mp_proc_deinit(void);
-#endif
-
-#if NVT_USB_PLUGIN
-static void nvt_ts_usb_plugin_work_func(struct work_struct *work);
-DECLARE_WORK(nvt_usb_plugin_work, nvt_ts_usb_plugin_work_func);
-extern touchscreen_usb_plugin_data_t g_touchscreen_usb_pulgin;
-#endif
-
 struct nvt_ts_data *ts;
 static bool driver_ready = false;
 
@@ -194,53 +178,6 @@ int nvt_ts_recovery_callback(void)
 	return 0;
 }
 EXPORT_SYMBOL(nvt_ts_recovery_callback);
-#endif
-
-#if NVT_USB_PLUGIN
-void nvt_ts_usb_event_callback(void)
-{
-	schedule_work(&nvt_usb_plugin_work);
-}
-
-static void nvt_ts_usb_plugin_work_func(struct work_struct *work)
-{
-	uint8_t buf[8] = {0};
-	int32_t ret = 0;
-
-	if ( !bTouchIsAwake ) {
-		NVT_ERR("tp is suspended, can not to set\n");
-		return;
-	}
-
-	NVT_LOG("++\n");
-	mutex_lock(&ts->lock);
-	NVT_LOG("usb_plugged_in = %d\n", g_touchscreen_usb_pulgin.usb_plugged_in);
-
-	msleep(35);
-
-	//---set xdata index to EVENT BUF ADDR---
-	ret = nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HOST_CMD);
-	if (ret < 0) {
-		NVT_ERR("Set event buffer index fail!\n");
-		goto exit;
-	}
-
-	buf[0] = EVENT_MAP_HOST_CMD;
-	if (g_touchscreen_usb_pulgin.usb_plugged_in)
-		buf[1] = 0x53;// power plug ac on
-	else
-		buf[1] = 0x51;// power plug off
-
-	ret = CTP_SPI_WRITE(ts->client, buf, 2);
-	if (ret < 0) {
-		NVT_ERR("Write pwr plug switch command fail!\n");
-		goto exit;
-	}
-
-exit:
-	mutex_unlock(&ts->lock);
-	NVT_LOG("--\n");
-}
 #endif
 
 /*******************************************************
@@ -2051,22 +1988,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 #endif
 
-#if NVT_TOUCH_EXT_PROC
-	ret = nvt_extra_proc_init();
-	if (ret != 0) {
-		NVT_ERR("nvt extra proc init failed. ret=%d\n", ret);
-		goto err_extra_proc_init_failed;
-	}
-#endif
-
-#if NVT_TOUCH_MP
-	ret = nvt_mp_proc_init();
-	if (ret != 0) {
-		NVT_ERR("nvt mp proc init failed. ret=%d\n", ret);
-		goto err_mp_proc_init_failed;
-	}
-#endif
-
 	//create longcheer procfs node
 	ret = init_lct_tp_info("[Vendor]unkown,[FW]unkown,[IC]unkown\n", NULL);
 	if (ret < 0) {
@@ -2151,10 +2072,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	set_touchpanel_recovery_callback(nvt_ts_recovery_callback);
 
-#if NVT_USB_PLUGIN
-	g_touchscreen_usb_pulgin.event_callback = nvt_ts_usb_event_callback;
-#endif
-
 	driver_ready = true;
 
 	return 0;
@@ -2187,14 +2104,6 @@ uninit_lct_tp_gesture();
 #endif
 err_init_lct_tp_info_failed:
 uninit_lct_tp_info();
-#if NVT_TOUCH_MP
-nvt_mp_proc_deinit();
-err_mp_proc_init_failed:
-#endif
-#if NVT_TOUCH_EXT_PROC
-nvt_extra_proc_deinit();
-err_extra_proc_init_failed:
-#endif
 #if NVT_TOUCH_PROC
 nvt_flash_proc_deinit();
 err_flash_proc_init_failed:
@@ -2287,12 +2196,6 @@ static int32_t nvt_ts_remove(struct spi_device *client)
 #endif
 	uninit_lct_tp_info();
 
-#if NVT_TOUCH_MP
-	nvt_mp_proc_deinit();
-#endif
-#if NVT_TOUCH_EXT_PROC
-	nvt_extra_proc_deinit();
-#endif
 #if NVT_TOUCH_PROC
 	nvt_flash_proc_deinit();
 #endif
@@ -2374,12 +2277,6 @@ static void nvt_ts_shutdown(struct spi_device *client)
 #endif
 	uninit_lct_tp_info();
 
-#if NVT_TOUCH_MP
-	nvt_mp_proc_deinit();
-#endif
-#if NVT_TOUCH_EXT_PROC
-	nvt_extra_proc_deinit();
-#endif
 #if NVT_TOUCH_PROC
 	nvt_flash_proc_deinit();
 #endif
@@ -2549,11 +2446,6 @@ static int32_t nvt_ts_resume(struct device *dev)
 #if LCT_TP_WORK_EN
 	if (!get_lct_tp_work_status())
 		nvt_irq_enable(false);
-#endif
-
-#if NVT_USB_PLUGIN
-	if (g_touchscreen_usb_pulgin.valid && g_touchscreen_usb_pulgin.usb_plugged_in)
-		g_touchscreen_usb_pulgin.event_callback();
 #endif
 
 	NVT_LOG("end\n");
