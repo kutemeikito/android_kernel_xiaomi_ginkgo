@@ -1,5 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/module.h>
@@ -7,20 +15,17 @@
 #include <linux/io.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
-#include <linux/pm_runtime.h>
+#include <linux/clk-provider.h>
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/tlv.h>
-#include <soc/swr-common.h>
 #include <soc/swr-wcd.h>
 
-#include <asoc/msm-cdc-pinctrl.h>
 #include "bolero-cdc.h"
 #include "bolero-cdc-registers.h"
 #include "wsa-macro.h"
-#include "bolero-clk-rsc.h"
+#include "../msm-cdc-pinctrl.h"
 
-#define AUTO_SUSPEND_DELAY  50 /* delay in msec */
 #define WSA_MACRO_MAX_OFFSET 0x1000
 
 #define WSA_MACRO_RX_RATES (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |\
@@ -51,8 +56,6 @@
 #define WSA_MACRO_RX_PATH_CFG3_OFFSET 0x10
 #define WSA_MACRO_RX_PATH_DSMDEM_OFFSET 0x4C
 #define WSA_MACRO_FS_RATE_MASK 0x0F
-#define WSA_MACRO_EC_MIX_TX0_MASK 0x03
-#define WSA_MACRO_EC_MIX_TX1_MASK 0x18
 
 #define WSA_MACRO_MAX_DMA_CH_PER_PORT 0x2
 
@@ -160,7 +163,6 @@ struct wsa_macro_swr_ctrl_platform_data {
 	int (*write)(void *handle, int reg, int val);
 	int (*bulk_write)(void *handle, u32 *reg, u32 *val, size_t len);
 	int (*clk)(void *handle, bool enable);
-	int (*core_vote)(void *handle, bool enable);
 	int (*handle_irq)(void *handle,
 			  irqreturn_t (*swrm_irq_handler)(int irq,
 							  void *data),
@@ -199,6 +201,8 @@ enum {
  * @swr_plat_data: Soundwire platform data
  * @wsa_macro_add_child_devices_work: work for adding child devices
  * @wsa_swr_gpio_p: used by pinctrl API
+ * @wsa_core_clk: MCLK for wsa macro
+ * @wsa_npl_clk: NPL clock for WSA soundwire
  * @codec: codec handle
  * @rx_0_count: RX0 interpolation users
  * @rx_1_count: RX1 interpolation users
@@ -219,10 +223,13 @@ struct wsa_macro_priv {
 	unsigned int vi_feed_value;
 	struct mutex mclk_lock;
 	struct mutex swr_clk_lock;
+	struct mutex clk_lock;
 	struct wsa_macro_swr_ctrl_data *swr_ctrl_data;
 	struct wsa_macro_swr_ctrl_platform_data swr_plat_data;
 	struct work_struct wsa_macro_add_child_devices_work;
 	struct device_node *wsa_swr_gpio_p;
+	struct clk *wsa_core_clk;
+	struct clk *wsa_npl_clk;
 	struct snd_soc_codec *codec;
 	int rx_0_count;
 	int rx_1_count;
@@ -239,8 +246,6 @@ struct wsa_macro_priv {
 	int is_softclip_on[WSA_MACRO_SOFTCLIP_MAX];
 	int softclip_clk_users[WSA_MACRO_SOFTCLIP_MAX];
 	struct wsa_macro_bcl_pmic_params bcl_pmic_params;
-	char __iomem *mclk_mode_muxsel;
-	u16 default_clk_id;
 	int wsa_digital_mute_status[WSA_MACRO_RX_MAX];
 };
 
@@ -479,30 +484,6 @@ static bool wsa_macro_get_data(struct snd_soc_codec *codec,
 	return true;
 }
 
-static int wsa_macro_set_port_map(struct snd_soc_codec *codec,
-				u32 usecase, u32 size, void *data)
-{
-	struct device *wsa_dev = NULL;
-	struct wsa_macro_priv *wsa_priv = NULL;
-	struct swrm_port_config port_cfg;
-	int ret = 0;
-
-	if (!wsa_macro_get_data(codec, &wsa_dev, &wsa_priv, __func__))
-		return -EINVAL;
-
-	memset(&port_cfg, 0, sizeof(port_cfg));
-	port_cfg.uc = usecase;
-	port_cfg.size = size;
-	port_cfg.params = data;
-
-	if (wsa_priv->swr_ctrl_data)
-		ret = swrm_wcd_notify(
-			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-			SWR_SET_PORT_MAP, &port_cfg);
-
-	return ret;
-}
-
 /**
  * wsa_macro_set_spkr_gain_offset - offset the speaker path
  * gain with the given offset value.
@@ -621,9 +602,12 @@ static int wsa_macro_set_prim_interpolator_rate(struct snd_soc_dai *dai,
 			inp2_sel = (int_mux_cfg1_val >>
 					WSA_MACRO_MUX_INP_SHFT) &
 					WSA_MACRO_MUX_INP_MASK1;
-			if ((inp0_sel == int_1_mix1_inp + INTn_1_INP_SEL_RX0) ||
-			    (inp1_sel == int_1_mix1_inp + INTn_1_INP_SEL_RX0) ||
-			    (inp2_sel == int_1_mix1_inp + INTn_1_INP_SEL_RX0)) {
+			if ((inp0_sel == (int_1_mix1_inp +
+						INTn_1_INP_SEL_RX0)) ||
+			    (inp1_sel == (int_1_mix1_inp +
+						INTn_1_INP_SEL_RX0)) ||
+			    (inp2_sel == int_1_mix1_inp +
+						INTn_1_INP_SEL_RX0)) {
 				int_fs_reg = BOLERO_CDC_WSA_RX0_RX_PATH_CTL +
 					     WSA_MACRO_RX_PATH_OFFSET * j;
 				dev_dbg(wsa_dev,
@@ -675,8 +659,8 @@ static int wsa_macro_set_mix_interpolator_rate(struct snd_soc_dai *dai,
 		for (j = 0; j < NUM_INTERPOLATORS; j++) {
 			int_mux_cfg1_val = snd_soc_read(codec, int_mux_cfg1) &
 							WSA_MACRO_MUX_INP_MASK1;
-			if (int_mux_cfg1_val == int_2_inp +
-							INTn_2_INP_SEL_RX0) {
+			if (int_mux_cfg1_val == (int_2_inp +
+						INTn_2_INP_SEL_RX0)) {
 				int_fs_reg =
 					BOLERO_CDC_WSA_RX0_RX_PATH_MIX_CTL +
 					WSA_MACRO_RX_PATH_OFFSET * j;
@@ -771,7 +755,7 @@ static int wsa_macro_get_channel_map(struct snd_soc_dai *dai,
 	struct snd_soc_codec *codec = dai->codec;
 	struct device *wsa_dev = NULL;
 	struct wsa_macro_priv *wsa_priv = NULL;
-	u16 val = 0, mask = 0, cnt = 0, temp = 0;;
+	unsigned int temp = 0, ch_mask = 0, i = 0;
 
 	if (!wsa_macro_get_data(codec, &wsa_dev, &wsa_priv, __func__))
 		return -EINVAL;
@@ -782,35 +766,22 @@ static int wsa_macro_get_channel_map(struct snd_soc_dai *dai,
 
 	switch (dai->id) {
 	case WSA_MACRO_AIF_VI:
+	case WSA_MACRO_AIF_ECHO:
 		*tx_slot = wsa_priv->active_ch_mask[dai->id];
 		*tx_num = wsa_priv->active_ch_cnt[dai->id];
 		break;
 	case WSA_MACRO_AIF1_PB:
 	case WSA_MACRO_AIF_MIX1_PB:
 		for_each_set_bit(temp, &wsa_priv->active_ch_mask[dai->id],
-					WSA_MACRO_RX_MAX) {
-			mask |= (1 << temp);
-			if (++cnt == WSA_MACRO_MAX_DMA_CH_PER_PORT)
+				WSA_MACRO_RX_MAX) {
+			ch_mask |= (1 << temp);
+			if (++i == WSA_MACRO_MAX_DMA_CH_PER_PORT)
 				break;
 		}
-		if (mask & 0x0C)
-			mask = mask >> 0x2;
-		*rx_slot = mask;
-		*rx_num = cnt;
-		break;
-	case WSA_MACRO_AIF_ECHO:
-		val = snd_soc_read(codec,
-			BOLERO_CDC_WSA_RX_INP_MUX_RX_MIX_CFG0);
-		if (val & WSA_MACRO_EC_MIX_TX1_MASK) {
-			mask |= 0x2;
-			cnt++;
-		}
-		if (val & WSA_MACRO_EC_MIX_TX0_MASK) {
-			mask |= 0x1;
-			cnt++;
-		}
-		*tx_slot = mask;
-		*tx_num = cnt;
+		if (ch_mask & 0x0C)
+			ch_mask = ch_mask >> 0x2;
+		*rx_slot = ch_mask;
+		*rx_num = i;
 		break;
 	default:
 		dev_err(wsa_dev, "%s: Invalid AIF\n", __func__);
@@ -847,19 +818,14 @@ static int wsa_macro_digital_mute(struct snd_soc_dai *dai, int mute)
 				WSA_MACRO_RX_PATH_DSMDEM_OFFSET;
 		int_mux_cfg0 = BOLERO_CDC_WSA_RX_INP_MUX_RX_INT0_CFG0 + j * 8;
 		int_mux_cfg1 = int_mux_cfg0 + 4;
-		int_mux_cfg0_val = snd_soc_read(codec,
-							int_mux_cfg0);
-		int_mux_cfg1_val = snd_soc_read(codec,
-							int_mux_cfg1);
+		int_mux_cfg0_val = snd_soc_read(codec, int_mux_cfg0);
+		int_mux_cfg1_val = snd_soc_read(codec, int_mux_cfg1);
 		if (snd_soc_read(codec, dsm_reg) & 0x01) {
 			if (int_mux_cfg0_val || (int_mux_cfg1_val & 0x38))
-				snd_soc_update_bits(codec, reg,
-							0x20, 0x20);
+				snd_soc_update_bits(codec, reg, 0x20, 0x20);
 			if (int_mux_cfg1_val & 0x07) {
-				snd_soc_update_bits(codec, reg,
-							0x20, 0x20);
-				snd_soc_update_bits(codec,
-						mix_reg, 0x20, 0x20);
+				snd_soc_update_bits(codec, reg, 0x20, 0x20);
+				snd_soc_update_bits(codec, mix_reg, 0x20, 0x20);
 			}
 		}
 	}
@@ -887,18 +853,14 @@ static int wsa_macro_mclk_enable(struct wsa_macro_priv *wsa_priv,
 	mutex_lock(&wsa_priv->mclk_lock);
 	if (mclk_enable) {
 		if (wsa_priv->wsa_mclk_users == 0) {
-			ret = bolero_clk_rsc_request_clock(wsa_priv->dev,
-							wsa_priv->default_clk_id,
-							wsa_priv->default_clk_id,
-							true);
+			ret = bolero_request_clock(wsa_priv->dev,
+					WSA_MACRO, MCLK_MUX0, true);
 			if (ret < 0) {
 				dev_err_ratelimited(wsa_priv->dev,
 					"%s: wsa request clock enable failed\n",
 					__func__);
 				goto exit;
 			}
-			bolero_clk_rsc_fs_gen_request(wsa_priv->dev,
-						  true);
 			regcache_mark_dirty(regmap);
 			regcache_sync_region(regmap,
 					WSA_START_OFFSET,
@@ -929,13 +891,8 @@ static int wsa_macro_mclk_enable(struct wsa_macro_priv *wsa_priv,
 			regmap_update_bits(regmap,
 				BOLERO_CDC_WSA_CLK_RST_CTRL_MCLK_CONTROL,
 				0x01, 0x00);
-			bolero_clk_rsc_fs_gen_request(wsa_priv->dev,
-						  false);
-
-			bolero_clk_rsc_request_clock(wsa_priv->dev,
-						  wsa_priv->default_clk_id,
-						  wsa_priv->default_clk_id,
-						  false);
+			bolero_request_clock(wsa_priv->dev,
+					WSA_MACRO, MCLK_MUX0, false);
 		}
 	}
 exit:
@@ -975,60 +932,89 @@ static int wsa_macro_mclk_event(struct snd_soc_dapm_widget *w,
 	return ret;
 }
 
+static int wsa_macro_mclk_reset(struct device *dev)
+{
+	struct wsa_macro_priv *wsa_priv = dev_get_drvdata(dev);
+	int count = 0;
+
+	mutex_lock(&wsa_priv->clk_lock);
+	while (__clk_is_enabled(wsa_priv->wsa_core_clk)) {
+		clk_disable_unprepare(wsa_priv->wsa_npl_clk);
+		clk_disable_unprepare(wsa_priv->wsa_core_clk);
+		count++;
+	}
+	dev_dbg(wsa_priv->dev,
+			"%s: clock reset after ssr, count %d\n", __func__, count);
+	while (count) {
+		clk_prepare_enable(wsa_priv->wsa_core_clk);
+		clk_prepare_enable(wsa_priv->wsa_npl_clk);
+		count--;
+	}
+	mutex_unlock(&wsa_priv->clk_lock);
+	return 0;
+}
+
+static int wsa_macro_mclk_ctrl(struct device *dev, bool enable)
+{
+	struct wsa_macro_priv *wsa_priv = dev_get_drvdata(dev);
+	int ret = 0;
+
+	if (!wsa_priv)
+		return -EINVAL;
+
+	mutex_lock(&wsa_priv->clk_lock);
+	if (enable) {
+		ret = clk_prepare_enable(wsa_priv->wsa_core_clk);
+		if (ret < 0) {
+			dev_err_ratelimited(dev, "%s:wsa mclk enable failed\n", __func__);
+			goto exit;
+		}
+		ret = clk_prepare_enable(wsa_priv->wsa_npl_clk);
+		if (ret < 0) {
+			dev_err(dev, "%s:wsa npl_clk enable failed\n",
+				__func__);
+			clk_disable_unprepare(wsa_priv->wsa_core_clk);
+			goto exit;
+		}
+	} else {
+		clk_disable_unprepare(wsa_priv->wsa_npl_clk);
+		clk_disable_unprepare(wsa_priv->wsa_core_clk);
+	}
+exit:
+	mutex_unlock(&wsa_priv->clk_lock);
+	return ret;
+}
+
 static int wsa_macro_event_handler(struct snd_soc_codec *codec, u16 event,
 				   u32 data)
 {
 	struct device *wsa_dev = NULL;
 	struct wsa_macro_priv *wsa_priv = NULL;
-	int ret = 0;
 
 	if (!wsa_macro_get_data(codec, &wsa_dev, &wsa_priv, __func__))
 		return -EINVAL;
 
+	if (!(wsa_priv->swr_ctrl_data))
+		return -EINVAL;
+
 	switch (event) {
 	case BOLERO_MACRO_EVT_SSR_DOWN:
-		trace_printk("%s, enter SSR down\n", __func__);
-		if (wsa_priv->swr_ctrl_data) {
-			swrm_wcd_notify(
-				wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-				SWR_DEVICE_DOWN, NULL);
-			swrm_wcd_notify(
-				wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-				SWR_DEVICE_SSR_DOWN, NULL);
-		}
-		if ((!pm_runtime_enabled(wsa_dev) ||
-		     !pm_runtime_suspended(wsa_dev))) {
-			ret = bolero_runtime_suspend(wsa_dev);
-			if (!ret) {
-				pm_runtime_disable(wsa_dev);
-				pm_runtime_set_suspended(wsa_dev);
-				pm_runtime_enable(wsa_dev);
-			}
-		}
+		swrm_wcd_notify(
+			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
+			SWR_DEVICE_DOWN, NULL);
+		swrm_wcd_notify(
+			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
+			SWR_DEVICE_SSR_DOWN, NULL);
 		break;
 	case BOLERO_MACRO_EVT_SSR_UP:
-		trace_printk("%s, enter SSR up\n", __func__);
 		/* reset swr after ssr/pdr */
 		wsa_priv->reset_swr = true;
-		/* enable&disable WSA_CORE_CLK to reset GFMUX reg */
-		ret = bolero_clk_rsc_request_clock(wsa_priv->dev,
-						wsa_priv->default_clk_id,
-						WSA_CORE_CLK, true);
-		if (ret < 0)
-			dev_err_ratelimited(wsa_priv->dev,
-				"%s, failed to enable clk, ret:%d\n",
-				__func__, ret);
-		else
-			bolero_clk_rsc_request_clock(wsa_priv->dev,
-						wsa_priv->default_clk_id,
-						WSA_CORE_CLK, false);
-		if (wsa_priv->swr_ctrl_data)
-			swrm_wcd_notify(
-				wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-				SWR_DEVICE_SSR_UP, NULL);
+		swrm_wcd_notify(
+			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
+			SWR_DEVICE_SSR_UP, NULL);
 		break;
 	case BOLERO_MACRO_EVT_CLK_RESET:
-		bolero_rsc_clk_reset(wsa_dev, WSA_CORE_CLK);
+		wsa_macro_mclk_reset(wsa_dev);
 		break;
 	}
 	return 0;
@@ -1177,8 +1163,7 @@ static int wsa_macro_enable_mix_path(struct snd_soc_dapm_widget *w,
 		snd_soc_write(codec, gain_reg, val);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		snd_soc_update_bits(codec,
-					w->reg, 0x20, 0x00);
+		snd_soc_update_bits(codec, w->reg, 0x20, 0x00);
 		break;
 	}
 
@@ -1234,14 +1219,12 @@ static int wsa_macro_enable_swr(struct snd_soc_dapm_widget *w,
 			wsa_priv->rx_1_count++;
 		ch_cnt = wsa_priv->rx_0_count + wsa_priv->rx_1_count;
 
-		if (wsa_priv->swr_ctrl_data) {
-			swrm_wcd_notify(
-				wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-				SWR_DEVICE_UP, NULL);
-			swrm_wcd_notify(
-				wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-				SWR_SET_NUM_RX_CH, &ch_cnt);
-		}
+		swrm_wcd_notify(
+			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
+			SWR_DEVICE_UP, NULL);
+		swrm_wcd_notify(
+			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
+			SWR_SET_NUM_RX_CH, &ch_cnt);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
 		if (!(strnstr(w->name, "RX0", sizeof("WSA_RX0"))) &&
@@ -1252,10 +1235,9 @@ static int wsa_macro_enable_swr(struct snd_soc_dapm_widget *w,
 			wsa_priv->rx_1_count--;
 		ch_cnt = wsa_priv->rx_0_count + wsa_priv->rx_1_count;
 
-		if (wsa_priv->swr_ctrl_data)
-			swrm_wcd_notify(
-				wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
-				SWR_SET_NUM_RX_CH, &ch_cnt);
+		swrm_wcd_notify(
+			wsa_priv->swr_ctrl_data[0].wsa_swr_pdev,
+			SWR_SET_NUM_RX_CH, &ch_cnt);
 		break;
 	}
 	dev_dbg(wsa_priv->dev, "%s: current swr ch cnt: %d\n",
@@ -1374,15 +1356,14 @@ static int wsa_macro_config_softclip(struct snd_soc_codec *codec,
 
 	if (SND_SOC_DAPM_EVENT_OFF(event)) {
 		snd_soc_update_bits(codec, softclip_ctrl_reg, 0x01, 0x00);
-		wsa_macro_enable_softclip_clk(codec, wsa_priv,
-				softclip_path, false);
+		wsa_macro_enable_softclip_clk(codec, wsa_priv, softclip_path,
+						false);
 	}
 
 	return 0;
 }
 
-static bool wsa_macro_adie_lb(struct snd_soc_codec *codec,
-			      int interp_idx)
+static bool wsa_macro_adie_lb(struct snd_soc_codec *codec, int interp_idx)
 {
 	u16 int_mux_cfg0 = 0, int_mux_cfg1 = 0;
 	u8 int_mux_cfg0_val = 0, int_mux_cfg1_val = 0;
@@ -1415,8 +1396,7 @@ static int wsa_macro_enable_main_path(struct snd_soc_dapm_widget *w,
 				      struct snd_kcontrol *kcontrol,
 				      int event)
 {
-	struct snd_soc_codec *codec =
-				snd_soc_dapm_to_codec(w->dapm);
+	struct snd_soc_codec *codec = snd_soc_dapm_to_codec(w->dapm);
 	u16 reg = 0;
 	struct device *wsa_dev = NULL;
 	struct wsa_macro_priv *wsa_priv = NULL;
@@ -1424,13 +1404,13 @@ static int wsa_macro_enable_main_path(struct snd_soc_dapm_widget *w,
 	if (!wsa_macro_get_data(codec, &wsa_dev, &wsa_priv, __func__))
 		return -EINVAL;
 
+
 	reg = BOLERO_CDC_WSA_RX0_RX_PATH_CTL +
 			WSA_MACRO_RX_PATH_OFFSET * w->shift;
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		if (wsa_macro_adie_lb(codec, w->shift)) {
-			snd_soc_update_bits(codec,
-						reg, 0x20, 0x20);
+			snd_soc_update_bits(codec, reg, 0x20, 0x20);
 			bolero_wsa_pa_on(wsa_dev);
 		}
 		break;
@@ -1855,10 +1835,10 @@ static int wsa_macro_enable_echo(struct snd_soc_dapm_widget *w,
 				BOLERO_CDC_WSA_RX_INP_MUX_RX_MIX_CFG0,
 				0x1 << ec_tx, 0x1 << ec_tx);
 		ec_hq_reg = BOLERO_CDC_WSA_EC_HQ0_EC_REF_HQ_PATH_CTL +
-							0x40 * ec_tx;
+							0x20 * ec_tx;
 		snd_soc_update_bits(codec, ec_hq_reg, 0x01, 0x01);
 		ec_hq_reg = BOLERO_CDC_WSA_EC_HQ0_EC_REF_HQ_CFG0 +
-							0x40 * ec_tx;
+							0x20 * ec_tx;
 		/* default set to 48k */
 		snd_soc_update_bits(codec, ec_hq_reg, 0x1E, 0x08);
 	}
@@ -1907,8 +1887,7 @@ static int wsa_macro_get_rx_mute_status(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {
 
-	struct snd_soc_codec *codec =
-				snd_soc_kcontrol_codec(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct device *wsa_dev = NULL;
 	struct wsa_macro_priv *wsa_priv = NULL;
 	int wsa_rx_shift = ((struct soc_multi_mixer_control *)
@@ -1925,8 +1904,7 @@ static int wsa_macro_get_rx_mute_status(struct snd_kcontrol *kcontrol,
 static int wsa_macro_set_rx_mute_status(struct snd_kcontrol *kcontrol,
 			       struct snd_ctl_elem_value *ucontrol)
 {
-	struct snd_soc_codec *codec =
-				snd_soc_kcontrol_codec(kcontrol);
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
 	struct device *wsa_dev = NULL;
 	struct wsa_macro_priv *wsa_priv = NULL;
 	int value = ucontrol->value.integer.value[0];
@@ -1938,23 +1916,19 @@ static int wsa_macro_set_rx_mute_status(struct snd_kcontrol *kcontrol,
 
 	switch (wsa_rx_shift) {
 	case 0:
-		snd_soc_update_bits(codec,
-				BOLERO_CDC_WSA_RX0_RX_PATH_CTL,
+		snd_soc_update_bits(codec, BOLERO_CDC_WSA_RX0_RX_PATH_CTL,
 				0x10, value << 4);
 		break;
 	case 1:
-		snd_soc_update_bits(codec,
-				BOLERO_CDC_WSA_RX1_RX_PATH_CTL,
+		snd_soc_update_bits(codec, BOLERO_CDC_WSA_RX1_RX_PATH_CTL,
 				0x10, value << 4);
 		break;
 	case 2:
-		snd_soc_update_bits(codec,
-				BOLERO_CDC_WSA_RX0_RX_PATH_MIX_CTL,
+		snd_soc_update_bits(codec, BOLERO_CDC_WSA_RX0_RX_PATH_MIX_CTL,
 				0x10, value << 4);
 		break;
 	case 3:
-		snd_soc_update_bits(codec,
-				BOLERO_CDC_WSA_RX1_RX_PATH_MIX_CTL,
+		snd_soc_update_bits(codec, BOLERO_CDC_WSA_RX1_RX_PATH_MIX_CTL,
 				0x10, value << 4);
 		break;
 	default:
@@ -2066,7 +2040,8 @@ static int wsa_macro_spkr_left_boost_stage_put(struct snd_kcontrol *kcontrol,
 	dev_dbg(codec->dev, "%s: ucontrol->value.integer.value[0]  = %ld\n",
 		__func__, ucontrol->value.integer.value[0]);
 	bst_state_max =  ucontrol->value.integer.value[0] << 2;
-	/* bolero does not need to limit the boost levels */
+	snd_soc_update_bits(codec, BOLERO_CDC_WSA_BOOST0_BOOST_CTL,
+		0x0c, bst_state_max);
 
 	return 0;
 }
@@ -2095,7 +2070,8 @@ static int wsa_macro_spkr_right_boost_stage_put(struct snd_kcontrol *kcontrol,
 	dev_dbg(codec->dev, "%s: ucontrol->value.integer.value[0]  = %ld\n",
 		__func__, ucontrol->value.integer.value[0]);
 	bst_state_max =  ucontrol->value.integer.value[0] << 2;
-	/* bolero does not need to limit the boost levels */
+	snd_soc_update_bits(codec, BOLERO_CDC_WSA_BOOST1_BOOST_CTL,
+		0x0c, bst_state_max);
 
 	return 0;
 }
@@ -2728,26 +2704,6 @@ static void wsa_macro_init_reg(struct snd_soc_codec *codec)
 	wsa_macro_init_bcl_pmic_reg(codec);
 }
 
-static int wsa_macro_core_vote(void *handle, bool enable)
-{
-	struct wsa_macro_priv *wsa_priv = (struct wsa_macro_priv *) handle;
-
-	if (wsa_priv == NULL) {
-		pr_err("%s: wsa priv data is NULL\n", __func__);
-		return -EINVAL;
-	}
-	if (enable) {
-		pm_runtime_get_sync(wsa_priv->dev);
-		pm_runtime_put_autosuspend(wsa_priv->dev);
-		pm_runtime_mark_last_busy(wsa_priv->dev);
-	}
-
-	if (bolero_check_core_votes(wsa_priv->dev))
-		return 0;
-	else
-		return -EINVAL;
-}
-
 static int wsa_swrm_clock(void *handle, bool enable)
 {
 	struct wsa_macro_priv *wsa_priv = (struct wsa_macro_priv *) handle;
@@ -2761,33 +2717,15 @@ static int wsa_swrm_clock(void *handle, bool enable)
 
 	mutex_lock(&wsa_priv->swr_clk_lock);
 
-	trace_printk("%s: %s swrm clock %s\n",
-		dev_name(wsa_priv->dev), __func__,
-		(enable ? "enable" : "disable"));
 	dev_dbg(wsa_priv->dev, "%s: swrm clock %s\n",
 		__func__, (enable ? "enable" : "disable"));
 	if (enable) {
-		pm_runtime_get_sync(wsa_priv->dev);
 		if (wsa_priv->swr_clk_users == 0) {
-			ret = msm_cdc_pinctrl_select_active_state(
-						wsa_priv->wsa_swr_gpio_p);
-			if (ret < 0) {
-				dev_err_ratelimited(wsa_priv->dev,
-					"%s: wsa swr pinctrl enable failed\n",
-					__func__);
-				pm_runtime_mark_last_busy(wsa_priv->dev);
-				pm_runtime_put_autosuspend(wsa_priv->dev);
-				goto exit;
-			}
 			ret = wsa_macro_mclk_enable(wsa_priv, 1, true);
 			if (ret < 0) {
-				msm_cdc_pinctrl_select_sleep_state(
-						wsa_priv->wsa_swr_gpio_p);
 				dev_err_ratelimited(wsa_priv->dev,
 					"%s: wsa request clock enable failed\n",
 					__func__);
-				pm_runtime_mark_last_busy(wsa_priv->dev);
-				pm_runtime_put_autosuspend(wsa_priv->dev);
 				goto exit;
 			}
 			if (wsa_priv->reset_swr)
@@ -2802,10 +2740,10 @@ static int wsa_swrm_clock(void *handle, bool enable)
 					BOLERO_CDC_WSA_CLK_RST_CTRL_SWR_CONTROL,
 					0x02, 0x00);
 			wsa_priv->reset_swr = false;
+			msm_cdc_pinctrl_select_active_state(
+						wsa_priv->wsa_swr_gpio_p);
 		}
 		wsa_priv->swr_clk_users++;
-		pm_runtime_mark_last_busy(wsa_priv->dev);
-		pm_runtime_put_autosuspend(wsa_priv->dev);
 	} else {
 		if (wsa_priv->swr_clk_users <= 0) {
 			dev_err(wsa_priv->dev, "%s: clock already disabled\n",
@@ -2818,20 +2756,11 @@ static int wsa_swrm_clock(void *handle, bool enable)
 			regmap_update_bits(regmap,
 				BOLERO_CDC_WSA_CLK_RST_CTRL_SWR_CONTROL,
 				0x01, 0x00);
-			wsa_macro_mclk_enable(wsa_priv, 0, true);
-			ret = msm_cdc_pinctrl_select_sleep_state(
+			msm_cdc_pinctrl_select_sleep_state(
 						wsa_priv->wsa_swr_gpio_p);
-			if (ret < 0) {
-				dev_err_ratelimited(wsa_priv->dev,
-					"%s: wsa swr pinctrl disable failed\n",
-					__func__);
-				goto exit;
-			}
+			wsa_macro_mclk_enable(wsa_priv, 0, true);
 		}
 	}
-	trace_printk("%s: %s swrm clock users: %d\n",
-		dev_name(wsa_priv->dev), __func__,
-		wsa_priv->swr_clk_users);
 	dev_dbg(wsa_priv->dev, "%s: swrm clock users %d\n",
 		__func__, wsa_priv->swr_clk_users);
 exit:
@@ -3028,20 +2957,19 @@ static void wsa_macro_init_ops(struct macro_ops *ops,
 	ops->io_base = wsa_io_base;
 	ops->dai_ptr = wsa_macro_dai;
 	ops->num_dais = ARRAY_SIZE(wsa_macro_dai);
+	ops->mclk_fn = wsa_macro_mclk_ctrl;
 	ops->event_handler = wsa_macro_event_handler;
-	ops->set_port_map = wsa_macro_set_port_map;
 }
 
 static int wsa_macro_probe(struct platform_device *pdev)
 {
 	struct macro_ops ops;
 	struct wsa_macro_priv *wsa_priv;
-	u32 wsa_base_addr, default_clk_id;
+	u32 wsa_base_addr;
 	char __iomem *wsa_io_base;
 	int ret = 0;
+	struct clk *wsa_core_clk, *wsa_npl_clk;
 	u8 bcl_pmic_params[3];
-	u32 is_used_wsa_swr_gpio = 1;
-	const char *is_used_wsa_swr_gpio_dt = "qcom,is-used-swr-gpio";
 
 	wsa_priv = devm_kzalloc(&pdev->dev, sizeof(struct wsa_macro_priv),
 				GFP_KERNEL);
@@ -3056,31 +2984,13 @@ static int wsa_macro_probe(struct platform_device *pdev)
 			__func__, "reg");
 		return ret;
 	}
-	if (of_find_property(pdev->dev.of_node, is_used_wsa_swr_gpio_dt,
-			     NULL)) {
-		ret = of_property_read_u32(pdev->dev.of_node,
-					   is_used_wsa_swr_gpio_dt,
-					   &is_used_wsa_swr_gpio);
-		if (ret) {
-			dev_err(&pdev->dev, "%s: error reading %s in dt\n",
-				__func__, is_used_wsa_swr_gpio_dt);
-			is_used_wsa_swr_gpio = 1;
-		}
-	}
 	wsa_priv->wsa_swr_gpio_p = of_parse_phandle(pdev->dev.of_node,
 					"qcom,wsa-swr-gpios", 0);
-	if (!wsa_priv->wsa_swr_gpio_p && is_used_wsa_swr_gpio) {
+	if (!wsa_priv->wsa_swr_gpio_p) {
 		dev_err(&pdev->dev, "%s: swr_gpios handle not provided!\n",
 			__func__);
 		return -EINVAL;
 	}
-	if (msm_cdc_pinctrl_get_state(wsa_priv->wsa_swr_gpio_p) < 0 &&
-			is_used_wsa_swr_gpio) {
-		dev_err(&pdev->dev, "%s: failed to get swr pin state\n",
-			__func__);
-		return -EPROBE_DEFER;
-	}
-
 	wsa_io_base = devm_ioremap(&pdev->dev,
 				   wsa_base_addr, WSA_MACRO_MAX_OFFSET);
 	if (!wsa_io_base) {
@@ -3096,16 +3006,26 @@ static int wsa_macro_probe(struct platform_device *pdev)
 	wsa_priv->swr_plat_data.write = NULL;
 	wsa_priv->swr_plat_data.bulk_write = NULL;
 	wsa_priv->swr_plat_data.clk = wsa_swrm_clock;
-	wsa_priv->swr_plat_data.core_vote = wsa_macro_core_vote;
 	wsa_priv->swr_plat_data.handle_irq = NULL;
 
-	ret = of_property_read_u32(pdev->dev.of_node, "qcom,default-clk-id",
-				   &default_clk_id);
-	if (ret) {
-		dev_err(&pdev->dev, "%s: could not find %s entry in dt\n",
-			__func__, "qcom,mux0-clk-id");
-		default_clk_id = WSA_CORE_CLK;
+	/* Register MCLK for wsa macro */
+	wsa_core_clk = devm_clk_get(&pdev->dev, "wsa_core_clk");
+	if (IS_ERR(wsa_core_clk)) {
+		ret = PTR_ERR(wsa_core_clk);
+		dev_err(&pdev->dev, "%s: clk get %s failed\n",
+			__func__, "wsa_core_clk");
+		return ret;
 	}
+	wsa_priv->wsa_core_clk = wsa_core_clk;
+	/* Register npl clk for soundwire */
+	wsa_npl_clk = devm_clk_get(&pdev->dev, "wsa_npl_clk");
+	if (IS_ERR(wsa_npl_clk)) {
+		ret = PTR_ERR(wsa_npl_clk);
+		dev_err(&pdev->dev, "%s: clk get %s failed\n",
+			__func__, "wsa_npl_clk");
+		return ret;
+	}
+	wsa_priv->wsa_npl_clk = wsa_npl_clk;
 
 	ret = of_property_read_u8_array(pdev->dev.of_node,
 				"qcom,wsa-bcl-pmic-params", bcl_pmic_params,
@@ -3118,30 +3038,23 @@ static int wsa_macro_probe(struct platform_device *pdev)
 		wsa_priv->bcl_pmic_params.sid = bcl_pmic_params[1];
 		wsa_priv->bcl_pmic_params.ppid = bcl_pmic_params[2];
 	}
-	wsa_priv->default_clk_id  = default_clk_id;
 
 	dev_set_drvdata(&pdev->dev, wsa_priv);
 	mutex_init(&wsa_priv->mclk_lock);
 	mutex_init(&wsa_priv->swr_clk_lock);
+	mutex_init(&wsa_priv->clk_lock);
 	wsa_macro_init_ops(&ops, wsa_io_base);
-	ops.clk_id_req = wsa_priv->default_clk_id;
-	ops.default_clk_id = wsa_priv->default_clk_id;
 	ret = bolero_register_macro(&pdev->dev, WSA_MACRO, &ops);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "%s: register macro failed\n", __func__);
 		goto reg_macro_fail;
 	}
 	schedule_work(&wsa_priv->wsa_macro_add_child_devices_work);
-	pm_runtime_set_autosuspend_delay(&pdev->dev, AUTO_SUSPEND_DELAY);
-	pm_runtime_use_autosuspend(&pdev->dev);
-	pm_runtime_set_suspended(&pdev->dev);
-	pm_suspend_ignore_children(&pdev->dev, true);
-	pm_runtime_enable(&pdev->dev);
-
 	return ret;
 reg_macro_fail:
 	mutex_destroy(&wsa_priv->mclk_lock);
 	mutex_destroy(&wsa_priv->swr_clk_lock);
+	mutex_destroy(&wsa_priv->clk_lock);
 	return ret;
 }
 
@@ -3159,11 +3072,10 @@ static int wsa_macro_remove(struct platform_device *pdev)
 		count < WSA_MACRO_CHILD_DEVICES_MAX; count++)
 		platform_device_unregister(wsa_priv->pdev_child_devices[count]);
 
-	pm_runtime_disable(&pdev->dev);
-	pm_runtime_set_suspended(&pdev->dev);
 	bolero_unregister_macro(&pdev->dev, WSA_MACRO);
 	mutex_destroy(&wsa_priv->mclk_lock);
 	mutex_destroy(&wsa_priv->swr_clk_lock);
+	mutex_destroy(&wsa_priv->clk_lock);
 	return 0;
 }
 
@@ -3172,21 +3084,11 @@ static const struct of_device_id wsa_macro_dt_match[] = {
 	{}
 };
 
-static const struct dev_pm_ops bolero_dev_pm_ops = {
-	SET_RUNTIME_PM_OPS(
-		bolero_runtime_suspend,
-		bolero_runtime_resume,
-		NULL
-	)
-};
-
 static struct platform_driver wsa_macro_driver = {
 	.driver = {
 		.name = "wsa_macro",
 		.owner = THIS_MODULE,
-		.pm = &bolero_dev_pm_ops,
 		.of_match_table = wsa_macro_dt_match,
-		.suppress_bind_attrs = true,
 	},
 	.probe = wsa_macro_probe,
 	.remove = wsa_macro_remove,
