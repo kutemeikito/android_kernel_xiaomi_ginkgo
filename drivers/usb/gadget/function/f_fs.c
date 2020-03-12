@@ -1167,10 +1167,14 @@ static int ffs_aio_cancel(struct kiocb *kiocb)
 {
 	struct ffs_io_data *io_data = kiocb->private;
 	struct ffs_epfile *epfile = kiocb->ki_filp->private_data;
+	struct ffs_data *ffs = epfile->ffs;
 	unsigned long flags;
 	int value;
 
 	ENTER();
+
+	ffs_log("enter:state %d setup_state %d flag %lu", ffs->state,
+		ffs->setup_state, ffs->flags);
 
 	spin_lock_irqsave(&epfile->ffs->eps_lock, flags);
 
