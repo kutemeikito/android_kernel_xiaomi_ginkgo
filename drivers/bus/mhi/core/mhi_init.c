@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -48,6 +48,7 @@ const char * const mhi_state_tran_str[MHI_ST_TRANSITION_MAX] = {
 	[MHI_ST_TRANSITION_READY] = "READY",
 	[MHI_ST_TRANSITION_SBL] = "SBL",
 	[MHI_ST_TRANSITION_MISSION_MODE] = "MISSION MODE",
+	[MHI_ST_TRANSITION_DISABLE] = "DISABLE",
 };
 
 const char * const mhi_state_str[MHI_STATE_MAX] = {
@@ -75,6 +76,7 @@ static const char * const mhi_pm_state_str[] = {
 	[MHI_PM_BIT_SYS_ERR_PROCESS] = "SYS_ERR Process",
 	[MHI_PM_BIT_SHUTDOWN_PROCESS] = "SHUTDOWN Process",
 	[MHI_PM_BIT_LD_ERR_FATAL_DETECT] = "LD or Error Fatal Detect",
+	[MHI_PM_BIT_SHUTDOWN_NO_ACCESS] = "SHUTDOWN No Access",
 };
 
 struct mhi_bus mhi_bus;
@@ -606,7 +608,6 @@ int mhi_init_timesync(struct mhi_controller *mhi_cntrl)
 		return -ENOMEM;
 
 	spin_lock_init(&mhi_tsync->lock);
-	mutex_init(&mhi_tsync->lpm_mutex);
 	INIT_LIST_HEAD(&mhi_tsync->head);
 	init_completion(&mhi_tsync->completion);
 
@@ -1392,11 +1393,11 @@ int of_register_mhi_controller(struct mhi_controller *mhi_cntrl)
 
 	INIT_LIST_HEAD(&mhi_cntrl->transition_list);
 	mutex_init(&mhi_cntrl->pm_mutex);
+	mutex_init(&mhi_cntrl->tsync_mutex);
 	rwlock_init(&mhi_cntrl->pm_lock);
 	spin_lock_init(&mhi_cntrl->transition_lock);
 	spin_lock_init(&mhi_cntrl->wlock);
 	INIT_WORK(&mhi_cntrl->st_worker, mhi_pm_st_worker);
-	INIT_WORK(&mhi_cntrl->fw_worker, mhi_fw_load_worker);
 	INIT_WORK(&mhi_cntrl->syserr_worker, mhi_pm_sys_err_worker);
 	INIT_WORK(&mhi_cntrl->low_priority_worker, mhi_low_priority_worker);
 	init_waitqueue_head(&mhi_cntrl->state_event);

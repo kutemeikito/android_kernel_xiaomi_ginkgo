@@ -1,4 +1,4 @@
-/* Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -444,6 +444,7 @@ enum MHI_ST_TRANSITION {
 	MHI_ST_TRANSITION_READY,
 	MHI_ST_TRANSITION_SBL,
 	MHI_ST_TRANSITION_MISSION_MODE,
+	MHI_ST_TRANSITION_DISABLE,
 	MHI_ST_TRANSITION_MAX,
 };
 
@@ -474,6 +475,7 @@ enum {
 	MHI_PM_BIT_SYS_ERR_PROCESS,
 	MHI_PM_BIT_SHUTDOWN_PROCESS,
 	MHI_PM_BIT_LD_ERR_FATAL_DETECT,
+	MHI_PM_BIT_SHUTDOWN_NO_ACCESS,
 	MHI_PM_BIT_MAX
 };
 
@@ -493,6 +495,7 @@ enum MHI_PM_STATE {
 	MHI_PM_SHUTDOWN_PROCESS = BIT(MHI_PM_BIT_SHUTDOWN_PROCESS),
 	/* link not accessible */
 	MHI_PM_LD_ERR_FATAL_DETECT = BIT(MHI_PM_BIT_LD_ERR_FATAL_DETECT),
+	MHI_PM_SHUTDOWN_NO_ACCESS = BIT(MHI_PM_BIT_SHUTDOWN_NO_ACCESS),
 };
 
 #define MHI_REG_ACCESS_VALID(pm_state) ((pm_state & (MHI_PM_POR | MHI_PM_M0 | \
@@ -500,7 +503,7 @@ enum MHI_PM_STATE {
 		MHI_PM_SYS_ERR_DETECT | MHI_PM_SYS_ERR_PROCESS | \
 		MHI_PM_SHUTDOWN_PROCESS | MHI_PM_FW_DL_ERR)))
 #define MHI_PM_IN_ERROR_STATE(pm_state) (pm_state >= MHI_PM_FW_DL_ERR)
-#define MHI_PM_IN_FATAL_STATE(pm_state) (pm_state == MHI_PM_LD_ERR_FATAL_DETECT)
+#define MHI_PM_IN_FATAL_STATE(pm_state) (pm_state >= MHI_PM_LD_ERR_FATAL_DETECT)
 #define MHI_DB_ACCESS_VALID(mhi_cntrl) (mhi_cntrl->pm_state & \
 					mhi_cntrl->db_access)
 #define MHI_WAKE_DB_CLEAR_VALID(pm_state) (pm_state & (MHI_PM_M0 | \
@@ -595,6 +598,7 @@ struct mhi_pm_transitions {
 struct state_transition {
 	struct list_head node;
 	enum MHI_ST_TRANSITION state;
+	enum MHI_PM_STATE pm_state;
 };
 
 struct mhi_ctxt {
@@ -717,7 +721,6 @@ struct mhi_timesync {
 	enum MHI_EV_CCS ccs;
 	struct completion completion;
 	spinlock_t lock; /* list protection */
-	struct mutex lpm_mutex; /* lpm protection */
 	struct list_head head;
 };
 
@@ -903,6 +906,7 @@ void mhi_deinit_free_irq(struct mhi_controller *mhi_cntrl);
 int mhi_dtr_init(void);
 void mhi_rddm_prepare(struct mhi_controller *mhi_cntrl,
 		      struct image_info *img_info);
+void mhi_fw_load_handler(struct mhi_controller *mhi_cntrl);
 int mhi_prepare_channel(struct mhi_controller *mhi_cntrl,
 			struct mhi_chan *mhi_chan);
 void mhi_reset_reg_write_q(struct mhi_controller *mhi_cntrl);
@@ -914,22 +918,9 @@ irqreturn_t mhi_intvec_threaded_handlr(int irq_number, void *dev);
 irqreturn_t mhi_intvec_handlr(int irq_number, void *dev);
 void mhi_ev_task(unsigned long data);
 
-#ifdef CONFIG_MHI_DEBUG
-
-#define MHI_ASSERT(cond, msg) do { \
+#define MHI_ASSERT(cond, fmt, ...) do { \
 	if (cond) \
-		panic(msg); \
+		panic(fmt); \
 } while (0)
-
-#else
-
-#define MHI_ASSERT(cond, msg) do { \
-	if (cond) { \
-		MHI_ERR(msg); \
-		WARN_ON(cond); \
-	} \
-} while (0)
-
-#endif
 
 #endif /* _MHI_INT_H */
