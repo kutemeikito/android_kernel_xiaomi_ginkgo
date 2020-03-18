@@ -1059,7 +1059,7 @@ static int msm_eeprom_i2c_probe(struct i2c_client *client,
 	CDBG("%s qcom,eeprom-name %s, rc %d\n", __func__,
 		eb_info->eeprom_name, rc);
 	if (rc < 0) {
-		pr_err("%s failed %d\n", __func__, __LINE__);
+		pr_info("%s Run userspace_probe\n", __func__);
 		e_ctrl->userspace_probe = 1;
 	}
 
