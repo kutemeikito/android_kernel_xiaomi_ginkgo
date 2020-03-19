@@ -123,7 +123,7 @@ EXPORT_SYMBOL(get_lct_tp_gesture_status);
 
 static int lct_creat_proc_tp_entry(void)
 {
-	lct_tp_p->proc_entry_tp = proc_create_data(TP_GESTURE_NAME, 0444, NULL, &lct_proc_tp_gesture_fops, NULL);
+	lct_tp_p->proc_entry_tp = proc_create_data(TP_GESTURE_NAME, 0660, NULL, &lct_proc_tp_gesture_fops, NULL);
 	if (IS_ERR_OR_NULL(lct_tp_p->proc_entry_tp)) {
 		TP_LOGE("add /proc/%s error!\n", TP_GESTURE_NAME);
 		return -1;
