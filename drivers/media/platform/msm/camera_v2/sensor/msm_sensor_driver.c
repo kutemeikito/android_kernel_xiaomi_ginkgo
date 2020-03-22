@@ -1319,15 +1319,6 @@ int32_t msm_sensor_driver_probe(void *setting,
 		goto CSID_TG;
 	}
 
-#ifdef VIRTUAL_CAMERA
-	if (0 == slave_info->power_setting_array.size &&
-		0x1 == slave_info->slave_addr) {
-		s_ctrl->is_virtual_camera = 1;
-		pr_err("Is virtual camera, sensor name = %s\n", slave_info->sensor_name);
-		goto CSID_TG;
-	}
-#endif
-
 	rc = msm_sensor_get_power_settings(setting, slave_info,
 		&s_ctrl->sensordata->power_info);
 	if (rc < 0) {
@@ -1492,12 +1483,6 @@ CSID_TG:
 		(s_ctrl->sensordata->sensor_info->position << 16) |
 		((s_ctrl->sensordata->sensor_info->sensor_mount_angle / 90) <<
 		8);
-#ifdef VIRTUAL_CAMERA
-	if (s_ctrl->is_virtual_camera) {
-		mount_pos = mount_pos | 0x1 << 23;
-		pr_err("[vtcamera]set vtcamera bit ( 1 << 23)\n");
-	}
-#endif
 
 	s_ctrl->msm_sd.sd.entity.flags = mount_pos | MEDIA_ENT_FL_DEFAULT;
 

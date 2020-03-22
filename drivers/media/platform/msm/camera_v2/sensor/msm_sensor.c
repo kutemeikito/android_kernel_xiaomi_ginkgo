@@ -133,13 +133,6 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	if (s_ctrl->is_csid_tg_mode)
 		return 0;
 
-#ifdef VIRTUAL_CAMERA
-	if (s_ctrl->is_virtual_camera) {
-		pr_err("[vtcamera] power down success\n");
-		return 0;
-	}
-#endif
-
 	power_info = &s_ctrl->sensordata->power_info;
 	sensor_device_type = s_ctrl->sensor_device_type;
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;
@@ -167,7 +160,7 @@ static int msm_sensor_get_sensor_id_gc02m1(struct msm_sensor_ctrl_t *s_ctrl)
 
 	CDBG("%s:%d E \n", __func__, __LINE__);
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;
-	
+
 	rc = sensor_i2c_client->i2c_func_tbl->i2c_write(
 		sensor_i2c_client, 0xfe,
 		0x00, MSM_CAMERA_I2C_BYTE_DATA);
@@ -179,7 +172,7 @@ static int msm_sensor_get_sensor_id_gc02m1(struct msm_sensor_ctrl_t *s_ctrl)
 	sensor_i2c_client->i2c_func_tbl->i2c_write(
 		sensor_i2c_client, 0xfc,
 		0x01, MSM_CAMERA_I2C_BYTE_DATA);
-	
+
 	sensor_i2c_client->i2c_func_tbl->i2c_write(
 		sensor_i2c_client, 0xf4,
 		0x41, MSM_CAMERA_I2C_BYTE_DATA);
@@ -243,7 +236,7 @@ static int msm_sensor_get_sensor_id_gc02m1(struct msm_sensor_ctrl_t *s_ctrl)
 	sensor_i2c_client->i2c_func_tbl->i2c_write(
 		sensor_i2c_client, 0xf3,
 		0x30, MSM_CAMERA_I2C_BYTE_DATA);
-	
+
 	sensor_i2c_client->i2c_func_tbl->i2c_write(
 		sensor_i2c_client, 0xfe,
 		0x02, MSM_CAMERA_I2C_BYTE_DATA);
@@ -294,13 +287,6 @@ int msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 	if (s_ctrl->is_csid_tg_mode)
 		return 0;
-
-#ifdef VIRTUAL_CAMERA
-	if (s_ctrl->is_virtual_camera) {
-		pr_err("[vtcamera] power up success\n");
-		return 0;
-	}
-#endif
 
 	power_info = &s_ctrl->sensordata->power_info;
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;
@@ -512,12 +498,6 @@ int msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 	sensor_i2c_client = s_ctrl->sensor_i2c_client;
 	slave_info = s_ctrl->sensordata->slave_info;
 	sensor_name = s_ctrl->sensordata->sensor_name;
-#ifdef VIRTUAL_CAMERA
-	if (s_ctrl->is_virtual_camera) {
-		pr_err("[vtcamera] Check id return successs");
-		return 0;
-	}
-#endif
 
 	if (!sensor_i2c_client || !slave_info || !sensor_name) {
 		pr_err("%s:%d failed: %pK %pK %pK\n",
@@ -726,13 +706,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
 
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
-
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_UP) {
 			pr_err("%s:%d failed: invalid state %d\n", __func__,
 				__LINE__, s_ctrl->sensor_state);
@@ -808,13 +781,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
 
 		read_config_ptr =
 			(__force struct msm_camera_i2c_read_config *)
@@ -893,13 +859,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
 
 		if (copy_from_user(&write_config32,
 				(void __user *)compat_ptr(cdata->cfg.setting),
@@ -1007,13 +966,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
 
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
-
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_UP) {
 			pr_err("%s:%d failed: invalid state %d\n", __func__,
 				__LINE__, s_ctrl->sensor_state);
@@ -1071,13 +1023,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
 
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			s_ctrl->sensor_state = MSM_SENSOR_POWER_UP;
-			goto DONE;
-		}
-#endif
-
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_DOWN) {
 			pr_err("%s:%d failed: invalid state %d\n", __func__,
 				__LINE__, s_ctrl->sensor_state);
@@ -1104,13 +1049,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 	case CFG_POWER_DOWN:
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			s_ctrl->sensor_state = MSM_SENSOR_POWER_DOWN;
-			goto DONE;
-		}
-#endif
 
 		kfree(s_ctrl->stop_setting.reg_setting);
 		s_ctrl->stop_setting.reg_setting = NULL;
@@ -1144,13 +1082,6 @@ static int msm_sensor_config32(struct msm_sensor_ctrl_t *s_ctrl,
 
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
 
 		if (copy_from_user(&stop_setting32,
 				(void __user *)compat_ptr((cdata->cfg.setting)),
@@ -1311,13 +1242,6 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void *argp)
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
 
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
-
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_UP) {
 			pr_err("%s:%d failed: invalid state %d\n", __func__,
 				__LINE__, s_ctrl->sensor_state);
@@ -1390,13 +1314,6 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void *argp)
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
 
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
-
 		read_config_ptr =
 			(struct msm_camera_i2c_read_config *)cdata->cfg.setting;
 		if (copy_from_user(&read_config,
@@ -1467,13 +1384,6 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void *argp)
 
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
 
 		if (copy_from_user(&write_config,
 			(void __user *)cdata->cfg.setting,
@@ -1558,13 +1468,6 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void *argp)
 
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
 
 		if (s_ctrl->sensor_state != MSM_SENSOR_POWER_UP) {
 			pr_err("%s:%d failed: invalid state %d\n", __func__,
@@ -1679,13 +1582,6 @@ int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void *argp)
 
 		if (s_ctrl->is_csid_tg_mode)
 			goto DONE;
-
-#ifdef VIRTUAL_CAMERA
-		if (s_ctrl->is_virtual_camera) {
-			pr_err("[vtcamera] %s: %d", __func__, __LINE__);
-			goto DONE;
-		}
-#endif
 
 		if (copy_from_user(stop_setting,
 			(void __user *)cdata->cfg.setting,

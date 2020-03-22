@@ -56,18 +56,12 @@
 
 #define SECURE_CAM_RST_MODULES
 
-//Switch for virtual camera
-#define VIRTUAL_CAMERA
-
 enum msm_sensor_camera_id_t {
 	CAMERA_0,
 	CAMERA_1,
 	CAMERA_2,
 	CAMERA_3,
 	CAMERA_4,
-#ifdef VIRTUAL_CAMERA
-	CAMERA_5,
-#endif
 	MAX_CAMERAS,
 };
 
