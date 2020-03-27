@@ -486,7 +486,10 @@ typedef struct sSirSmeReadyReq {
 	QDF_STATUS (*sme_msg_cb)(tpAniSirGlobal mac,
 				 struct scheduler_msg *msg);
 	QDF_STATUS (*pe_disconnect_cb) (tpAniSirGlobal mac,
-					uint8_t vdev_id);
+					uint8_t vdev_id,
+					uint8_t *deauth_disassoc_frame,
+					uint16_t deauth_disassoc_frame_len,
+					uint16_t reason_code);
 	void *csr_roam_pmkid_req_cb;
 } tSirSmeReadyReq, *tpSirSmeReadyReq;
 
@@ -761,6 +764,9 @@ struct fils_ind_elements {
 };
 #endif
 
+/* struct bss_description: bss information as per beacon/probe resp
+ * @sae_single_pmk_ap: flag to check if AP supports sae roaming with single pmk
+ */
 struct bss_description {
 	/* offset of the ieFields from bssId. */
 	uint16_t length;
@@ -802,6 +808,10 @@ struct bss_description {
 	uint8_t reservedPadding4;
 	uint32_t tsf_delta;
 	uint32_t adaptive_11r_ap;
+#if defined(WLAN_SAE_SINGLE_PMK) && defined(WLAN_FEATURE_ROAM_OFFLOAD)
+	bool sae_single_pmk_ap;
+#endif
+
 #ifdef WLAN_FEATURE_FILS_SK
 	struct fils_ind_elements fils_info_element;
 #endif
@@ -940,6 +950,7 @@ typedef struct sSirSmeTsmIEInd {
 	tSirTsmIE tsmIe;
 	uint8_t sessionId;
 } tSirSmeTsmIEInd, *tpSirSmeTsmIEInd;
+
 typedef struct sAniTrafStrmMetrics {
 	uint16_t UplinkPktQueueDly;
 	uint16_t UplinkPktQueueDlyHist[4];
@@ -1562,6 +1573,7 @@ typedef struct sSirSmeDisassocInd {
 	tAniStaStatStruct perStaStats;  /* STA stats */
 	uint16_t staId;
 	uint32_t reasonCode;
+	bool from_ap;
 } tSirSmeDisassocInd, *tpSirSmeDisassocInd;
 
 /* / Definition for Disassociation confirm */
@@ -1627,6 +1639,7 @@ typedef struct sSirSmeDeauthInd {
 	uint16_t staId;
 	uint32_t reasonCode;
 	int8_t rssi;
+	bool from_ap;
 } tSirSmeDeauthInd, *tpSirSmeDeauthInd;
 
 /* / Definition for stop BSS request message */
@@ -2423,11 +2436,13 @@ struct sir_set_he_bss_color {
  * struct sir_create_session - Used for creating session in monitor mode
  * @type: SME host message type.
  * @msg_len: Length of the message.
+ * @vdev_id: vdev id
  * @bss_id: bss_id for creating the session.
  */
 struct sir_create_session {
 	uint16_t type;
 	uint16_t msg_len;
+	uint8_t vdev_id;
 	struct qdf_mac_addr bss_id;
 };
 
@@ -2704,6 +2719,20 @@ typedef struct sAniIbssRouteTable {
 } tAniIbssRouteTable;
 
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
+/**
+ * struct roam_scan_ch_resp - roam scan chan list response to userspace
+ * @vdev_id: vdev id
+ * @command_resp: command response or async event
+ * @ChannelList: list of roam scan channels
+ * @num_channels: number of roam scan channels
+ */
+struct roam_scan_ch_resp {
+	uint16_t vdev_id;
+	uint16_t num_channels;
+	uint32_t command_resp;
+	uint32_t *chan_list;
+};
+
 typedef struct {
 	uint8_t acvo_uapsd:1;
 	uint8_t acvi_uapsd:1;
@@ -2991,6 +3020,7 @@ typedef struct sSirRoamOffloadScanReq {
 	uint8_t RoamBeaconRssiWeight;
 	eSirDFSRoamScanMode allowDFSChannelRoam;
 #ifdef WLAN_FEATURE_ROAM_OFFLOAD
+	struct roam_triggers roam_triggers;
 	uint8_t RoamOffloadEnabled;
 	uint8_t PSK_PMK[SIR_ROAM_SCAN_PSK_SIZE];
 	uint32_t pmk_len;
@@ -3007,6 +3037,7 @@ typedef struct sSirRoamOffloadScanReq {
 	struct pmkid_mode_bits pmkid_modes;
 	uint32_t roam_preauth_retry_count;
 	uint32_t roam_preauth_no_ack_timeout;
+	bool is_sae_single_pmk;
 
 	/* Idle/Disconnect roam parameters */
 	struct wmi_idle_roam_params idle_roam_params;
@@ -3033,6 +3064,7 @@ typedef struct sSirRoamOffloadScanReq {
 	uint32_t btm_solicited_timeout;
 	uint32_t btm_max_attempt_cnt;
 	uint32_t btm_sticky_time;
+	uint32_t btm_query_bitmask;
 	uint32_t rct_validity_timer;
 	uint32_t disassoc_timer_threshold;
 	uint32_t btm_trig_min_candidate_score;
