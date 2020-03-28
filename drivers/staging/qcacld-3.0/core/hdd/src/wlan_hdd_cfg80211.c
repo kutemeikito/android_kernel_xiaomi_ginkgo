@@ -21651,7 +21651,9 @@ wlan_hdd_cfg80211_indicate_disconnect(struct hdd_adapter *adapter,
 		      ieee80211_reason,
 		      hdd_ieee80211_reason_code_to_str(ieee80211_reason),
 		      adapter->last_disconnect_reason,
+#ifdef WLAN_DEBUG
 		      hdd_qca_reason_to_str(adapter->last_disconnect_reason),
+#endif
 		      locally_generated);
 	cfg80211_disconnected(adapter->dev, ieee80211_reason, disconnect_ies,
 			      disconnect_ies_len, locally_generated,
