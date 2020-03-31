@@ -189,26 +189,21 @@ unsigned int capacity_margin				= 1280;
 
 /* Migration margins */
 unsigned int sysctl_sched_capacity_margin_up[MAX_MARGIN_LEVELS] = {
-	[0 ... MAX_MARGIN_LEVELS - 1] = 1280
-}; /* ~20% margin */
+			[0 ... MAX_MARGIN_LEVELS-1] = 1078}; /* ~5% margin */
 unsigned int sysctl_sched_capacity_margin_down[MAX_MARGIN_LEVELS] = {
-	1575, 1280
-}; /* ~35 margin for big, ~20% margin for big+ */
-
-#if NR_CPUS == 8
+			[0 ... MAX_MARGIN_LEVELS-1] = 1205}; /* ~15% margin */
 unsigned int sched_capacity_margin_up[NR_CPUS] = {
-	1280, 1280, 1280, 1280, 1280, 1280, 1280, 1078
-}; /* ~20% margin for small and big, 5% for big+ */
+			[0 ... NR_CPUS-1] = 1078}; /* ~5% margin */
 unsigned int sched_capacity_margin_down[NR_CPUS] = {
-			[0 ... NR_CPUS-1] = 1280}; /* ~20% margin */
+			[0 ... NR_CPUS-1] = 1205}; /* ~15% margin */
 unsigned int sysctl_sched_capacity_margin_up_boosted[MAX_MARGIN_LEVELS] = {
-			[0 ... MAX_MARGIN_LEVELS-1] = 1280}; /* ~20% margin */
+			[0 ... MAX_MARGIN_LEVELS-1] = 4096}; /* ~75% margin */
 unsigned int sysctl_sched_capacity_margin_down_boosted[MAX_MARGIN_LEVELS] = {
-			[0 ... MAX_MARGIN_LEVELS-1] = 1280}; /* ~20% margin */
+			[0 ... MAX_MARGIN_LEVELS-1] = 4096}; /* ~75% margin */
 unsigned int sched_capacity_margin_up_boosted[NR_CPUS] = {
-			[0 ... NR_CPUS-1] = 1280}; /* ~20% margin */
+			[0 ... NR_CPUS-1] = 4096}; /* ~75% margin */
 unsigned int sched_capacity_margin_down_boosted[NR_CPUS] = {
-			[0 ... NR_CPUS-1] = 1280}; /* ~20% margin */
+			[0 ... NR_CPUS-1] = 4096}; /* ~75% margin */
 
 #ifdef CONFIG_SCHED_WALT
 /* 1ms default for 20ms window size scaled to 1024 */
@@ -7598,7 +7593,8 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 			new_util = max(min_util, new_util);
 			if ((!(prefer_idle && idle_cpu(i))
 			    && new_util > capacity_orig) ||
-			    !task_fits_capacity(p, capacity_orig, i))
+			    (is_min_capacity_cpu(i) &&
+			    !task_fits_capacity(p, capacity_orig, i)))
 				continue;
 
 			/*
