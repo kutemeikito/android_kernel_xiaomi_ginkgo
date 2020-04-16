@@ -26,6 +26,12 @@
 #include "dsi_parser.h"
 
 char g_lcd_id[128];
+
+
+#ifdef CONFIG_KLAPSE
+#include <linux/klapse.h>
+#endif
+
 /**
  * topology is currently defined by a set of following 3 values:
  * 1. num of layer mixers
