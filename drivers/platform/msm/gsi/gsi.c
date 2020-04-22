@@ -239,7 +239,7 @@ static void gsi_handle_ch_ctrl(int ee)
 	for (i = 0; i < GSI_STTS_REG_BITS; i++) {
 		if ((1 << i) & ch) {
 			if (i >= gsi_ctx->max_ch || i >= GSI_CHAN_MAX) {
-				GSIERR("invalid channel %d\n", i);
+				GSIDBG("invalid channel %d\n", i);
 				break;
 			}
 
@@ -271,7 +271,7 @@ static void gsi_handle_ev_ctrl(int ee)
 	for (i = 0; i < GSI_STTS_REG_BITS; i++) {
 		if ((1 << i) & ch) {
 			if (i >= gsi_ctx->max_ev || i >= GSI_EVT_RING_MAX) {
-				GSIERR("invalid event %d\n", i);
+				GSIDBG("invalid event %d\n", i);
 				break;
 			}
 
@@ -299,9 +299,9 @@ static void gsi_handle_glob_err(uint32_t err)
 	enum gsi_err_type err_type;
 
 	log = (struct gsi_log_err *)&err;
-	GSIERR("log err_type=%u ee=%u idx=%u\n", log->err_type, log->ee,
+	GSIDBG("log err_type=%u ee=%u idx=%u\n", log->err_type, log->ee,
 			log->virt_idx);
-	GSIERR("code=%u arg1=%u arg2=%u arg3=%u\n", log->code, log->arg1,
+	GSIDBG("code=%u arg1=%u arg2=%u arg3=%u\n", log->code, log->arg1,
 			log->arg2, log->arg3);
 
 	err_type = log->err_type;
@@ -319,7 +319,7 @@ static void gsi_handle_glob_err(uint32_t err)
 		break;
 	case GSI_ERR_TYPE_CHAN:
 		if (WARN_ON(log->virt_idx >= gsi_ctx->max_ch)) {
-			GSIERR("Unexpected ch %d\n", log->virt_idx);
+			GSIDBG("Unexpected ch %d\n", log->virt_idx);
 			return;
 		}
 
@@ -328,7 +328,7 @@ static void gsi_handle_glob_err(uint32_t err)
 		chan_notify.err_desc = err & 0xFFFF;
 		if (log->code == GSI_INVALID_TRE_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 
@@ -342,20 +342,20 @@ static void gsi_handle_glob_err(uint32_t err)
 					ch->state);
 			ch->stats.invalid_tre_error++;
 			if (ch->state == GSI_CHAN_STATE_ERROR) {
-				GSIERR("Unexpected channel state %d\n",
+				GSIDBG("Unexpected channel state %d\n",
 					ch->state);
 				BUG();
 			}
 			chan_notify.evt_id = GSI_CHAN_INVALID_TRE_ERR;
 		} else if (log->code == GSI_OUT_OF_BUFFERS_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			chan_notify.evt_id = GSI_CHAN_OUT_OF_BUFFERS_ERR;
 		} else if (log->code == GSI_OUT_OF_RESOURCES_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			chan_notify.evt_id = GSI_CHAN_OUT_OF_RESOURCES_ERR;
@@ -365,26 +365,26 @@ static void gsi_handle_glob_err(uint32_t err)
 				GSI_CHAN_UNSUPPORTED_INTER_EE_OP_ERR;
 		} else if (log->code == GSI_NON_ALLOCATED_EVT_ACCESS_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			chan_notify.evt_id =
 				GSI_CHAN_NON_ALLOCATED_EVT_ACCESS_ERR;
 		} else if (log->code == GSI_HWO_1_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			chan_notify.evt_id = GSI_CHAN_HWO_1_ERR;
 		} else {
-			GSIERR("unexpected event log code %d\n", log->code);
+			GSIDBG("unexpected event log code %d\n", log->code);
 			BUG();
 		}
 		ch->props.err_cb(&chan_notify);
 		break;
 	case GSI_ERR_TYPE_EVT:
 		if (WARN_ON(log->virt_idx >= gsi_ctx->max_ev)) {
-			GSIERR("Unexpected ev %d\n", log->virt_idx);
+			GSIDBG("Unexpected ev %d\n", log->virt_idx);
 			return;
 		}
 
@@ -393,13 +393,13 @@ static void gsi_handle_glob_err(uint32_t err)
 		evt_notify.err_desc = err & 0xFFFF;
 		if (log->code == GSI_OUT_OF_BUFFERS_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			evt_notify.evt_id = GSI_EVT_OUT_OF_BUFFERS_ERR;
 		} else if (log->code == GSI_OUT_OF_RESOURCES_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			evt_notify.evt_id = GSI_EVT_OUT_OF_RESOURCES_ERR;
@@ -408,12 +408,12 @@ static void gsi_handle_glob_err(uint32_t err)
 			evt_notify.evt_id = GSI_EVT_UNSUPPORTED_INTER_EE_OP_ERR;
 		} else if (log->code == GSI_EVT_RING_EMPTY_ERR) {
 			if (log->ee != gsi_ctx->per.ee) {
-				GSIERR("unexpected EE in event %d\n", log->ee);
+				GSIDBG("unexpected EE in event %d\n", log->ee);
 				BUG();
 			}
 			evt_notify.evt_id = GSI_EVT_EVT_RING_EMPTY_ERR;
 		} else {
-			GSIERR("unexpected event log code %d\n", log->code);
+			GSIDBG("unexpected event log code %d\n", log->code);
 			BUG();
 		}
 		ev->props.err_cb(&evt_notify);
@@ -495,12 +495,12 @@ static uint16_t gsi_get_complete_num(struct gsi_ring_ctx *ctx, uint64_t addr1,
 		ctx->base, ctx->end);
 
 	if (addr1 < ctx->base || addr1 >= ctx->end) {
-		GSIERR("address = 0x%llx not in range\n", addr1);
+		GSIDBG("address = 0x%llx not in range\n", addr1);
 		BUG();
 	}
 
 	if (addr2 < ctx->base || addr2 >= ctx->end) {
-		GSIERR("address = 0x%llx not in range\n", addr2);
+		GSIDBG("address = 0x%llx not in range\n", addr2);
 		BUG();
 	}
 
@@ -521,7 +521,7 @@ static void gsi_process_chan(struct gsi_xfer_compl_evt *evt,
 
 	ch_id = evt->chid;
 	if (WARN_ON(ch_id >= gsi_ctx->max_ch)) {
-		GSIERR("Unexpected ch %d\n", ch_id);
+		GSIDBG("Unexpected ch %d\n", ch_id);
 		return;
 	}
 
@@ -564,7 +564,7 @@ static void gsi_process_chan(struct gsi_xfer_compl_evt *evt,
 
 	if (callback) {
 		if (atomic_read(&ch_ctx->poll_mode)) {
-			GSIERR("Calling client callback in polling mode\n");
+			GSIDBG("Calling client callback in polling mode\n");
 			WARN_ON(1);
 		}
 		ch_ctx->props.xfer_cb(notify);
@@ -642,7 +642,7 @@ static void gsi_handle_ieob(int ee)
 	for (i = 0; i < GSI_STTS_REG_BITS; i++) {
 		if ((1 << i) & ch & msk) {
 			if (i >= gsi_ctx->max_ev || i >= GSI_EVT_RING_MAX) {
-				GSIERR("invalid event %d\n", i);
+				GSIDBG("invalid event %d\n", i);
 				break;
 			}
 			ctx = &gsi_ctx->evtr[i];
@@ -655,7 +655,7 @@ static void gsi_handle_ieob(int ee)
 				continue;
 
 			if (ctx->props.intf != GSI_EVT_CHTYPE_GPI_EV) {
-				GSIERR("Unexpected irq intf %d\n",
+				GSIDBG("Unexpected irq intf %d\n",
 					ctx->props.intf);
 				BUG();
 			}
@@ -699,7 +699,7 @@ static void gsi_handle_inter_ee_ch_ctrl(int ee)
 	for (i = 0; i < GSI_STTS_REG_BITS; i++) {
 		if ((1 << i) & ch) {
 			/* not currently expected */
-			GSIERR("ch %u was inter-EE changed\n", i);
+			GSIDBG("ch %u was inter-EE changed\n", i);
 		}
 	}
 }
@@ -716,7 +716,7 @@ static void gsi_handle_inter_ee_ev_ctrl(int ee)
 	for (i = 0; i < GSI_STTS_REG_BITS; i++) {
 		if ((1 << i) & ch) {
 			/* not currently expected */
-			GSIERR("evt %u was inter-EE changed\n", i);
+			GSIDBG("evt %u was inter-EE changed\n", i);
 		}
 	}
 }
@@ -795,7 +795,7 @@ static void gsi_handle_irq(void)
 			 * Max number of spurious interrupts from hardware.
 			 * Unexpected hardware state.
 			 */
-			GSIERR("Too many spurious interrupt from GSI HW\n");
+			GSIDBG("Too many spurious interrupt from GSI HW\n");
 			BUG();
 		}
 
@@ -828,7 +828,7 @@ static uint32_t gsi_get_max_channels(enum gsi_ver ver)
 	switch (ver) {
 	case GSI_VER_ERR:
 	case GSI_VER_MAX:
-		GSIERR("GSI version is not supported %d\n", ver);
+		GSIDBG("GSI version is not supported %d\n", ver);
 		WARN_ON(1);
 		break;
 	case GSI_VER_1_0:
@@ -885,7 +885,7 @@ static uint32_t gsi_get_max_event_rings(enum gsi_ver ver)
 	switch (ver) {
 	case GSI_VER_ERR:
 	case GSI_VER_MAX:
-		GSIERR("GSI version is not supported %d\n", ver);
+		GSIDBG("GSI version is not supported %d\n", ver);
 		WARN_ON(1);
 		break;
 	case GSI_VER_1_0:
@@ -939,17 +939,17 @@ int gsi_complete_clk_grant(unsigned long dev_hdl)
 	unsigned long flags;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (dev_hdl != (uintptr_t)gsi_ctx) {
-		GSIERR("bad params dev_hdl=0x%lx gsi_ctx=0x%pK\n", dev_hdl,
+		GSIDBG("bad params dev_hdl=0x%lx gsi_ctx=0x%pK\n", dev_hdl,
 				gsi_ctx);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -965,7 +965,7 @@ int gsi_complete_clk_grant(unsigned long dev_hdl)
 int gsi_map_base(phys_addr_t gsi_base_addr, u32 gsi_size)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
@@ -973,7 +973,7 @@ int gsi_map_base(phys_addr_t gsi_base_addr, u32 gsi_size)
 		gsi_ctx->dev, gsi_base_addr, gsi_size);
 
 	if (!gsi_ctx->base) {
-		GSIERR("failed to map access to GSI HW\n");
+		GSIDBG("failed to map access to GSI HW\n");
 		return -GSI_STATUS_RES_ALLOC_FAILURE;
 	}
 
@@ -988,12 +988,12 @@ int gsi_map_base(phys_addr_t gsi_base_addr, u32 gsi_size)
 int gsi_unmap_base(void)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!gsi_ctx->base) {
-		GSIERR("access to GSI HW has not been mapped\n");
+		GSIDBG("access to GSI HW has not been mapped\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -1034,32 +1034,32 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 	int needed_reg_ver;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || !dev_hdl) {
-		GSIERR("bad params props=%pK dev_hdl=%pK\n", props, dev_hdl);
+		GSIDBG("bad params props=%pK dev_hdl=%pK\n", props, dev_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (props->ver <= GSI_VER_ERR || props->ver >= GSI_VER_MAX) {
-		GSIERR("bad params gsi_ver=%d\n", props->ver);
+		GSIDBG("bad params gsi_ver=%d\n", props->ver);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (!props->notify_cb) {
-		GSIERR("notify callback must be provided\n");
+		GSIDBG("notify callback must be provided\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (props->req_clk_cb && !props->rel_clk_cb) {
-		GSIERR("rel callback  must be provided\n");
+		GSIDBG("rel callback  must be provided\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_ctx->per_registered) {
-		GSIERR("per already registered\n");
+		GSIDBG("per already registered\n");
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -1077,12 +1077,12 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 	case GSI_VER_ERR:
 	case GSI_VER_MAX:
 	default:
-		GSIERR("GSI version is not supported %d\n", props->ver);
+		GSIDBG("GSI version is not supported %d\n", props->ver);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (needed_reg_ver != GSI_REGISTER_VER_CURRENT) {
-		GSIERR("Invalid register version. current=%d, needed=%d\n",
+		GSIDBG("Invalid register version. current=%d, needed=%d\n",
 			GSI_REGISTER_VER_CURRENT, needed_reg_ver);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -1092,7 +1092,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 	spin_lock_init(&gsi_ctx->slock);
 	if (props->intr == GSI_INTR_IRQ) {
 		if (!props->irq) {
-			GSIERR("bad irq specified %u\n", props->irq);
+			GSIDBG("bad irq specified %u\n", props->irq);
 			return -GSI_STATUS_INVALID_PARAMS;
 		}
 		/*
@@ -1138,7 +1138,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 				gsi_ctx);
 		}
 		if (res) {
-			GSIERR(
+			GSIDBG(
 			 "failed to register isr for %u\n",
 			 props->irq);
 			return -GSI_STATUS_ERROR;
@@ -1149,12 +1149,12 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 
 		res = enable_irq_wake(props->irq);
 		if (res)
-			GSIERR("failed to enable wake irq %u\n", props->irq);
+			GSIDBG("failed to enable wake irq %u\n", props->irq);
 		else
-			GSIERR("GSI irq is wake enabled %u\n", props->irq);
+			GSIDBG("GSI irq is wake enabled %u\n", props->irq);
 
 	} else {
-		GSIERR("do not support interrupt type %u\n", props->intr);
+		GSIDBG("do not support interrupt type %u\n", props->intr);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -1180,7 +1180,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 			props->emulator_intcntrlr_addr,
 			props->emulator_intcntrlr_size);
 		if (!gsi_ctx->intcntrlr_base) {
-			GSIERR(
+			GSIDBG(
 			  "failed to remap emulator's interrupt controller HW\n");
 			gsi_unmap_base();
 			devm_free_irq(gsi_ctx->dev, props->irq, gsi_ctx);
@@ -1210,7 +1210,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 			devm_iounmap(gsi_ctx->dev, gsi_ctx->intcntrlr_base);
 		gsi_ctx->base = gsi_ctx->intcntrlr_base = NULL;
 		devm_free_irq(gsi_ctx->dev, props->irq, gsi_ctx);
-		GSIERR("failed to get max channels\n");
+		GSIDBG("failed to get max channels\n");
 		return -GSI_STATUS_ERROR;
 	}
 	gsi_ctx->max_ev = gsi_get_max_event_rings(gsi_ctx->per.ver);
@@ -1220,12 +1220,12 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 			devm_iounmap(gsi_ctx->dev, gsi_ctx->intcntrlr_base);
 		gsi_ctx->base = gsi_ctx->intcntrlr_base = NULL;
 		devm_free_irq(gsi_ctx->dev, props->irq, gsi_ctx);
-		GSIERR("failed to get max event rings\n");
+		GSIDBG("failed to get max event rings\n");
 		return -GSI_STATUS_ERROR;
 	}
 
 	if (gsi_ctx->max_ev > GSI_EVT_RING_MAX) {
-		GSIERR("max event rings are beyond absolute maximum\n");
+		GSIDBG("max event rings are beyond absolute maximum\n");
 		return -GSI_STATUS_ERROR;
 	}
 
@@ -1236,7 +1236,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 			devm_iounmap(gsi_ctx->dev, gsi_ctx->intcntrlr_base);
 		gsi_ctx->base = gsi_ctx->intcntrlr_base = NULL;
 		devm_free_irq(gsi_ctx->dev, props->irq, gsi_ctx);
-		GSIERR("MHI event ring start id %u is beyond max %u\n",
+		GSIDBG("MHI event ring start id %u is beyond max %u\n",
 			props->mhi_er_id_limits[0], gsi_ctx->max_ev);
 		return -GSI_STATUS_ERROR;
 	}
@@ -1280,7 +1280,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 	if (val & GSI_EE_n_GSI_STATUS_ENABLED_BMSK)
 		gsi_ctx->enabled = true;
 	else
-		GSIERR("Manager EE has not enabled GSI, GSI un-usable\n");
+		GSIDBG("Manager EE has not enabled GSI, GSI un-usable\n");
 
 	if (gsi_ctx->per.ver >= GSI_VER_1_2)
 		gsi_writel(0, gsi_ctx->base +
@@ -1297,7 +1297,7 @@ int gsi_register_device(struct gsi_per_props *props, unsigned long *dev_hdl)
 			devm_iounmap(gsi_ctx->dev, gsi_ctx->intcntrlr_base);
 			gsi_ctx->base = gsi_ctx->intcntrlr_base = NULL;
 			devm_free_irq(gsi_ctx->dev, props->irq, gsi_ctx);
-			GSIERR("setup_emulator_cntrlr() failed\n");
+			GSIDBG("setup_emulator_cntrlr() failed\n");
 			return res;
 		}
 	}
@@ -1313,17 +1313,17 @@ int gsi_write_device_scratch(unsigned long dev_hdl,
 	unsigned int max_usb_pkt_size = 0;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (dev_hdl != (uintptr_t)gsi_ctx) {
-		GSIERR("bad params dev_hdl=0x%lx gsi_ctx=0x%pK\n", dev_hdl,
+		GSIDBG("bad params dev_hdl=0x%lx gsi_ctx=0x%pK\n", dev_hdl,
 				gsi_ctx);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -1332,7 +1332,7 @@ int gsi_write_device_scratch(unsigned long dev_hdl,
 			val->max_usb_pkt_size != 1024 &&
 			val->max_usb_pkt_size != 512 &&
 			val->max_usb_pkt_size != 64) {
-		GSIERR("bad USB max pkt size dev_hdl=0x%lx sz=%u\n", dev_hdl,
+		GSIDBG("bad USB max pkt size dev_hdl=0x%lx sz=%u\n", dev_hdl,
 				val->max_usb_pkt_size);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -1361,29 +1361,29 @@ int gsi_write_device_scratch(unsigned long dev_hdl,
 int gsi_deregister_device(unsigned long dev_hdl, bool force)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!gsi_ctx->per_registered) {
-		GSIERR("no client registered\n");
+		GSIDBG("no client registered\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (dev_hdl != (uintptr_t)gsi_ctx) {
-		GSIERR("bad params dev_hdl=0x%lx gsi_ctx=0x%pK\n", dev_hdl,
+		GSIDBG("bad params dev_hdl=0x%lx gsi_ctx=0x%pK\n", dev_hdl,
 				gsi_ctx);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (!force && atomic_read(&gsi_ctx->num_chan)) {
-		GSIERR("cannot deregister %u channels are still connected\n",
+		GSIDBG("cannot deregister %u channels are still connected\n",
 				atomic_read(&gsi_ctx->num_chan));
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (!force && atomic_read(&gsi_ctx->num_evt_ring)) {
-		GSIERR("cannot deregister %u events are still connected\n",
+		GSIDBG("cannot deregister %u events are still connected\n",
 				atomic_read(&gsi_ctx->num_evt_ring));
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -1534,7 +1534,7 @@ static int gsi_validate_evt_ring_props(struct gsi_evt_ring_props *props)
 				 props->ring_len % 8) ||
 			(props->re_size == GSI_EVT_RING_RE_SIZE_16B &&
 				 props->ring_len % 16)) {
-		GSIERR("bad params ring_len %u not a multiple of RE size %u\n",
+		GSIDBG("bad params ring_len %u not a multiple of RE size %u\n",
 				props->ring_len, props->re_size);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -1543,7 +1543,7 @@ static int gsi_validate_evt_ring_props(struct gsi_evt_ring_props *props)
 	do_div(ra, roundup_pow_of_two(props->ring_len));
 
 	if (props->ring_base_addr != ra * roundup_pow_of_two(props->ring_len)) {
-		GSIERR("bad params ring base not aligned 0x%llx align 0x%lx\n",
+		GSIDBG("bad params ring base not aligned 0x%llx align 0x%lx\n",
 				props->ring_base_addr,
 				roundup_pow_of_two(props->ring_len));
 		return -GSI_STATUS_INVALID_PARAMS;
@@ -1551,7 +1551,7 @@ static int gsi_validate_evt_ring_props(struct gsi_evt_ring_props *props)
 
 	if (props->intf == GSI_EVT_CHTYPE_GPI_EV &&
 			!props->ring_base_vaddr) {
-		GSIERR("protocol %u requires ring base VA\n", props->intf);
+		GSIDBG("protocol %u requires ring base VA\n", props->intf);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -1559,19 +1559,19 @@ static int gsi_validate_evt_ring_props(struct gsi_evt_ring_props *props)
 			(!props->evchid_valid ||
 			props->evchid > gsi_ctx->per.mhi_er_id_limits[1] ||
 			props->evchid < gsi_ctx->per.mhi_er_id_limits[0])) {
-		GSIERR("MHI requires evchid valid=%d val=%u\n",
+		GSIDBG("MHI requires evchid valid=%d val=%u\n",
 				props->evchid_valid, props->evchid);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (props->intf != GSI_EVT_CHTYPE_MHI_EV &&
 			props->evchid_valid) {
-		GSIERR("protocol %u cannot specify evchid\n", props->intf);
+		GSIDBG("protocol %u cannot specify evchid\n", props->intf);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (!props->err_cb) {
-		GSIERR("err callback must be provided\n");
+		GSIDBG("err callback must be provided\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -1600,7 +1600,7 @@ static int gsi_cleanup_xfer_user_data(unsigned long chan_hdl,
 
 	ctx = &gsi_ctx->chan[chan_hdl];
 	if (ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -1639,18 +1639,18 @@ int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props, unsigned long dev_hdl,
 	unsigned long flags;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || !evt_ring_hdl || dev_hdl != (uintptr_t)gsi_ctx) {
-		GSIERR("bad params props=%pK dev_hdl=0x%lx evt_ring_hdl=%pK\n",
+		GSIDBG("bad params props=%pK dev_hdl=0x%lx evt_ring_hdl=%pK\n",
 				props, dev_hdl, evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_validate_evt_ring_props(props)) {
-		GSIERR("invalid params\n");
+		GSIDBG("invalid params\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -1659,7 +1659,7 @@ int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props, unsigned long dev_hdl,
 		evt_id = find_first_zero_bit(&gsi_ctx->evt_bmap,
 				sizeof(unsigned long) * BITS_PER_BYTE);
 		if (evt_id == sizeof(unsigned long) * BITS_PER_BYTE) {
-			GSIERR("failed to alloc event ID\n");
+			GSIDBG("failed to alloc event ID\n");
 			mutex_unlock(&gsi_ctx->mlock);
 			return -GSI_STATUS_RES_ALLOC_FAILURE;
 		}
@@ -1687,7 +1687,7 @@ int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props, unsigned long dev_hdl,
 			GSI_EE_n_EV_CH_CMD_OFFS(ee));
 	res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 	if (res == 0) {
-		GSIERR("evt_id=%lu timed out\n", evt_id);
+		GSIDBG("evt_id=%lu timed out\n", evt_id);
 		if (!props->evchid_valid)
 			clear_bit(evt_id, &gsi_ctx->evt_bmap);
 		mutex_unlock(&gsi_ctx->mlock);
@@ -1695,7 +1695,7 @@ int gsi_alloc_evt_ring(struct gsi_evt_ring_props *props, unsigned long dev_hdl,
 	}
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("evt_id=%lu allocation failed state=%u\n",
+		GSIDBG("evt_id=%lu allocation failed state=%u\n",
 				evt_id, ctx->state);
 		if (!props->evchid_valid)
 			clear_bit(evt_id, &gsi_ctx->evt_bmap);
@@ -1749,19 +1749,19 @@ int gsi_write_evt_ring_scratch(unsigned long evt_ring_hdl,
 	struct gsi_evt_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->evtr[evt_ring_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -1782,26 +1782,26 @@ int gsi_dealloc_evt_ring(unsigned long evt_ring_hdl)
 	int res;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev ||
 			evt_ring_hdl >= GSI_EVT_RING_MAX) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (atomic_read(&ctx->chan_ref_cnt)) {
-		GSIERR("%d channels still using this event ring\n",
+		GSIDBG("%d channels still using this event ring\n",
 			atomic_read(&ctx->chan_ref_cnt));
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -1815,13 +1815,13 @@ int gsi_dealloc_evt_ring(unsigned long evt_ring_hdl)
 			GSI_EE_n_EV_CH_CMD_OFFS(gsi_ctx->per.ee));
 	res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 	if (res == 0) {
-		GSIERR("evt_id=%lu timed out\n", evt_ring_hdl);
+		GSIDBG("evt_id=%lu timed out\n", evt_ring_hdl);
 		mutex_unlock(&gsi_ctx->mlock);
 		return -GSI_STATUS_TIMED_OUT;
 	}
 
 	if (ctx->state != GSI_EVT_RING_STATE_NOT_ALLOCATED) {
-		GSIERR("evt_id=%lu unexpected state=%u\n", evt_ring_hdl,
+		GSIDBG("evt_id=%lu unexpected state=%u\n", evt_ring_hdl,
 				ctx->state);
 		/*
 		 * IPA Hardware returned GSI RING not allocated, which is
@@ -1847,25 +1847,25 @@ int gsi_query_evt_ring_db_addr(unsigned long evt_ring_hdl,
 	struct gsi_evt_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!db_addr_wp_msb || !db_addr_wp_lsb) {
-		GSIERR("bad params msb=%pK lsb=%pK\n", db_addr_wp_msb,
+		GSIDBG("bad params msb=%pK lsb=%pK\n", db_addr_wp_msb,
 				db_addr_wp_lsb);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->evtr[evt_ring_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -1883,19 +1883,19 @@ int gsi_ring_evt_ring_db(unsigned long evt_ring_hdl, uint64_t value)
 	struct gsi_evt_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->evtr[evt_ring_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -1912,19 +1912,19 @@ int gsi_ring_ch_ring_db(unsigned long chan_hdl, uint64_t value)
 	uint32_t val;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->chan[chan_hdl];
 
 	if (ctx->state != GSI_CHAN_STATE_STARTED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -1951,19 +1951,19 @@ int gsi_reset_evt_ring(unsigned long evt_ring_hdl)
 	int res;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -1977,13 +1977,13 @@ int gsi_reset_evt_ring(unsigned long evt_ring_hdl)
 			GSI_EE_n_EV_CH_CMD_OFFS(gsi_ctx->per.ee));
 	res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 	if (res == 0) {
-		GSIERR("evt_id=%lu timed out\n", evt_ring_hdl);
+		GSIDBG("evt_id=%lu timed out\n", evt_ring_hdl);
 		mutex_unlock(&gsi_ctx->mlock);
 		return -GSI_STATUS_TIMED_OUT;
 	}
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("evt_id=%lu unexpected state=%u\n", evt_ring_hdl,
+		GSIDBG("evt_id=%lu unexpected state=%u\n", evt_ring_hdl,
 				ctx->state);
 		/*
 		 * IPA Hardware returned GSI RING not allocated, which is
@@ -2013,24 +2013,24 @@ int gsi_get_evt_ring_cfg(unsigned long evt_ring_hdl,
 	struct gsi_evt_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || !scr) {
-		GSIERR("bad params props=%pK scr=%pK\n", props, scr);
+		GSIDBG("bad params props=%pK scr=%pK\n", props, scr);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (ctx->state == GSI_EVT_RING_STATE_NOT_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -2048,29 +2048,29 @@ int gsi_set_evt_ring_cfg(unsigned long evt_ring_hdl,
 	struct gsi_evt_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || gsi_validate_evt_ring_props(props)) {
-		GSIERR("bad params props=%pK\n", props);
+		GSIDBG("bad params props=%pK\n", props);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (evt_ring_hdl >= gsi_ctx->max_ev) {
-		GSIERR("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
+		GSIDBG("bad params evt_ring_hdl=%lu\n", evt_ring_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->evtr[evt_ring_hdl];
 
 	if (ctx->state != GSI_EVT_RING_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (ctx->props.exclusive != props->exclusive) {
-		GSIERR("changing immutable fields not supported\n");
+		GSIDBG("changing immutable fields not supported\n");
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -2156,7 +2156,7 @@ static void gsi_program_chan_ctx(struct gsi_chan_props *props, unsigned int ee,
 		prot_msb = 1;
 		break;
 	default:
-		GSIERR("Unsupported protocol %d\n", props->prot);
+		GSIDBG("Unsupported protocol %d\n", props->prot);
 		WARN_ON(1);
 		return;
 	}
@@ -2225,7 +2225,7 @@ static int gsi_validate_channel_props(struct gsi_chan_props *props)
 	uint64_t last;
 
 	if (props->ch_id >= gsi_ctx->max_ch) {
-		GSIERR("ch_id %u invalid\n", props->ch_id);
+		GSIDBG("ch_id %u invalid\n", props->ch_id);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -2237,7 +2237,7 @@ static int gsi_validate_channel_props(struct gsi_chan_props *props)
 				 props->ring_len % 16) ||
 			(props->re_size == GSI_CHAN_RE_SIZE_32B &&
 				 props->ring_len % 32)) {
-		GSIERR("bad params ring_len %u not a multiple of re size %u\n",
+		GSIDBG("bad params ring_len %u not a multiple of re size %u\n",
 				props->ring_len, props->re_size);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -2246,7 +2246,7 @@ static int gsi_validate_channel_props(struct gsi_chan_props *props)
 	do_div(ra, roundup_pow_of_two(props->ring_len));
 
 	if (props->ring_base_addr != ra * roundup_pow_of_two(props->ring_len)) {
-		GSIERR("bad params ring base not aligned 0x%llx align 0x%lx\n",
+		GSIDBG("bad params ring base not aligned 0x%llx align 0x%lx\n",
 				props->ring_base_addr,
 				roundup_pow_of_two(props->ring_len));
 		return -GSI_STATUS_INVALID_PARAMS;
@@ -2257,7 +2257,7 @@ static int gsi_validate_channel_props(struct gsi_chan_props *props)
 	/* MSB should stay same within the ring */
 	if ((props->ring_base_addr & 0xFFFFFFFF00000000ULL) !=
 	    (last & 0xFFFFFFFF00000000ULL)) {
-		GSIERR("MSB is not fixed on ring base 0x%llx size 0x%x\n",
+		GSIDBG("MSB is not fixed on ring base 0x%llx size 0x%x\n",
 			props->ring_base_addr,
 			props->ring_len);
 		return -GSI_STATUS_INVALID_PARAMS;
@@ -2265,22 +2265,22 @@ static int gsi_validate_channel_props(struct gsi_chan_props *props)
 
 	if (props->prot == GSI_CHAN_PROT_GPI &&
 			!props->ring_base_vaddr) {
-		GSIERR("protocol %u requires ring base VA\n", props->prot);
+		GSIDBG("protocol %u requires ring base VA\n", props->prot);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (props->low_weight > GSI_MAX_CH_LOW_WEIGHT) {
-		GSIERR("invalid channel low weight %u\n", props->low_weight);
+		GSIDBG("invalid channel low weight %u\n", props->low_weight);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (props->prot == GSI_CHAN_PROT_GPI && !props->xfer_cb) {
-		GSIERR("xfer callback must be provided\n");
+		GSIDBG("xfer callback must be provided\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (!props->err_cb) {
-		GSIERR("err callback must be provided\n");
+		GSIDBG("err callback must be provided\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -2300,24 +2300,24 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
 	size_t user_data_size;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || !chan_hdl || dev_hdl != (uintptr_t)gsi_ctx) {
-		GSIERR("bad params props=%pK dev_hdl=0x%lx chan_hdl=%pK\n",
+		GSIDBG("bad params props=%pK dev_hdl=0x%lx chan_hdl=%pK\n",
 				props, dev_hdl, chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_validate_channel_props(props)) {
-		GSIERR("bad params\n");
+		GSIDBG("bad params\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (props->evt_ring_hdl != ~0) {
 		if (props->evt_ring_hdl >= gsi_ctx->max_ev) {
-			GSIERR("invalid evt ring=%lu\n", props->evt_ring_hdl);
+			GSIDBG("invalid evt ring=%lu\n", props->evt_ring_hdl);
 			return -GSI_STATUS_INVALID_PARAMS;
 		}
 
@@ -2326,7 +2326,7 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
 			gsi_ctx->evtr[props->evt_ring_hdl].props.exclusive &&
 			gsi_ctx->evtr[props->evt_ring_hdl].chan->props.prot !=
 			GSI_CHAN_PROT_GCI) {
-			GSIERR("evt ring=%lu exclusively used by ch_hdl=%pK\n",
+			GSIDBG("evt ring=%lu exclusively used by ch_hdl=%pK\n",
 				props->evt_ring_hdl, chan_hdl);
 			return -GSI_STATUS_UNSUPPORTED_OP;
 		}
@@ -2334,7 +2334,7 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
 
 	ctx = &gsi_ctx->chan[props->ch_id];
 	if (ctx->allocated) {
-		GSIERR("chan %d already allocated\n", props->ch_id);
+		GSIDBG("chan %d already allocated\n", props->ch_id);
 		return -GSI_STATUS_NODEV;
 	}
 	memset(ctx, 0, sizeof(*ctx));
@@ -2357,7 +2357,7 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
 		user_data_size * sizeof(*user_data),
 		GFP_KERNEL);
 	if (user_data == NULL) {
-		GSIERR("context not allocated\n");
+		GSIDBG("context not allocated\n");
 		return -GSI_STATUS_RES_ALLOC_FAILURE;
 	}
 
@@ -2378,13 +2378,13 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
 				GSI_EE_n_GSI_CH_CMD_OFFS(ee));
 		res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 		if (res == 0) {
-			GSIERR("chan_hdl=%u timed out\n", props->ch_id);
+			GSIDBG("chan_hdl=%u timed out\n", props->ch_id);
 			mutex_unlock(&gsi_ctx->mlock);
 			devm_kfree(gsi_ctx->dev, user_data);
 			return -GSI_STATUS_TIMED_OUT;
 		}
 		if (ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-			GSIERR("chan_hdl=%u allocation failed state=%d\n",
+			GSIDBG("chan_hdl=%u allocation failed state=%d\n",
 					props->ch_id, ctx->state);
 			mutex_unlock(&gsi_ctx->mlock);
 			devm_kfree(gsi_ctx->dev, user_data);
@@ -2399,7 +2399,7 @@ int gsi_alloc_channel(struct gsi_chan_props *props, unsigned long dev_hdl,
 	erindex = props->evt_ring_hdl != ~0 ? props->evt_ring_hdl :
 		GSI_NO_EVT_ERINDEX;
 	if (erindex != GSI_NO_EVT_ERINDEX && erindex >= GSI_EVT_RING_MAX) {
-		GSIERR("invalid erindex %u\n", erindex);
+		GSIDBG("invalid erindex %u\n", erindex);
 		devm_kfree(gsi_ctx->dev, user_data);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -2438,13 +2438,13 @@ static int gsi_alloc_ap_channel(unsigned int chan_hdl)
 	enum gsi_ch_cmd_opcode op = GSI_CH_ALLOCATE;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	ctx = &gsi_ctx->chan[chan_hdl];
 	if (ctx->allocated) {
-		GSIERR("chan %d already allocated\n", chan_hdl);
+		GSIDBG("chan %d already allocated\n", chan_hdl);
 		return -GSI_STATUS_NODEV;
 	}
 
@@ -2465,12 +2465,12 @@ static int gsi_alloc_ap_channel(unsigned int chan_hdl)
 			GSI_EE_n_GSI_CH_CMD_OFFS(ee));
 	res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 	if (res == 0) {
-		GSIERR("chan_hdl=%u timed out\n", chan_hdl);
+		GSIDBG("chan_hdl=%u timed out\n", chan_hdl);
 		mutex_unlock(&gsi_ctx->mlock);
 		return -GSI_STATUS_TIMED_OUT;
 	}
 	if (ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-		GSIERR("chan_hdl=%u allocation failed state=%d\n",
+		GSIDBG("chan_hdl=%u allocation failed state=%d\n",
 				chan_hdl, ctx->state);
 		mutex_unlock(&gsi_ctx->mlock);
 		return -GSI_STATUS_RES_ALLOC_FAILURE;
@@ -2513,12 +2513,12 @@ int gsi_write_channel_scratch3_reg(unsigned long chan_hdl,
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -2633,18 +2633,18 @@ int gsi_write_channel_scratch(unsigned long chan_hdl,
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_ALLOCATED &&
 		gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_STOPPED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->chan[chan_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -2699,19 +2699,19 @@ int gsi_read_channel_scratch(unsigned long chan_hdl,
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_ALLOCATED &&
 		gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_STARTED &&
 		gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_STOPPED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->chan[chan_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -2764,18 +2764,18 @@ int gsi_update_mhi_channel_scratch(unsigned long chan_hdl,
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_ALLOCATED &&
 		gsi_ctx->chan[chan_hdl].state != GSI_CHAN_STATE_STOPPED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->chan[chan_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -2793,23 +2793,23 @@ int gsi_query_channel_db_addr(unsigned long chan_hdl,
 		uint32_t *db_addr_wp_lsb, uint32_t *db_addr_wp_msb)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!db_addr_wp_msb || !db_addr_wp_lsb) {
-		GSIERR("bad params msb=%pK lsb=%pK\n", db_addr_wp_msb,
+		GSIDBG("bad params msb=%pK lsb=%pK\n", db_addr_wp_msb,
 				db_addr_wp_lsb);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (gsi_ctx->chan[chan_hdl].state == GSI_CHAN_STATE_NOT_ALLOCATED) {
-		GSIERR("bad state %d\n",
+		GSIDBG("bad state %d\n",
 				gsi_ctx->chan[chan_hdl].state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -2838,12 +2838,12 @@ int gsi_start_channel(unsigned long chan_hdl)
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -2852,7 +2852,7 @@ int gsi_start_channel(unsigned long chan_hdl)
 	if (ctx->state != GSI_CHAN_STATE_ALLOCATED &&
 		ctx->state != GSI_CHAN_STATE_STOP_IN_PROC &&
 		ctx->state != GSI_CHAN_STATE_STOPPED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -2864,7 +2864,7 @@ int gsi_start_channel(unsigned long chan_hdl)
 			GSI_EE_n_CNTXT_INTSET_OFFS(gsi_ctx->per.ee));
 	if (ctx->evtr->props.intf == GSI_EVT_CHTYPE_GPI_EV &&
 		val != GSI_INTR_IRQ) {
-		GSIERR("GSI_EE_n_CNTXT_INTSET_OFFS %d\n", val);
+		GSIDBG("GSI_EE_n_CNTXT_INTSET_OFFS %d\n", val);
 		BUG();
 	}
 
@@ -2887,7 +2887,7 @@ int gsi_start_channel(unsigned long chan_hdl)
 		* Hardware returned unexpected status, unexpected
 		* hardware state.
 		*/
-		GSIERR("chan=%lu timed out, unexpected state=%u\n",
+		GSIDBG("chan=%lu timed out, unexpected state=%u\n",
 			chan_hdl, ctx->state);
 		BUG();
 	}
@@ -2915,12 +2915,12 @@ int gsi_stop_channel(unsigned long chan_hdl)
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -2934,7 +2934,7 @@ int gsi_stop_channel(unsigned long chan_hdl)
 	if (ctx->state != GSI_CHAN_STATE_STARTED &&
 		ctx->state != GSI_CHAN_STATE_STOP_IN_PROC &&
 		ctx->state != GSI_CHAN_STATE_ERROR) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -2946,7 +2946,7 @@ int gsi_stop_channel(unsigned long chan_hdl)
 			GSI_EE_n_CNTXT_INTSET_OFFS(gsi_ctx->per.ee));
 	if (ctx->evtr->props.intf == GSI_EVT_CHTYPE_GPI_EV &&
 		val != GSI_INTR_IRQ) {
-		GSIERR("GSI_EE_n_CNTXT_INTSET_OFFS %d\n", val);
+		GSIDBG("GSI_EE_n_CNTXT_INTSET_OFFS %d\n", val);
 		BUG();
 	}
 
@@ -2965,14 +2965,14 @@ int gsi_stop_channel(unsigned long chan_hdl)
 
 	if (ctx->state != GSI_CHAN_STATE_STOPPED &&
 		ctx->state != GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu unexpected state=%u\n", chan_hdl, ctx->state);
+		GSIDBG("chan=%lu unexpected state=%u\n", chan_hdl, ctx->state);
 		res = -GSI_STATUS_BAD_STATE;
 		BUG();
 		goto free_lock;
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu busy try again\n", chan_hdl);
+		GSIDBG("chan=%lu busy try again\n", chan_hdl);
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;
 	}
@@ -2992,12 +2992,12 @@ int gsi_stop_db_channel(unsigned long chan_hdl)
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -3010,7 +3010,7 @@ int gsi_stop_db_channel(unsigned long chan_hdl)
 
 	if (ctx->state != GSI_CHAN_STATE_STARTED &&
 		ctx->state != GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3027,20 +3027,20 @@ int gsi_stop_db_channel(unsigned long chan_hdl)
 	res = wait_for_completion_timeout(&ctx->compl,
 			msecs_to_jiffies(GSI_STOP_CMD_TIMEOUT_MS));
 	if (res == 0) {
-		GSIERR("chan_hdl=%lu timed out\n", chan_hdl);
+		GSIDBG("chan_hdl=%lu timed out\n", chan_hdl);
 		res = -GSI_STATUS_TIMED_OUT;
 		goto free_lock;
 	}
 
 	if (ctx->state != GSI_CHAN_STATE_STOPPED &&
 		ctx->state != GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu unexpected state=%u\n", chan_hdl, ctx->state);
+		GSIDBG("chan=%lu unexpected state=%u\n", chan_hdl, ctx->state);
 		res = -GSI_STATUS_BAD_STATE;
 		goto free_lock;
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_STOP_IN_PROC) {
-		GSIERR("chan=%lu busy try again\n", chan_hdl);
+		GSIDBG("chan=%lu busy try again\n", chan_hdl);
 		res = -GSI_STATUS_AGAIN;
 		goto free_lock;
 	}
@@ -3062,12 +3062,12 @@ int gsi_reset_channel(unsigned long chan_hdl)
 	uint32_t retry_cnt = 0;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -3080,7 +3080,7 @@ int gsi_reset_channel(unsigned long chan_hdl)
 	 */
 	if (ctx->state != GSI_CHAN_STATE_STOPPED &&
 		ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3097,14 +3097,14 @@ reset:
 			GSI_EE_n_GSI_CH_CMD_OFFS(gsi_ctx->per.ee));
 	res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 	if (res == 0) {
-		GSIERR("chan_hdl=%lu timed out\n", chan_hdl);
+		GSIDBG("chan_hdl=%lu timed out\n", chan_hdl);
 		mutex_unlock(&gsi_ctx->mlock);
 		return -GSI_STATUS_TIMED_OUT;
 	}
 
 revrfy_chnlstate:
 	if (ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-		GSIERR("chan_hdl=%lu unexpected state=%u\n", chan_hdl,
+		GSIDBG("chan_hdl=%lu unexpected state=%u\n", chan_hdl,
 				ctx->state);
 		/* GSI register update state not sync with gsi channel
 		 * context state not sync, need to wait for 1ms to sync.
@@ -3156,19 +3156,19 @@ int gsi_dealloc_channel(unsigned long chan_hdl)
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->chan[chan_hdl];
 
 	if (ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3186,12 +3186,12 @@ int gsi_dealloc_channel(unsigned long chan_hdl)
 				GSI_EE_n_GSI_CH_CMD_OFFS(gsi_ctx->per.ee));
 		res = wait_for_completion_timeout(&ctx->compl, GSI_CMD_TIMEOUT);
 		if (res == 0) {
-			GSIERR("chan_hdl=%lu timed out\n", chan_hdl);
+			GSIDBG("chan_hdl=%lu timed out\n", chan_hdl);
 			mutex_unlock(&gsi_ctx->mlock);
 			return -GSI_STATUS_TIMED_OUT;
 		}
 		if (ctx->state != GSI_CHAN_STATE_NOT_ALLOCATED) {
-			GSIERR("chan_hdl=%lu unexpected state=%u\n", chan_hdl,
+			GSIDBG("chan_hdl=%lu unexpected state=%u\n", chan_hdl,
 					ctx->state);
 			/* Hardware returned incorrect value */
 			BUG();
@@ -3278,12 +3278,12 @@ int gsi_query_channel_info(unsigned long chan_hdl,
 	int ee;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch || !info) {
-		GSIERR("bad params chan_hdl=%lu info=%pK\n", chan_hdl, info);
+		GSIDBG("bad params chan_hdl=%lu info=%pK\n", chan_hdl, info);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -3349,12 +3349,12 @@ int gsi_is_channel_empty(unsigned long chan_hdl, bool *is_empty)
 	int ee;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch || !is_empty) {
-		GSIERR("bad params chan_hdl=%lu is_empty=%pK\n",
+		GSIDBG("bad params chan_hdl=%lu is_empty=%pK\n",
 				chan_hdl, is_empty);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -3364,7 +3364,7 @@ int gsi_is_channel_empty(unsigned long chan_hdl, bool *is_empty)
 
 	if (ctx->props.prot != GSI_CHAN_PROT_GPI &&
 		ctx->props.prot != GSI_CHAN_PROT_GCI) {
-		GSIERR("op not supported for protocol %u\n", ctx->props.prot);
+		GSIDBG("op not supported for protocol %u\n", ctx->props.prot);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3443,8 +3443,8 @@ int __gsi_get_gci_cookie(struct gsi_chan_ctx *ctx, uint16_t idx)
 	}
 
 	/* TODO: Increase escape buffer size if we hit this */
-	GSIERR("user_data is full\n");
-	return 0xFFFF;
+	GSIDBG("user_data is full\n");
+	return -EPERM;
 }
 
 int __gsi_populate_gci_tre(struct gsi_chan_ctx *ctx,
@@ -3456,13 +3456,13 @@ int __gsi_populate_gci_tre(struct gsi_chan_ctx *ctx,
 
 	memset(&gci_tre, 0, sizeof(gci_tre));
 	if (xfer->addr & 0xFFFFFF0000000000) {
-		GSIERR("chan_hdl=%u add too large=%llx\n",
+		GSIDBG("chan_hdl=%u add too large=%llx\n",
 			ctx->props.ch_id, xfer->addr);
 		return -EINVAL;
 	}
 
 	if (xfer->type != GSI_XFER_ELEM_DATA) {
-		GSIERR("chan_hdl=%u bad RE type=%u\n", ctx->props.ch_id,
+		GSIDBG("chan_hdl=%u bad RE type=%u\n", ctx->props.ch_id,
 			xfer->type);
 		return -EINVAL;
 	}
@@ -3502,7 +3502,7 @@ int __gsi_populate_tre(struct gsi_chan_ctx *ctx,
 	} else if (xfer->type == GSI_XFER_ELEM_NOP) {
 		tre.re_type = GSI_RE_NOP;
 	} else {
-		GSIERR("chan_hdl=%u bad RE type=%u\n", ctx->props.ch_id,
+		GSIDBG("chan_hdl=%u bad RE type=%u\n", ctx->props.ch_id,
 			xfer->type);
 		return -EINVAL;
 	}
@@ -3535,12 +3535,12 @@ int gsi_queue_xfer(unsigned long chan_hdl, uint16_t num_xfers,
 	unsigned long flags;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch || (num_xfers && !xfer)) {
-		GSIERR("bad params chan_hdl=%lu num_xfers=%u xfer=%pK\n",
+		GSIDBG("bad params chan_hdl=%lu num_xfers=%u xfer=%pK\n",
 				chan_hdl, num_xfers, xfer);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -3557,7 +3557,7 @@ int gsi_queue_xfer(unsigned long chan_hdl, uint16_t num_xfers,
 
 	if (ctx->props.prot != GSI_CHAN_PROT_GPI &&
 			ctx->props.prot != GSI_CHAN_PROT_GCI) {
-		GSIERR("op not supported for protocol %u\n", ctx->props.prot);
+		GSIDBG("op not supported for protocol %u\n", ctx->props.prot);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3579,7 +3579,7 @@ int gsi_queue_xfer(unsigned long chan_hdl, uint16_t num_xfers,
 	if (ctx->props.prot != GSI_CHAN_PROT_GCI) {
 		__gsi_query_channel_free_re(ctx, &free);
 		if (num_xfers > free) {
-			GSIERR("chan_hdl=%lu num_xfers=%u free=%u\n",
+			GSIDBG("chan_hdl=%lu num_xfers=%u free=%u\n",
 				chan_hdl, num_xfers, free);
 			spin_unlock_irqrestore(slock, flags);
 			return -GSI_STATUS_RING_INSUFFICIENT_SPACE;
@@ -3624,12 +3624,12 @@ int gsi_start_xfer(unsigned long chan_hdl)
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -3637,12 +3637,12 @@ int gsi_start_xfer(unsigned long chan_hdl)
 
 	if (ctx->props.prot != GSI_CHAN_PROT_GPI &&
 		ctx->props.prot != GSI_CHAN_PROT_GCI) {
-		GSIERR("op not supported for protocol %u\n", ctx->props.prot);
+		GSIDBG("op not supported for protocol %u\n", ctx->props.prot);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (ctx->state == GSI_CHAN_STATE_NOT_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3673,15 +3673,15 @@ int gsi_poll_n_channel(unsigned long chan_hdl,
 	unsigned long flags;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch || !notify ||
 	    !actual_num || expected_num <= 0) {
-		GSIERR("bad params chan_hdl=%lu notify=%pK\n",
+		GSIDBG("bad params chan_hdl=%lu notify=%pK\n",
 			chan_hdl, notify);
-		GSIERR("actual_num=%pK expected_num=%d\n",
+		GSIDBG("actual_num=%pK expected_num=%d\n",
 			actual_num, expected_num);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
@@ -3691,12 +3691,12 @@ int gsi_poll_n_channel(unsigned long chan_hdl,
 
 	if (ctx->props.prot != GSI_CHAN_PROT_GPI &&
 		ctx->props.prot != GSI_CHAN_PROT_GCI) {
-		GSIERR("op not supported for protocol %u\n", ctx->props.prot);
+		GSIDBG("op not supported for protocol %u\n", ctx->props.prot);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (!ctx->evtr) {
-		GSIERR("no event ring associated chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("no event ring associated chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3753,12 +3753,12 @@ int gsi_config_channel_mode(unsigned long chan_hdl, enum gsi_chan_mode mode)
 	enum gsi_chan_mode chan_mode;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu mode=%u\n", chan_hdl, mode);
+		GSIDBG("bad params chan_hdl=%lu mode=%u\n", chan_hdl, mode);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -3766,12 +3766,12 @@ int gsi_config_channel_mode(unsigned long chan_hdl, enum gsi_chan_mode mode)
 
 	if (ctx->props.prot != GSI_CHAN_PROT_GPI &&
 		ctx->props.prot != GSI_CHAN_PROT_GCI) {
-		GSIERR("op not supported for protocol %u\n", ctx->props.prot);
+		GSIDBG("op not supported for protocol %u\n", ctx->props.prot);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (!ctx->evtr || !ctx->evtr->props.exclusive) {
-		GSIERR("cannot configure mode on chan_hdl=%lu\n",
+		GSIDBG("cannot configure mode on chan_hdl=%lu\n",
 				chan_hdl);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -3782,7 +3782,7 @@ int gsi_config_channel_mode(unsigned long chan_hdl, enum gsi_chan_mode mode)
 		curr = GSI_CHAN_MODE_CALLBACK;
 
 	if (mode == curr) {
-		GSIERR("already in requested mode %u chan_hdl=%lu\n",
+		GSIDBG("already in requested mode %u chan_hdl=%lu\n",
 				curr, chan_hdl);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
@@ -3854,24 +3854,24 @@ int gsi_get_channel_cfg(unsigned long chan_hdl, struct gsi_chan_props *props,
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || !scr) {
-		GSIERR("bad params props=%pK scr=%pK\n", props, scr);
+		GSIDBG("bad params props=%pK scr=%pK\n", props, scr);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->chan[chan_hdl];
 
 	if (ctx->state == GSI_CHAN_STATE_NOT_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -3889,30 +3889,30 @@ int gsi_set_channel_cfg(unsigned long chan_hdl, struct gsi_chan_props *props,
 	struct gsi_chan_ctx *ctx;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!props || gsi_validate_channel_props(props)) {
-		GSIERR("bad params props=%pK\n", props);
+		GSIDBG("bad params props=%pK\n", props);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (chan_hdl >= gsi_ctx->max_ch) {
-		GSIERR("bad params chan_hdl=%lu\n", chan_hdl);
+		GSIDBG("bad params chan_hdl=%lu\n", chan_hdl);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	ctx = &gsi_ctx->chan[chan_hdl];
 
 	if (ctx->state != GSI_CHAN_STATE_ALLOCATED) {
-		GSIERR("bad state %d\n", ctx->state);
+		GSIDBG("bad state %d\n", ctx->state);
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
 	if (ctx->props.ch_id != props->ch_id ||
 		ctx->props.evt_ring_hdl != props->evt_ring_hdl) {
-		GSIERR("changing immutable fields not supported\n");
+		GSIDBG("changing immutable fields not supported\n");
 		return -GSI_STATUS_UNSUPPORTED_OP;
 	}
 
@@ -4000,17 +4000,17 @@ static void gsi_configure_bck_prs_matrix(void *base)
 int gsi_configure_regs(phys_addr_t per_base_addr, enum gsi_ver ver)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!gsi_ctx->base) {
-		GSIERR("access to GSI HW has not been mapped\n");
+		GSIDBG("access to GSI HW has not been mapped\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
 	if (ver <= GSI_VER_ERR || ver >= GSI_VER_MAX) {
-		GSIERR("Incorrect version %d\n", ver);
+		GSIDBG("Incorrect version %d\n", ver);
 		return -GSI_STATUS_ERROR;
 	}
 
@@ -4029,13 +4029,13 @@ int gsi_enable_fw(phys_addr_t gsi_base_addr, u32 gsi_size, enum gsi_ver ver)
 	uint32_t value;
 
 	if (ver <= GSI_VER_ERR || ver >= GSI_VER_MAX) {
-		GSIERR("Incorrect version %d\n", ver);
+		GSIDBG("Incorrect version %d\n", ver);
 		return -GSI_STATUS_ERROR;
 	}
 
 	gsi_base = ioremap_nocache(gsi_base_addr, gsi_size);
 	if (!gsi_base) {
-		GSIERR("ioremap failed\n");
+		GSIDBG("ioremap failed\n");
 		return -GSI_STATUS_RES_ALLOC_FAILURE;
 	}
 
@@ -4085,7 +4085,7 @@ void gsi_get_inst_ram_offset_and_size(unsigned long *base_offset,
 	unsigned long maxn;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return;
 	}
 
@@ -4107,7 +4107,7 @@ void gsi_get_inst_ram_offset_and_size(unsigned long *base_offset,
 	case GSI_VER_ERR:
 	case GSI_VER_MAX:
 	default:
-		GSIERR("GSI version is not supported %d\n", ver);
+		GSIDBG("GSI version is not supported %d\n", ver);
 		WARN_ON(1);
 		return;
 	}
@@ -4129,12 +4129,12 @@ int gsi_halt_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 	int res;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (chan_idx >= gsi_ctx->max_ch || !code) {
-		GSIERR("bad params chan_idx=%d\n", chan_idx);
+		GSIDBG("bad params chan_idx=%d\n", chan_idx);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -4164,7 +4164,7 @@ int gsi_halt_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 	res = wait_for_completion_timeout(&gsi_ctx->gen_ee_cmd_compl,
 		msecs_to_jiffies(GSI_CMD_TIMEOUT));
 	if (res == 0) {
-		GSIERR("chan_idx=%u ee=%u timed out\n", chan_idx, ee);
+		GSIDBG("chan_idx=%u ee=%u timed out\n", chan_idx, ee);
 		res = -GSI_STATUS_TIMED_OUT;
 		goto free_lock;
 	}
@@ -4179,7 +4179,7 @@ int gsi_halt_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 		goto free_lock;
 	}
 	if (gsi_ctx->scratch.word0.s.generic_ee_cmd_return_code == 0) {
-		GSIERR("No response received\n");
+		GSIDBG("No response received\n");
 		res = -GSI_STATUS_ERROR;
 		goto free_lock;
 	}
@@ -4203,7 +4203,7 @@ int gsi_alloc_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 	int res;
 
 	if (chan_idx >= gsi_ctx->max_ch || !code) {
-		GSIERR("bad params chan_idx=%d\n", chan_idx);
+		GSIDBG("bad params chan_idx=%d\n", chan_idx);
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -4235,7 +4235,7 @@ int gsi_alloc_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 	res = wait_for_completion_timeout(&gsi_ctx->gen_ee_cmd_compl,
 		msecs_to_jiffies(GSI_CMD_TIMEOUT));
 	if (res == 0) {
-		GSIERR("chan_idx=%u ee=%u timed out\n", chan_idx, ee);
+		GSIDBG("chan_idx=%u ee=%u timed out\n", chan_idx, ee);
 		res = -GSI_STATUS_TIMED_OUT;
 		goto free_lock;
 	}
@@ -4250,7 +4250,7 @@ int gsi_alloc_channel_ee(unsigned int chan_idx, unsigned int ee, int *code)
 		goto free_lock;
 	}
 	if (gsi_ctx->scratch.word0.s.generic_ee_cmd_return_code == 0) {
-		GSIERR("No response received\n");
+		GSIDBG("No response received\n");
 		res = -GSI_STATUS_ERROR;
 		goto free_lock;
 	}
@@ -4372,12 +4372,12 @@ EXPORT_SYMBOL(gsi_enable_flow_control_ee);
 int gsi_map_virtual_ch_to_per_ep(u32 ee, u32 chan_num, u32 per_ep_index)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return -GSI_STATUS_NODEV;
 	}
 
 	if (!gsi_ctx->base) {
-		GSIERR("access to GSI HW has not been mapped\n");
+		GSIDBG("access to GSI HW has not been mapped\n");
 		return -GSI_STATUS_INVALID_PARAMS;
 	}
 
@@ -4392,7 +4392,7 @@ void gsi_wdi3_write_evt_ring_db(unsigned long evt_ring_hdl,
 	uint32_t db_addr_low, uint32_t db_addr_high)
 {
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return;
 	}
 
@@ -4408,7 +4408,7 @@ void gsi_wdi3_dump_register(unsigned long chan_hdl)
 	uint32_t val;
 
 	if (!gsi_ctx) {
-		pr_err("%s:%d gsi context not allocated\n", __func__, __LINE__);
+		GSIDBG("%s:%d gsi context not allocated\n", __func__, __LINE__);
 		return;
 	}
 	GSIDBG("reg dump ch id %lu\n", chan_hdl);
@@ -4488,7 +4488,7 @@ static int msm_gsi_probe(struct platform_device *pdev)
 	gsi_ctx->ipc_logbuf = ipc_log_context_create(GSI_IPC_LOG_PAGES,
 		"gsi", 0);
 	if (gsi_ctx->ipc_logbuf == NULL)
-		GSIERR("failed to create IPC log, continue...\n");
+		GSIDBG("failed to create IPC log, continue...\n");
 
 	gsi_ctx->dev = dev;
 	init_completion(&gsi_ctx->gen_ee_cmd_compl);
