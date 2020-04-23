@@ -19,6 +19,7 @@
 #include <wmi_unified_priv.h>
 #include <qdf_trace.h>
 
+#ifdef WMI_INTERFACE_EVENT_LOGGING
 struct wmi_hang_data_fixed_param {
 	uint32_t tlv_header; /* tlv tag and length */
 	uint32_t event;
@@ -134,3 +135,4 @@ QDF_STATUS wmi_hang_event_notifier_unregister(void)
 {
 	return qdf_hang_event_unregister_notifier(&wmi_recovery_notifier);
 }
+#endif
