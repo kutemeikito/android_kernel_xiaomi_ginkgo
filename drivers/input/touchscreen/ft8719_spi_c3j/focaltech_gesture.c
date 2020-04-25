@@ -38,7 +38,7 @@
 /******************************************************************************
 * Private constant and macro definitions using #define
 *****************************************************************************/
-#define KEY_GESTURE_U                           KEY_WAKEUP
+#define KEY_GESTURE_U                           KEY_DOUBLE_TAP
 #define KEY_GESTURE_UP                          KEY_UP
 #define KEY_GESTURE_DOWN                        KEY_DOWN
 #define KEY_GESTURE_LEFT                        KEY_LEFT
