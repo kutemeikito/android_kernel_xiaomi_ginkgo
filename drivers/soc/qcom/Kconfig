@@ -881,3 +881,9 @@ config QCOM_HYP_CORE_CTL
 	  CPUs can be assigned to the other guest OS by the hypervisor.
 	  An offline CPU is considered as a reserved CPU since this OS can't use
 	  it.
+config STATE_NOTIFIER
+	bool "State Notifier"
+	default n
+	help
+	  A unified display state notifier for kernel drivers for easy porting
+	  between different devices.
