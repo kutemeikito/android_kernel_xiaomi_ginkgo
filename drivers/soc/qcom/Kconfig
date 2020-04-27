@@ -1103,3 +1103,10 @@ config RENAME_BLOCK_DEVICE
 	  to a name that is needed.
 
 source "drivers/soc/qcom/wcnss/Kconfig"
+
+config STATE_NOTIFIER
+	bool "State Notifier"
+	default n
+	help
+	  A unified display state notifier for kernel drivers for easy porting
+	  between different devices.
