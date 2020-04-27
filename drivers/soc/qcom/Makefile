@@ -11,6 +11,7 @@ obj-$(CONFIG_QCOM_SDXPRAIRIE_LLCC) += llcc-sdxprairie.o
 obj-$(CONFIG_QCOM_SM6150_LLCC) += llcc-sm6150.o
 obj-$(CONFIG_QCOM_ATOLL_LLCC) += llcc-atoll.o
 obj-$(CONFIG_QCOM_LLCC_PERFMON) += llcc_perfmon.o
+obj-$(CONFIG_STATE_NOTIFIER)   += state_notifier.o
 obj-$(CONFIG_QCOM_SDMMAGPIE_LLCC) += llcc-sdmmagpie.o
 obj-$(CONFIG_QCOM_LLCC_AMON) += llcc-amon.o
 obj-$(CONFIG_QCOM_PM)	+=	spm.o
