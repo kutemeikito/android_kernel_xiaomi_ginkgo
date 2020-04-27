@@ -6345,12 +6345,34 @@ struct reg_table_entry g_registry_table[] = {
 		     CFG_TIME_SYNC_FTM_ROLE_MIN,
 		     CFG_TIME_SYNC_FTM_ROLE_MAX),
 #endif
-	REG_VARIABLE(CFG_P2P_DISABLE_ROAM, WLAN_PARAM_Integer,
-		     struct hdd_config, p2p_disable_roam,
+	REG_VARIABLE(CFG_STA_DISABLE_ROAM, WLAN_PARAM_Integer,
+		     struct hdd_config, sta_disable_roam,
 		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-		     CFG_P2P_DISABLE_ROAM_DEFAULT,
-		     CFG_P2P_DISABLE_ROAM_MIN,
-		     CFG_P2P_DISABLE_ROAM_MAX),
+		     CFG_STA_DISABLE_ROAM_DEFAULT,
+		     CFG_STA_DISABLE_ROAM_MIN,
+		     CFG_STA_DISABLE_ROAM_MAX),
+
+#ifdef WLAN_FEATURE_PERIODIC_STA_STATS
+	REG_VARIABLE(CFG_PERIODIC_STATS_TIMER_INTERVAL, WLAN_PARAM_Integer,
+		     struct hdd_config, periodic_stats_timer_interval,
+		     VAR_FLAGS_OPTIONAL,
+		     CFG_PERIODIC_STATS_TIMER_INTERVAL_DEFAULT,
+		     CFG_PERIODIC_STATS_TIMER_INTERVAL_MIN,
+		     CFG_PERIODIC_STATS_TIMER_INTERVAL_MAX),
+
+	REG_VARIABLE(CFG_PERIODIC_STATS_TIMER_DURATION, WLAN_PARAM_Integer,
+		     struct hdd_config, periodic_stats_timer_duration,
+		     VAR_FLAGS_OPTIONAL,
+		     CFG_PERIODIC_STATS_TIMER_DURATION_DEFAULT,
+		     CFG_PERIODIC_STATS_TIMER_DURATION_MIN,
+		     CFG_PERIODIC_STATS_TIMER_DURATION_MAX),
+#endif
+	REG_VARIABLE(CFG_DFS_CHAN_AGEOUT_TIME, WLAN_PARAM_Integer,
+		     struct hdd_config, dfs_chan_ageout_time,
+		     VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+		     CFG_DFS_CHAN_AGEOUT_TIME_DEFAULT,
+		     CFG_DFS_CHAN_AGEOUT_TIME_MIN,
+		     CFG_DFS_CHAN_AGEOUT_TIME_MAX),
 };
 
 /**
@@ -8347,6 +8369,8 @@ void hdd_cfg_print(struct hdd_context *hdd_ctx)
 		hdd_ctx->config->enable_phy_reg_retention);
 	hdd_debug("Name = [btm_offload_config] value = [0x%x]",
 		  hdd_ctx->config->btm_offload_config);
+	hdd_debug("Name = [btm_validity_timer] value = [0x%x]",
+		  hdd_ctx->config->btm_validity_timer);
 	hdd_cfg_print_sae(hdd_ctx);
 	hdd_debug("Name = [btm_solicited_timeout] value = [0x%x]",
 		  hdd_ctx->config->btm_solicited_timeout);
@@ -8433,8 +8457,11 @@ void hdd_cfg_print(struct hdd_context *hdd_ctx)
 		  hdd_ctx->config->time_sync_ftm_role);
 #endif
 	hdd_debug("Name = [%s] value = [%d]",
-		   CFG_P2P_DISABLE_ROAM,
-		   hdd_ctx->config->p2p_disable_roam);
+		   CFG_STA_DISABLE_ROAM,
+		   hdd_ctx->config->sta_disable_roam);
+	hdd_debug("Name = [%s] Value = [%u]",
+		  CFG_DFS_CHAN_AGEOUT_TIME,
+		  hdd_ctx->config->dfs_chan_ageout_time);
 }
 
 /**
@@ -8674,8 +8701,31 @@ QDF_STATUS hdd_parse_config_ini(struct hdd_context *hdd_ctx)
 
 	memset(cfgIniTable, 0, sizeof(cfgIniTable));
 
-	size = strlen(wlan_cfg) + 1;
-	buffer = (char *)qdf_mem_malloc(size);
+	do {
+		if (status == -EAGAIN)
+			msleep(HDD_CFG_REQUEST_FIRMWARE_DELAY);
+
+		status = request_firmware(&fw, WLAN_INI_FILE,
+					  hdd_ctx->parent_dev);
+
+		retry++;
+	} while ((retry < HDD_CFG_REQUEST_FIRMWARE_RETRIES) &&
+		 (status == -EAGAIN));
+
+	if (status) {
+		hdd_alert("request_firmware failed %d", status);
+		qdf_status = QDF_STATUS_E_FAILURE;
+		goto config_exit;
+	}
+	if (!fw || !fw->data || !fw->size) {
+		hdd_alert("%s download failed", WLAN_INI_FILE);
+		qdf_status = QDF_STATUS_E_FAILURE;
+		goto config_exit;
+	}
+
+	hdd_debug("qcom_cfg.ini Size %zu", fw->size);
+
+	buffer = (char *)qdf_mem_malloc(fw->size + 1);
 
 	if (NULL == buffer) {
 		hdd_err("qdf_mem_malloc failure");
@@ -10347,8 +10397,7 @@ QDF_STATUS hdd_set_sme_config(struct hdd_context *hdd_ctx)
 			pConfig->btm_trig_min_candidate_score;
 	smeConfig->csrConfig.enable_pending_list_req =
 			pConfig->enable_pending_list_req;
-	smeConfig->csrConfig.p2p_disable_roam =
-			pConfig->p2p_disable_roam;
+	smeConfig->csrConfig.sta_disable_roam = pConfig->sta_disable_roam;
 	sme_update_adaptive_11r_cap(smeConfig, pConfig);
 	sme_update_sae_single_pmk_cfg(smeConfig, pConfig);
 
