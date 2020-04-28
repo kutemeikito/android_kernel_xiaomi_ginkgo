@@ -200,9 +200,12 @@
  * 3.76 Add HTT_H2T_MSG_TYPE_3_TUPLE_HASH_CFG msg.
  * 3.77 Add HTT_H2T_MSG_TYPE_RX_FULL_MONITOR_MODE msg.
  * 3.78 Add htt_ppdu_id def.
+ * 3.79 Add HTT_NUM_AC_WMM def.
+ * 3.80 Add add WDS_FREE_COUNT bitfield in T2H PEER_UNMAP_V2 msg.
+ * 3.81 Add ppdu_start_tsf field in HTT_TX_WBM_COMPLETION_V2
  */
 #define HTT_CURRENT_VERSION_MAJOR 3
-#define HTT_CURRENT_VERSION_MINOR 78
+#define HTT_CURRENT_VERSION_MINOR 81
 
 #define HTT_NUM_TX_FRAG_DESC  1024
 
@@ -252,6 +255,9 @@ enum HTT_AC_WMM {
     HTT_AC_WMM_BK         = 0x1,
     HTT_AC_WMM_VI         = 0x2,
     HTT_AC_WMM_VO         = 0x3,
+
+    HTT_NUM_AC_WMM        = 0x4,
+
     /* extension Access Categories */
     HTT_AC_EXT_NON_QOS    = 0x4,
     HTT_AC_EXT_UCAST_MGMT = 0x5,
@@ -2441,7 +2447,9 @@ PREPACK struct htt_tx_wbm_transmit_status {
                               */
        reserved0:        8;
    A_UINT32
-       reserved1:       32;
+       ppdu_start_tsf:  32;  /* PPDU Start timestamp added for multicast
+                              * packets in the wbm completion path
+                              */
 } POSTPACK;
 
 /* DWORD 4 */
@@ -9450,7 +9458,7 @@ PREPACK struct htt_tx_offload_deliver_ind_hdr_t
  * |-----------------------------------------------------------------------|
  * |                         Peer Delete Duration                          |
  * |-----------------------------------------------------------------------|
- * |                               Reserved_0                              |
+ * |               Reserved_0          |           WDS Free Count          |
  * |-----------------------------------------------------------------------|
  * |                               Reserved_1                              |
  * |-----------------------------------------------------------------------|
@@ -9489,6 +9497,9 @@ PREPACK struct htt_tx_offload_deliver_ind_hdr_t
  *     Bits 31:0
  *     Purpose: Time taken to delete peer, in msec,
  *         Used for monitoring / debugging PEER delete response delay
+ *   - PEER_WDS_FREE_COUNT
+ *     Bits 15:0
+ *     Purpose: Count of WDS entries deleted associated to peer deleted
  */
 
 #define HTT_RX_PEER_UNMAP_V2_VDEV_ID_M      HTT_RX_PEER_MAP_V2_VDEV_ID_M
@@ -9504,6 +9515,9 @@ PREPACK struct htt_tx_offload_deliver_ind_hdr_t
 
 #define HTT_RX_PEER_UNMAP_V2_PEER_DELETE_DURATION_M   0xffffffff
 #define HTT_RX_PEER_UNMAP_V2_PEER_DELETE_DURATION_S   0
+
+#define HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_M    0x0000ffff
+#define HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_S    0
 
 #define HTT_RX_PEER_UNMAP_V2_VDEV_ID_SET    HTT_RX_PEER_MAP_V2_VDEV_ID_SET
 #define HTT_RX_PEER_UNMAP_V2_VDEV_ID_GET    HTT_RX_PEER_MAP_V2_VDEV_ID_GET
@@ -9522,9 +9536,18 @@ PREPACK struct htt_tx_offload_deliver_ind_hdr_t
 #define HTT_RX_PEER_UNMAP_V2_PEER_DELETE_DURATION_GET(word) \
     (((word) & HTT_RX_PEER_UNMAP_V2_PEER_DELETE_DURATION_M) >> HTT_RX_PEER_UNMAP_V2_PEER_DELETE_DURATION_S)
 
+#define HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_SET(word, value) \
+    do { \
+        HTT_CHECK_SET_VAL(HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT, value); \
+        (word) |= (value) << HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_S; \
+    } while (0)
+#define HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_GET(word) \
+    (((word) & HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_M) >> HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_S)
+
 #define HTT_RX_PEER_UNMAP_V2_MAC_ADDR_OFFSET      4  /* bytes */
 #define HTT_RX_PEER_UNMAP_V2_NEXT_HOP_OFFSET      8  /* bytes */
 #define HTT_RX_PEER_UNMAP_V2_PEER_DELETE_DURATION_OFFSET    12 /* bytes */
+#define HTT_RX_PEER_UNMAP_V2_PEER_WDS_FREE_COUNT_OFFSET     16 /* bytes */
 
 #define HTT_RX_PEER_UNMAP_V2_BYTES 28
 
