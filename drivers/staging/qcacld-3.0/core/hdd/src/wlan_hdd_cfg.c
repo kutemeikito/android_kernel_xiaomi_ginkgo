@@ -8701,31 +8701,8 @@ QDF_STATUS hdd_parse_config_ini(struct hdd_context *hdd_ctx)
 
 	memset(cfgIniTable, 0, sizeof(cfgIniTable));
 
-	do {
-		if (status == -EAGAIN)
-			msleep(HDD_CFG_REQUEST_FIRMWARE_DELAY);
-
-		status = request_firmware(&fw, WLAN_INI_FILE,
-					  hdd_ctx->parent_dev);
-
-		retry++;
-	} while ((retry < HDD_CFG_REQUEST_FIRMWARE_RETRIES) &&
-		 (status == -EAGAIN));
-
-	if (status) {
-		hdd_alert("request_firmware failed %d", status);
-		qdf_status = QDF_STATUS_E_FAILURE;
-		goto config_exit;
-	}
-	if (!fw || !fw->data || !fw->size) {
-		hdd_alert("%s download failed", WLAN_INI_FILE);
-		qdf_status = QDF_STATUS_E_FAILURE;
-		goto config_exit;
-	}
-
-	hdd_debug("qcom_cfg.ini Size %zu", fw->size);
-
-	buffer = (char *)qdf_mem_malloc(fw->size + 1);
+	size = strlen(wlan_cfg) + 1;
+	buffer = (char *)qdf_mem_malloc(size);
 
 	if (NULL == buffer) {
 		hdd_err("qdf_mem_malloc failure");
