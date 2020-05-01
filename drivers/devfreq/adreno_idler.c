@@ -65,6 +65,8 @@ static unsigned int idlecount = 0;
 int adreno_idler(struct devfreq_dev_status stats, struct devfreq *devfreq,
 		 unsigned long *freq)
 {
+	
+	bool state_suspended;
 	if (!adreno_idler_active)
 		return 0;
 
