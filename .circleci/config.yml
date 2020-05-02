@@ -1,0 +1,8 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: raphielscape/spinsinfra:fedora
+    steps:
+      - checkout
+      - run: sh -c "$(curl -sSL https://github.com/rama982/scripts/raw/master/build_on_docker.sh)"
