@@ -1926,7 +1926,7 @@ static int dwc3_gadget_wakeup_int(struct dwc3 *dwc)
 	u32			reg;
 	int			ret = 0;
 	u8			link_state;
-
+	unsigned long		flags;
 	dev_dbg(dwc->dev, "%s(): Entry\n", __func__);
 	disable_irq(dwc->irq);
 	spin_lock_irqsave(&dwc->lock, flags);
