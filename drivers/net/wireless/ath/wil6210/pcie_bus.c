@@ -626,9 +626,7 @@ static int wil6210_suspend(struct device *dev, bool is_runtime)
 	int rc = 0;
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct wil6210_priv *wil = pci_get_drvdata(pdev);
-	struct net_device *ndev = wil_to_ndev(wil);
-	bool keep_radio_on = ndev->flags & IFF_UP &&
-			     wil->keep_radio_on_during_sleep;
+	bool keep_radio_on, active_ifaces;
 
 	wil_dbg_pm(wil, "suspend: %s\n", is_runtime ? "runtime" : "system");
 
@@ -643,12 +641,10 @@ static int wil6210_suspend(struct device *dev, bool is_runtime)
 
 	rc = wil_suspend(wil, is_runtime, keep_radio_on);
 	if (!rc) {
-		wil->suspend_stats.successful_suspends++;
-
 		/* In case radio stays on, platform device will control
 		 * PCIe master
 		 */
-		if (!keep_radio_on)
+		if (!keep_radio_on) {
 			/* disable bus mastering */
 			pci_clear_master(pdev);
 			wil->suspend_stats.r_off.successful_suspends++;
@@ -665,11 +661,19 @@ static int wil6210_resume(struct device *dev, bool is_runtime)
 	int rc = 0;
 	struct pci_dev *pdev = to_pci_dev(dev);
 	struct wil6210_priv *wil = pci_get_drvdata(pdev);
-	struct net_device *ndev = wil_to_ndev(wil);
-	bool keep_radio_on = ndev->flags & IFF_UP &&
-			     wil->keep_radio_on_during_sleep;
+	bool keep_radio_on, active_ifaces;
+
+	if (test_bit(wil_status_pci_linkdown, wil->status)) {
+		wil_dbg_pm(wil, "ignore resume during pci linkdown\n");
+		return 0;
+	}
 
 	wil_dbg_pm(wil, "resume: %s\n", is_runtime ? "runtime" : "system");
+
+	mutex_lock(&wil->vif_mutex);
+	active_ifaces = wil_has_active_ifaces(wil, true, false);
+	mutex_unlock(&wil->vif_mutex);
+	keep_radio_on = active_ifaces && wil->keep_radio_on_during_sleep;
 
 	/* In case radio stays on, platform device will control
 	 * PCIe master
@@ -680,8 +684,7 @@ static int wil6210_resume(struct device *dev, bool is_runtime)
 	rc = wil_resume(wil, is_runtime, keep_radio_on);
 	if (rc) {
 		wil_err(wil, "device failed to resume (%d)\n", rc);
-		wil->suspend_stats.failed_resumes++;
-		if (!keep_radio_on)
+		if (!keep_radio_on) {
 			pci_clear_master(pdev);
 			wil->suspend_stats.r_off.failed_resumes++;
 		} else {

@@ -2467,8 +2467,6 @@ void composite_resume(struct usb_gadget *gadget)
 		maxpower = maxpower ? maxpower : CONFIG_USB_GADGET_VBUS_DRAW;
 		if (gadget->speed < USB_SPEED_SUPER)
 			maxpower = min(maxpower, 500U);
-		else
-			maxpower = min(maxpower, 900U);
 
 		if (maxpower > USB_SELF_POWER_VBUS_MAX_DRAW)
 			usb_gadget_clear_selfpowered(gadget);

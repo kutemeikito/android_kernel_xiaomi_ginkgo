@@ -141,13 +141,9 @@ out:
 #ifndef CONFIG_MODULES
 static int __init of_free_phandle_cache(void)
 {
-	const char *name;
-	struct kobject *parent;
-	struct property *pp;
-	int rc;
+	unsigned long flags;
 
-	if (!of_kset)
-		return 0;
+	raw_spin_lock_irqsave(&devtree_lock, flags);
 
 	kfree(phandle_cache);
 	phandle_cache = NULL;
