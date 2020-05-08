@@ -104,7 +104,8 @@ static int alarmtimer_rtc_add_device(struct device *dev,
 	unsigned long flags;
 	struct rtc_device *rtc = to_rtc_device(dev);
 	struct wakeup_source *__ws;
-
+	int ret = 0;
+	
 	if (rtcdev)
 		return -EBUSY;
 
