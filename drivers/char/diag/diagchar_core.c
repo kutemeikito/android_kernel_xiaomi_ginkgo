@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2020, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,6 +22,7 @@
 #include <linux/sched.h>
 #include <linux/ratelimit.h>
 #include <linux/timer.h>
+#include <linux/jiffies.h>
 #include <linux/sched/task.h>
 #ifdef CONFIG_DIAG_OVER_USB
 #include <linux/usb/usbdiag.h>
@@ -2907,7 +2908,7 @@ long diagchar_ioctl(struct file *filp,
 static int diag_process_apps_data_hdlc(unsigned char *buf, int len,
 				       int pkt_type)
 {
-	int err = 0;
+	int err = 0, wait_err = 0;
 	int ret = PKT_DROP;
 	struct diag_apps_data_t *data = &hdlc_data;
 	struct diag_send_desc_type send = { NULL, NULL, DIAG_STATE_START, 0 };
@@ -2938,8 +2939,15 @@ static int diag_process_apps_data_hdlc(unsigned char *buf, int len,
 	send.terminate = 1;
 
 wait_for_buffer:
-	wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
+	wait_err = wait_event_interruptible_timeout(driver->hdlc_wait_q,
+			(data->flushed == 0),
+			msecs_to_jiffies(PKT_PROCESS_TIMEOUT));
+	if (wait_err <= 0) {
+		DIAG_LOG(DIAG_DEBUG_USERSPACE,
+		"diag: Timeout while waiting for hdlc buffer to be flushed, err: %d\n",
+		wait_err);
+		return PKT_DROP;
+	}
 	spin_lock_irqsave(&driver->diagmem_lock, flags);
 	if (data->flushed) {
 		spin_unlock_irqrestore(&driver->diagmem_lock, flags);
@@ -2990,8 +2998,16 @@ wait_for_buffer:
 			goto fail_free_buf;
 		}
 wait_for_agg_buff:
-		wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
+		wait_err = wait_event_interruptible_timeout(driver->hdlc_wait_q,
+				(data->flushed == 0),
+				msecs_to_jiffies(PKT_PROCESS_TIMEOUT));
+		if (wait_err <= 0) {
+			DIAG_LOG(DIAG_DEBUG_USERSPACE,
+			"diag: Timeout while waiting for hdlc aggregation buffer to be flushed, err: %d\n",
+			wait_err);
+			return PKT_DROP;
+		}
+
 		spin_lock_irqsave(&driver->diagmem_lock, flags);
 		if (data->flushed) {
 			spin_unlock_irqrestore(&driver->diagmem_lock, flags);
@@ -3049,7 +3065,7 @@ fail_ret:
 static int diag_process_apps_data_non_hdlc(unsigned char *buf, int len,
 					   int pkt_type)
 {
-	int err = 0;
+	int err = 0, wait_err = 0;
 	int ret = PKT_DROP;
 	struct diag_pkt_frame_t header;
 	struct diag_apps_data_t *data = &non_hdlc_data;
@@ -3067,8 +3083,16 @@ static int diag_process_apps_data_non_hdlc(unsigned char *buf, int len,
 		return -EIO;
 	}
 wait_for_buffer:
-	wait_event_interruptible(driver->hdlc_wait_q,
-			(data->flushed == 0));
+	wait_err = wait_event_interruptible_timeout(driver->hdlc_wait_q,
+					(data->flushed == 0),
+					msecs_to_jiffies(PKT_PROCESS_TIMEOUT));
+	if (wait_err <= 0) {
+		DIAG_LOG(DIAG_DEBUG_USERSPACE,
+		"diag: Timeout while waiting for non-hdlc buffer to be flushed, err: %d\n",
+		wait_err);
+		return PKT_DROP;
+	}
+
 	spin_lock_irqsave(&driver->diagmem_lock, flags);
 	if (data->flushed) {
 		spin_unlock_irqrestore(&driver->diagmem_lock, flags);
@@ -4191,10 +4215,12 @@ static int __init diagchar_init(void)
 	driver->in_busy_dcipktdata = 0;
 	driver->rsp_buf_ctxt = SET_BUF_CTXT(APPS_DATA, TYPE_CMD, TYPE_CMD);
 	hdlc_data.ctxt = SET_BUF_CTXT(APPS_DATA, TYPE_DATA, 1);
+	hdlc_data.ctxt |= SET_HDLC_CTXT(HDLC_CTXT);
 	hdlc_data.len = 0;
 	hdlc_data.allocated = 0;
 	hdlc_data.flushed = 0;
 	non_hdlc_data.ctxt = SET_BUF_CTXT(APPS_DATA, TYPE_DATA, 1);
+	non_hdlc_data.ctxt |= SET_HDLC_CTXT(NON_HDLC_CTXT);
 	non_hdlc_data.len = 0;
 	non_hdlc_data.allocated = 0;
 	non_hdlc_data.flushed = 0;
