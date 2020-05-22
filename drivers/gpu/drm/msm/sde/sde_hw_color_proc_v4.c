@@ -13,22 +13,6 @@
 #include "sde_hw_color_proc_common_v4.h"
 #include "sde_hw_color_proc_v4.h"
 
-static unsigned short kcal_red = 256;
-static unsigned short kcal_green = 256;
-static unsigned short kcal_blue = 256;
-static unsigned short kcal_hue = 0;
-static unsigned short kcal_sat = 255;
-static unsigned short kcal_val = 255;
-static unsigned short kcal_cont = 255;
-
-module_param(kcal_red, short, 0644);
-module_param(kcal_green, short, 0644);
-module_param(kcal_blue, short, 0644);
-module_param(kcal_hue, short, 0644);
-module_param(kcal_sat, short, 0644);
-module_param(kcal_val, short, 0644);
-module_param(kcal_cont, short, 0644);
-
 static int sde_write_3d_gamut(struct sde_hw_blk_reg_map *hw,
 		struct drm_msm_3d_gamut *payload, u32 base,
 		u32 *opcode, u32 pipe, u32 scale_tbl_a_len,
@@ -223,20 +207,12 @@ void sde_setup_dspp_pccv4(struct sde_hw_dspp *ctx, void *cfg)
 	struct drm_msm_pcc *pcc_cfg;
 	struct drm_msm_pcc_coeff *coeffs = NULL;
 	int i = 0;
-	int kcal_min = 20;
 	u32 base = 0;
 
 	if (!ctx || !cfg) {
 		DRM_ERROR("invalid param ctx %pK cfg %pK\n", ctx, cfg);
 		return;
 	}
-
-	if (kcal_red < kcal_min)
-		kcal_red = kcal_min;
-	if (kcal_green < kcal_min)
-		kcal_green = kcal_min;
-	if (kcal_blue < kcal_min)
-		kcal_blue = kcal_min;
 
 	if (!hw_cfg->payload) {
 		DRM_DEBUG_DRIVER("disable pcc feature\n");
