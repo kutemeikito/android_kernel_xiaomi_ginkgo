@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -66,6 +66,14 @@ static u64 suspend_time;
 static u64 suspend_start;
 static unsigned long acc_total, acc_relative_busy;
 
+static struct msm_adreno_extended_profile *partner_gpu_profile;
+static void do_partner_start_event(struct work_struct *work);
+static void do_partner_stop_event(struct work_struct *work);
+static void do_partner_suspend_event(struct work_struct *work);
+static void do_partner_resume_event(struct work_struct *work);
+
+static struct workqueue_struct *workqueue;
+
 /*
  * Returns GPU suspend time in millisecond.
  */
@@ -84,7 +92,6 @@ u64 suspend_time_ms(void)
 	return time_diff;
 }
 
-#if 1
 static ssize_t adrenoboost_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -99,7 +106,7 @@ static ssize_t adrenoboost_save(struct device *dev,
 {
 	int input;
 	sscanf(buf, "%d ", &input);
-	if (input < 0 || input > 3) {
+	if (input < 0 || input > 50000) {
 		adrenoboost = 0;
 	} else {
 		adrenoboost = input;
@@ -107,7 +114,7 @@ static ssize_t adrenoboost_save(struct device *dev,
 
 	return count;
 }
-#endif
+
 
 static ssize_t gpu_load_show(struct device *dev,
 		struct device_attribute *attr,
@@ -155,10 +162,8 @@ static ssize_t suspend_time_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%llu\n", time_diff);
 }
 
-#if 1
 static DEVICE_ATTR(adrenoboost, 0644,
 		adrenoboost_show, adrenoboost_save);
-#endif
 
 static DEVICE_ATTR(gpu_load, 0444, gpu_load_show, NULL);
 
@@ -169,9 +174,7 @@ static DEVICE_ATTR(suspend_time, 0444,
 static const struct device_attribute *adreno_tz_attr_list[] = {
 		&dev_attr_gpu_load,
 		&dev_attr_suspend_time,
-#if 1
 		&dev_attr_adrenoboost,
-#endif
 		NULL
 };
 
@@ -179,8 +182,6 @@ void compute_work_load(struct devfreq_dev_status *stats,
 		struct devfreq_msm_adreno_tz_data *priv,
 		struct devfreq *devfreq)
 {
-	u64 busy;
-
 	spin_lock(&sample_lock);
 	/*
 	 * Keep collecting the stats till the client
@@ -188,10 +189,8 @@ void compute_work_load(struct devfreq_dev_status *stats,
 	 * is done when the entry is read
 	 */
 	acc_total += stats->total_time;
-	busy = (u64)stats->busy_time * stats->current_frequency;
-	do_div(busy, devfreq->profile->freq_table[0]);
-	acc_relative_busy += busy;
-
+	acc_relative_busy += (stats->busy_time * stats->current_frequency) /
+				devfreq->profile->freq_table[0];
 	spin_unlock(&sample_lock);
 }
 
@@ -390,16 +389,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 	*freq = stats.current_frequency;
 	priv->bin.total_time += stats.total_time;
-#if 1
-	// scale busy time up based on adrenoboost parameter, only if MIN_BUSY exceeded...
-	if ((unsigned int)(priv->bin.busy_time + stats.busy_time) >= MIN_BUSY) {
-		priv->bin.busy_time += stats.busy_time * (1 + (adrenoboost*3)/2);
-	} else {
-		priv->bin.busy_time += stats.busy_time;
-	}
-#else
 	priv->bin.busy_time += stats.busy_time;
-#endif
 
 	if (stats.private_data)
 		context_count =  *((int *)stats.private_data);
@@ -435,7 +425,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 		scm_data[0] = level;
 		scm_data[1] = priv->bin.total_time;
-		scm_data[2] = priv->bin.busy_time;
+		scm_data[2] = priv->bin.busy_time + (level * adrenoboost);
 		scm_data[3] = context_count;
 		__secure_tz_update_entry3(scm_data, sizeof(scm_data),
 					&val, sizeof(val), priv);
@@ -457,6 +447,32 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 	return 0;
 }
 
+static int tz_notify(struct notifier_block *nb, unsigned long type, void *devp)
+{
+	int result = 0;
+	struct devfreq *devfreq = devp;
+
+	switch (type) {
+	case ADRENO_DEVFREQ_NOTIFY_IDLE:
+	case ADRENO_DEVFREQ_NOTIFY_RETIRE:
+		mutex_lock(&devfreq->lock);
+		result = update_devfreq(devfreq);
+		mutex_unlock(&devfreq->lock);
+		/* Nofifying partner bus governor if any */
+		if (partner_gpu_profile && partner_gpu_profile->bus_devfreq) {
+			mutex_lock(&partner_gpu_profile->bus_devfreq->lock);
+			update_devfreq(partner_gpu_profile->bus_devfreq);
+			mutex_unlock(&partner_gpu_profile->bus_devfreq->lock);
+		}
+		break;
+	/* ignored by this governor */
+	case ADRENO_DEVFREQ_NOTIFY_SUBMIT:
+	default:
+		break;
+	}
+	return notifier_from_errno(result);
+}
+
 static int tz_start(struct devfreq *devfreq)
 {
 	struct devfreq_msm_adreno_tz_data *priv;
@@ -476,8 +492,10 @@ static int tz_start(struct devfreq *devfreq)
 	 * from the container of the device profile
 	 */
 	devfreq->data = gpu_profile->private_data;
+	partner_gpu_profile = gpu_profile;
 
 	priv = devfreq->data;
+	priv->nb.notifier_call = tz_notify;
 
 	out = 1;
 	if (devfreq->profile->max_state < MSM_ADRENO_MAX_PWRLEVELS) {
@@ -489,6 +507,15 @@ static int tz_start(struct devfreq *devfreq)
 		return -EINVAL;
 	}
 
+	INIT_WORK(&gpu_profile->partner_start_event_ws,
+					do_partner_start_event);
+	INIT_WORK(&gpu_profile->partner_stop_event_ws,
+					do_partner_stop_event);
+	INIT_WORK(&gpu_profile->partner_suspend_event_ws,
+					do_partner_suspend_event);
+	INIT_WORK(&gpu_profile->partner_resume_event_ws,
+					do_partner_resume_event);
+
 	ret = tz_init(priv, tz_pwrlevels, sizeof(tz_pwrlevels), &version,
 				sizeof(version));
 	if (ret != 0 || version > MAX_TZ_VERSION) {
@@ -499,18 +526,24 @@ static int tz_start(struct devfreq *devfreq)
 	for (i = 0; adreno_tz_attr_list[i] != NULL; i++)
 		device_create_file(&devfreq->dev, adreno_tz_attr_list[i]);
 
-	return 0;
+	return kgsl_devfreq_add_notifier(devfreq->dev.parent, &priv->nb);
 }
 
 static int tz_stop(struct devfreq *devfreq)
 {
 	int i;
+	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
+
+	kgsl_devfreq_del_notifier(devfreq->dev.parent, &priv->nb);
 
 	for (i = 0; adreno_tz_attr_list[i] != NULL; i++)
 		device_remove_file(&devfreq->dev, adreno_tz_attr_list[i]);
 
+	flush_workqueue(workqueue);
+
 	/* leaving the governor and cleaning the pointer to private data */
 	devfreq->data = NULL;
+	partner_gpu_profile = NULL;
 	return 0;
 }
 
@@ -530,12 +563,21 @@ static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
 {
 	int result;
 
+	struct msm_adreno_extended_profile *gpu_profile = container_of(
+					(devfreq->profile),
+					struct msm_adreno_extended_profile,
+					profile);
+
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		result = tz_start(devfreq);
 		break;
 
 	case DEVFREQ_GOV_STOP:
+		/* Queue the stop work before the TZ is stopped */
+		if (partner_gpu_profile && partner_gpu_profile->bus_devfreq)
+			queue_work(workqueue,
+				&gpu_profile->partner_stop_event_ws);
 		spin_lock(&suspend_lock);
 		suspend_start = 0;
 		spin_unlock(&suspend_lock);
@@ -566,40 +608,60 @@ static int tz_handler(struct devfreq *devfreq, unsigned int event, void *data)
 		break;
 	}
 
+	if (partner_gpu_profile && partner_gpu_profile->bus_devfreq)
+		switch (event) {
+		case DEVFREQ_GOV_START:
+			queue_work(workqueue,
+					&gpu_profile->partner_start_event_ws);
+			break;
+		case DEVFREQ_GOV_SUSPEND:
+			queue_work(workqueue,
+					&gpu_profile->partner_suspend_event_ws);
+			break;
+		case DEVFREQ_GOV_RESUME:
+			queue_work(workqueue,
+					&gpu_profile->partner_resume_event_ws);
+			break;
+		}
+
 	return result;
 }
 
-int msm_adreno_devfreq_init_tz(struct devfreq *devfreq)
+static void _do_partner_event(struct work_struct *work, unsigned int event)
 {
-	struct devfreq_msm_adreno_tz_data *priv;
-	unsigned int tz_pwrlevels[MSM_ADRENO_MAX_PWRLEVELS + 1];
-	int i, out = 1, ret;
-	unsigned int version;
+	struct devfreq *bus_devfreq;
 
-	if (!devfreq)
-		return -EINVAL;
+	if (partner_gpu_profile == NULL)
+		return;
 
-	priv = devfreq->data;
+	bus_devfreq = partner_gpu_profile->bus_devfreq;
 
-	if (devfreq->profile->max_state < MSM_ADRENO_MAX_PWRLEVELS) {
-		for (i = 0; i < devfreq->profile->max_state; i++)
-			tz_pwrlevels[out++] = devfreq->profile->freq_table[i];
-		tz_pwrlevels[0] = i;
-	} else {
-		pr_err(TAG "tz_pwrlevels[] is too short\n");
-		return -EINVAL;
-	}
-
-	ret = tz_init(priv, tz_pwrlevels, sizeof(tz_pwrlevels), &version,
-				sizeof(version));
-	if (ret != 0 || version > MAX_TZ_VERSION) {
-		pr_err(TAG "tz_init failed\n");
-		return ret ? ret : -EINVAL;
-	}
-
-	return 0;
+	if (bus_devfreq != NULL &&
+		bus_devfreq->governor &&
+		bus_devfreq->governor->event_handler)
+		bus_devfreq->governor->event_handler(bus_devfreq, event, NULL);
 }
-EXPORT_SYMBOL(msm_adreno_devfreq_init_tz);
+
+static void do_partner_start_event(struct work_struct *work)
+{
+	_do_partner_event(work, DEVFREQ_GOV_START);
+}
+
+static void do_partner_stop_event(struct work_struct *work)
+{
+	_do_partner_event(work, DEVFREQ_GOV_STOP);
+}
+
+static void do_partner_suspend_event(struct work_struct *work)
+{
+	_do_partner_event(work, DEVFREQ_GOV_SUSPEND);
+}
+
+static void do_partner_resume_event(struct work_struct *work)
+{
+	_do_partner_event(work, DEVFREQ_GOV_RESUME);
+}
+
 
 static struct devfreq_governor msm_adreno_tz = {
 	.name = "msm-adreno-tz",
@@ -609,6 +671,11 @@ static struct devfreq_governor msm_adreno_tz = {
 
 static int __init msm_adreno_tz_init(void)
 {
+	workqueue = create_freezable_workqueue("governor_msm_adreno_tz_wq");
+
+	if (workqueue == NULL)
+		return -ENOMEM;
+
 	return devfreq_add_governor(&msm_adreno_tz);
 }
 subsys_initcall(msm_adreno_tz_init);
@@ -620,6 +687,8 @@ static void __exit msm_adreno_tz_exit(void)
 	if (ret)
 		pr_err(TAG "failed to remove governor %d\n", ret);
 
+	if (workqueue != NULL)
+		destroy_workqueue(workqueue);
 }
 
 module_exit(msm_adreno_tz_exit);
