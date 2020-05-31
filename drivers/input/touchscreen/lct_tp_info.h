@@ -1,13 +1,15 @@
 /****************************************************************************************
  *
  * @File Name   : lct_tp_info.h
+ * @Author      : wanghan
+ * @E-mail      : <wanghan@longcheer.com>
  * @Create Time : 2018-08-17 17:34:43
  * @Description : Display touchpad information.
  *
  ****************************************************************************************/
 
-#ifndef __GGG_TP_INFO_H__
-#define __GGG_TP_INFO_H__
+#ifndef __LCT_TP_INFO_H__
+#define __LCT_TP_INFO_H__
 
 #define TP_CALLBACK_CMD_INFO      "CMD_INFO"
 #define TP_CALLBACK_CMD_LOCKDOWN  "CMD_LOCKDOWN"
@@ -23,4 +25,4 @@ extern void set_lct_tp_info_callback(int (*pfun)(const char *));
 //Set tp_lockdown_info node callback funcation
 extern void set_lct_tp_lockdown_info_callback(int (*pfun)(void));
 
-#endif //__GGG_TP_INFO_H__
+#endif //__LCT_TP_INFO_H__

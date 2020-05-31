@@ -354,7 +354,7 @@ int dsi_panel_trigger_esd_attack(struct dsi_panel *panel)
 	return -EINVAL;
 }
 
-#ifdef CONFIG_TOUCHSCREEN_AAAAAA_BBB
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 typedef int (*lct_tp_reset_enable_cb_t)(bool en);
 static lct_tp_reset_enable_cb_t lct_tp_reset_enable_cb_p = NULL;
 void set_tp_reset_gpio_callback(lct_tp_reset_enable_cb_t p_callback)
@@ -388,7 +388,7 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 		}
 	}
 
-#ifdef CONFIG_TOUCHSCREEN_AAAAAA_BBB
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 	if (strstr(g_lcd_id, "huaxing") != NULL) {
 
 		if (!IS_ERR_OR_NULL(lct_tp_reset_enable_cb_p)) {
@@ -528,7 +528,7 @@ exit:
 	return rc;
 }
 
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 static bool lcd_reset_keep_high = false;
 void set_lcd_reset_gpio_keep_high(bool en)
 {
@@ -545,7 +545,7 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
 	if (gpio_is_valid(panel->reset_config.reset_gpio)) {
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 		if (lcd_reset_keep_high)
 			pr_warn("%s: lcd-reset-gpio keep high\n", __func__);
 		else {

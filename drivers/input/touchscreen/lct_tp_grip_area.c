@@ -1,6 +1,8 @@
 /****************************************************************************************
  *
  * @File Name   : lct_tp_grip_area.c
+ * @Author      : wanghan
+ * @E-mail      : <wanghan@longcheer.com>
  * @Create Time : 2018-08-17 17:34:43
  * @Description : Display touchpad information.
  *
@@ -24,7 +26,7 @@
  */
 #define TP_GRIP_AREA_NAME          "tp_grip_area"
 #define TP_GRIP_AREA_LOG_ENABLE
-#define TP_GRIP_AREA_TAG           "GGG_TP_GRIP_AREA"
+#define TP_GRIP_AREA_TAG           "LCT_TP_GRIP_AREA"
 
 #ifdef TP_GRIP_AREA_LOG_ENABLE
 #define TP_LOGW(log, ...) printk(KERN_WARNING "[%s] %s (line %d): " log, TP_GRIP_AREA_TAG, __func__, __LINE__, ##__VA_ARGS__)
@@ -41,13 +43,13 @@ typedef int (*set_screen_angle_callback)(int angle);
  * DATA STRUCTURES
  ****************************************************************************************
  */
-typedef struct lct_tp{
+typedef struct lct_tp {
 	struct kobject *tp_device;
 	int screen_angle;
 	struct proc_dir_entry *proc_entry_tp_grip_area;
 	set_screen_angle_callback lct_grip_area_set_screen_angle_callback;
 	get_screen_angle_callback lct_grip_area_get_screen_angle_callback;
-}lct_tp_t;
+} lct_tp_t;
 
 /*
  * GLOBAL VARIABLE DEFINITIONS
@@ -60,7 +62,7 @@ static lct_tp_t *lct_tp_p = NULL;
  ****************************************************************************************
  */
 // --- proc ---
-static int lct_proc_tp_grip_area_open (struct inode *node, struct file *file);
+static int lct_proc_tp_grip_area_open(struct inode *node, struct file *file);
 static ssize_t lct_proc_tp_grip_area_read(struct file *file, char __user *buf, size_t size, loff_t *ppos);
 static ssize_t lct_proc_tp_grip_area_write(struct file *file, const char __user *buf, size_t size, loff_t *ppos);
 static const struct file_operations lct_proc_tp_grip_area_fops = {
@@ -71,12 +73,12 @@ static const struct file_operations lct_proc_tp_grip_area_fops = {
 
 int init_lct_tp_grip_area(set_screen_angle_callback set_fun, get_screen_angle_callback get_fun)
 {
-	if (NULL == set_fun)
+	if (set_fun == NULL)
 		return -1;
 
 	TP_LOGW("Initialization /proc/%s node!\n", TP_GRIP_AREA_NAME);
 	lct_tp_p = kzalloc(sizeof(lct_tp_t), GFP_KERNEL);
-	if (IS_ERR_OR_NULL(lct_tp_p)){
+	if (IS_ERR_OR_NULL(lct_tp_p)) {
 		TP_LOGE("kzalloc() request memory failed!\n");
 		return -ENOMEM;
 	}
@@ -126,14 +128,14 @@ int get_tp_grip_area_angle(void)
 }
 EXPORT_SYMBOL(get_tp_grip_area_angle);
 
-static int lct_proc_tp_grip_area_open (struct inode *node, struct file *file)
+static int lct_proc_tp_grip_area_open(struct inode *node, struct file *file)
 {
 	return 0;
 }
 
 static ssize_t lct_proc_tp_grip_area_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 {
-	int ret=-EIO;
+	int ret = -EIO;
 	ssize_t cnt = 0;
 	char *page = NULL;
 
@@ -144,13 +146,13 @@ static ssize_t lct_proc_tp_grip_area_read(struct file *file, char __user *buf, s
 	if (IS_ERR_OR_NULL(page))
 		return ret;
 
-	if (NULL != lct_tp_p->lct_grip_area_get_screen_angle_callback) {
+	if (lct_tp_p->lct_grip_area_get_screen_angle_callback != NULL) {
 		ret = lct_tp_p->lct_grip_area_get_screen_angle_callback();
 		if (ret < 0) {
 			TP_LOGE("get screen angle failed!\n");
 			goto out;
 		}
-		lct_tp_p->screen_angle = ret; 
+		lct_tp_p->screen_angle = ret;
 	}
 	cnt = sprintf(page, "%d\n", lct_tp_p->screen_angle);
 	cnt = simple_read_from_buffer(buf, size, ppos, page, cnt);
@@ -189,7 +191,7 @@ static ssize_t lct_proc_tp_grip_area_write(struct file *file, const char __user 
 	}
 	TP_LOGW("Set screen angle = %u\n", angle);
 
-	if (NULL == lct_tp_p->lct_grip_area_set_screen_angle_callback) {
+	if (lct_tp_p->lct_grip_area_set_screen_angle_callback == NULL) {
 		TP_LOGE("none callback!\n");
 		goto out;
 	}

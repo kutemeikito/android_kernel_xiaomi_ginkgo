@@ -1,5 +1,5 @@
-#ifndef __GGG_TP_GRIP_AREA_H__
-#define __GGG_TP_GRIP_AREA_H__
+#ifndef __LCT_TP_GRIP_AREA_H__
+#define __LCT_TP_GRIP_AREA_H__
 
 typedef int (*get_screen_angle_callback)(void);
 typedef int (*set_screen_angle_callback)(int angle);
@@ -9,5 +9,5 @@ extern void uninit_lct_tp_grip_area(void);
 extern int set_tp_grip_area_angle(int screen_angle);
 extern int get_tp_grip_area_angle(void);
 
-#endif//__GGG_TP_GRIP_AREA_H__
+#endif//__LCT_TP_GRIP_AREA_H__
 

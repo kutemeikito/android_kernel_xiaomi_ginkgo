@@ -387,7 +387,7 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 		atomic_set(&prim_panel_is_on, false);
 }
 
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 typedef int(*touchpanel_recovery_cb_p_t)(void);
 static touchpanel_recovery_cb_p_t touchpanel_recovery_cb_p = NULL;
 int set_touchpanel_recovery_callback(touchpanel_recovery_cb_p_t cb)
@@ -404,7 +404,7 @@ static void prim_panel_off_delayed_work(struct work_struct *work)
 {
 	mutex_lock(&gbridge->base.lock);
 	if (atomic_read(&prim_panel_is_on)) {
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 		if (!IS_ERR_OR_NULL(touchpanel_recovery_cb_p))
 			touchpanel_recovery_cb_p();
 #endif

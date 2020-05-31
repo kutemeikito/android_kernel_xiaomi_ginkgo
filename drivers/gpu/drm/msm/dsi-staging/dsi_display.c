@@ -46,7 +46,7 @@
 #define MAX_TE_SOURCE_ID  2
 
 static struct dsi_display *whitep_display;
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 extern char g_lcd_id[128];
 //Update /proc/tp_info & /proc/tp_lockdown_info node
 extern void update_lct_tp_info(char *tp_info_buf, char *tp_lockdown_info_buf);
@@ -696,7 +696,7 @@ static int dsi_display_read_reg(struct dsi_display_ctrl *ctrl, char cmd0,
 	return rc;
  }
 
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 static char dcs_cmd_page[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
 static struct dsi_cmd_desc dcs_read_cmd_page = {
        {0, 0x15, MIPI_DSI_MSG_REQ_ACK, 0, 5, sizeof(dcs_cmd_page), dcs_cmd_page, 0, 0},
@@ -5263,7 +5263,7 @@ static ssize_t dsi_display_get_whitepoint(struct device *dev,
 
 	ctrl = &display->ctrl[display->cmd_master_idx];
 
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 	if((strstr(g_lcd_id, "huaxing")!= NULL)) {
 		rc = dsi_display_write_reg_page(ctrl, 0x00, 0x60, buf, sizeof(buf));
 		rc = dsi_display_read_reg(ctrl, 0xf4, 0x00, buf, sizeof(buf));
@@ -5381,7 +5381,7 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 
 }
 
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 int lct_tp_lockdown_info_callback(void)
 {
 	static bool is_already_read = false;
@@ -5672,7 +5672,7 @@ static int dsi_display_bind(struct device *dev,
 
 	dsi_display_feature_create_sysfs(display);
 	dsi_display_whitepoint_create_sysfs();
-#if (defined CONFIG_TOUCHSCREEN_AAAAAA_BBB) || (defined CONFIG_TOUCHSCREEN_AAAAAA_CCC)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J) || (defined CONFIG_TOUCHSCREEN_NT36xxx_C3J)
 	set_lct_tp_lockdown_info_callback(lct_tp_lockdown_info_callback);
 #endif
 	goto error;
