@@ -184,6 +184,7 @@ static unsigned int dev_num = 1;
 static struct cdev wlan_hdd_state_cdev;
 static struct class *class;
 static dev_t device;
+static bool hdd_loaded = false;
 #ifndef MODULE
 static struct gwlan_loader *wlan_loader;
 static ssize_t wlan_boot_cb(struct kobject *kobj,
@@ -8989,7 +8990,6 @@ void hdd_bus_bw_compute_reset_prev_txrx_stats(struct hdd_adapter *adapter)
 
 #endif /* MSM_PLATFORM */
 
-#ifdef WLAN_DEBUG
 static uint8_t *convert_level_to_string(uint32_t level)
 {
 	switch (level) {
