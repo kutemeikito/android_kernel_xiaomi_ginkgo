@@ -759,11 +759,11 @@ static int dsi_panel_update_backlight_externel(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
 
-	pr_err("backlight level :%d\n", bl_lvl);
-	if(bl_lvl > 0)
+	pr_debug("backlight level :%d\n", bl_lvl);
+	if (bl_lvl > 0)
 		backlight_val = true;
 	else
-	       backlight_val = false;
+		backlight_val = false;
 
 	if (!panel || (bl_lvl > 0xffff)) {
 		pr_err("invalid params\n");
@@ -781,7 +781,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	if (panel->host_config.ext_bridge_num)
 		return 0;
 
-	pr_info("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
+	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
 	switch (bl->type) {
 	case DSI_BACKLIGHT_WLED:
 		rc = backlight_device_set_brightness(bl->raw_bd, bl_lvl);
