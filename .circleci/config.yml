@@ -2,45 +2,27 @@ version: 2
 jobs:
   do_SendInfo:
     docker:
-      - image: najahi/oven:fedora
-    environment:
-      is_test: false
+      - image: najahi/oven:latest
     steps:
-      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 -b ten .
+      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 --single-branch -b staging/ten .
       - run: echo 'export device="<b>Xiaomi Redmi Note 8/8T</b> (Ginkgo/Willow) Android 10/Q"' >> $BASH_ENV
       - run: wget https://raw.githubusercontent.com/najahiiii/Noob-Script/noob/ci/circle/sendInfo
       - run: chmod +x sendInfo
       - run: bash sendInfo
   do_Bake1:
     docker:
-      - image: najahi/oven:fedora
+      - image: najahi/oven:latest
     working_directory: ~/do_Bake1
-    environment:
-      is_test: false
     steps:
-      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 -b ten .
+      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 --single-branch -b staging/ten .
       - run: wget https://github.com/najahiiii/Noob-Script/raw/noob/ci/circle/do_ginkgo-ten
       - run: chmod +x do_ginkgo-ten
       - run: bash do_ginkgo-ten
-  do_Bake2:
-    docker:
-      - image: najahi/oven:fedora
-    working_directory: ~/do_Bake2
-    environment:
-      is_test: false
-    steps:
-      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 -b ten .
-      - run: wget https://github.com/najahiiii/Noob-Script/raw/noob/ci/circle/do_willow-ten
-      - run: chmod +x do_willow-ten
-      - run: bash do_willow-ten
 workflows:
   version: 2
   Continuous-HotOven:
     jobs:
       - do_SendInfo
       - do_Bake1:
-          requires:
-            - do_SendInfo
-      - do_Bake2:
           requires:
             - do_SendInfo
