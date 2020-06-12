@@ -3402,7 +3402,7 @@ int sched_boost_handler(struct ctl_table *table, int write,
 		return -EINVAL;
 #endif
 
-	pr_info("%s set sb to %i\n", current->comm, *data);
+	pr_info_once("%s set sb to %i\n", current->comm, *data);
 	return ret;
 }
 
