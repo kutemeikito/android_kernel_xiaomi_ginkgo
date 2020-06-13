@@ -4491,3 +4491,11 @@ error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
+
+bool is_tianma_panel(void)
+{
+	if (strstr(g_lcd_id, "tianma") != NULL)
+		return true;
+
+	return false;
+}
