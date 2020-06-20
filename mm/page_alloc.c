@@ -633,7 +633,7 @@ void prep_compound_page(struct page *page, unsigned int order)
 }
 
 #ifdef CONFIG_DEBUG_PAGEALLOC
-unsigned int _debug_guardpage_minorder;
+unsigned int _debug_guardpage_minorder = MAX_ORDER / 2;
 bool _debug_pagealloc_enabled __read_mostly
 			= IS_ENABLED(CONFIG_DEBUG_PAGEALLOC_ENABLE_DEFAULT);
 EXPORT_SYMBOL(_debug_pagealloc_enabled);
