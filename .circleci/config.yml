@@ -4,7 +4,7 @@ jobs:
     docker:
       - image: najahi/oven:latest
     steps:
-      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 --single-branch -b staging/ten .
+      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 --single-branch -b staging/meme .
       - run: echo 'export device="<b>Xiaomi Redmi Note 8/8T</b> (Ginkgo/Willow) Android 10/Q"' >> $BASH_ENV
       - run: wget https://raw.githubusercontent.com/najahiiii/Noob-Script/noob/ci/circle/sendInfo
       - run: chmod +x sendInfo
@@ -14,7 +14,7 @@ jobs:
       - image: najahi/oven:latest
     working_directory: ~/do_Bake1
     steps:
-      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 --single-branch -b staging/ten .
+      - run: git clone https://github.com/chips-project/msm-4.14 --depth=1 --single-branch -b staging/meme .
       - run: wget https://github.com/najahiiii/Noob-Script/raw/noob/ci/circle/do_ginkgo-ten
       - run: chmod +x do_ginkgo-ten
       - run: bash do_ginkgo-ten
