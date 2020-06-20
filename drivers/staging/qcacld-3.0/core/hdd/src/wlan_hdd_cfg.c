@@ -8698,14 +8698,17 @@ static void hdd_set_rx_mode_value(struct hdd_context *hdd_ctx)
  */
 QDF_STATUS hdd_parse_config_ini(struct hdd_context *hdd_ctx)
 {
+	int status = 0;
 	int i = 0;
+	int retry = 0;
+	/** Pointer for firmware image data */
+	const struct firmware *fw = NULL;
 	char *buffer, *line, *pTemp = NULL;
 	size_t size;
 	char *name, *value;
 	/* cfgIniTable is static to avoid excess stack usage */
 	static struct hdd_cfg_entry cfgIniTable[MAX_CFG_INI_ITEMS];
 	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
-	#include "wlan_hdd_cfg.h"
 
 	memset(cfgIniTable, 0, sizeof(cfgIniTable));
 
@@ -8737,11 +8740,13 @@ QDF_STATUS hdd_parse_config_ini(struct hdd_context *hdd_ctx)
 
 	if (NULL == buffer) {
 		hdd_err("qdf_mem_malloc failure");
+		release_firmware(fw);
 		return QDF_STATUS_E_NOMEM;
 	}
 	pTemp = buffer;
 
-	qdf_mem_copy((void *)buffer, (void *)wlan_cfg, size);
+	qdf_mem_copy((void *)buffer, (void *)fw->data, fw->size);
+	size = fw->size;
 
 	while (buffer != NULL) {
 		line = get_next_line(buffer);
@@ -8790,6 +8795,8 @@ QDF_STATUS hdd_parse_config_ini(struct hdd_context *hdd_ctx)
 	if (QDF_GLOBAL_MONITOR_MODE == cds_get_conparam())
 		hdd_override_all_ps(hdd_ctx);
 
+config_exit:
+	release_firmware(fw);
 	qdf_mem_free(pTemp);
 	return qdf_status;
 }
