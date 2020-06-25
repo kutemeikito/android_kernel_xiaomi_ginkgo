@@ -779,7 +779,7 @@ void wcd_mbhc_elec_hs_report_unplug(struct wcd_mbhc *mbhc)
 		mbhc->mbhc_fn->wcd_cancel_hs_detect_plug(mbhc,
 						&mbhc->correct_plug_swch);
 	else
-		pr_info("%s: hs_detect_plug work not cancelled\n", __func__);
+		pr_debug("%s: hs_detect_plug work not cancelled\n", __func__);
 
 	pr_debug("%s: Report extension cable\n", __func__);
 	wcd_mbhc_report_plug(mbhc, 1, SND_JACK_LINEOUT);
@@ -815,7 +815,7 @@ void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 	enum snd_jack_types jack_type;
 
 	if (mbhc->deinit_in_progress) {
-		pr_info("%s: mbhc deinit in progess: ignore report\n", __func__);
+		pr_debug("%s: mbhc deinit in progess: ignore report\n", __func__);
 		return;
 	}
 
@@ -951,7 +951,7 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 		mbhc->mbhc_fn->wcd_cancel_hs_detect_plug(mbhc,
 						&mbhc->correct_plug_swch);
 	else
-		pr_info("%s: hs_detect_plug work not cancelled\n", __func__);
+		pr_debug("%s: hs_detect_plug work not cancelled\n", __func__);
 
 	if (mbhc->mbhc_cb->micbias_enable_status)
 		micbias1 = mbhc->mbhc_cb->micbias_enable_status(mbhc,
@@ -1035,7 +1035,7 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 			jack_type = SND_JACK_ANC_HEADPHONE;
 			break;
 		default:
-			pr_info("%s: Invalid current plug: %d\n",
+			pr_debug("%s: Invalid current plug: %d\n",
 				__func__, mbhc->current_plug);
 			jack_type = SND_JACK_UNSUPPORTED;
 			break;

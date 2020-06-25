@@ -736,7 +736,7 @@ int32_t core_set_license(uint32_t key, uint32_t module_id)
 	memcpy((uint8_t *)cmd_setl + sizeof(struct avcs_cmd_set_license),
 		cal_block->cal_data.kvaddr,
 		cal_block->cal_data.size);
-	pr_info("%s: Set license opcode=0x%x, id =0x%x, size = %d\n",
+	pr_debug("%s: Set license opcode=0x%x, id =0x%x, size = %d\n",
 			__func__, cmd_setl->hdr.opcode,
 			cmd_setl->id, cmd_setl->size);
 	rc = apr_send_pkt(q6core_lcl.core_handle_q, (uint32_t *)cmd_setl);
@@ -816,7 +816,7 @@ int32_t core_get_license_status(uint32_t module_id)
 
 fail_cmd:
 	mutex_unlock(&(q6core_lcl.cmd_lock));
-	pr_info("%s: cmdrsp_license_result.result = 0x%x for module 0x%x\n",
+	pr_debug("%s: cmdrsp_license_result.result = 0x%x for module 0x%x\n",
 				__func__, ret, module_id);
 	return ret;
 }

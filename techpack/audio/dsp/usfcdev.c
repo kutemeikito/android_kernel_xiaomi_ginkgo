@@ -265,7 +265,7 @@ bool usfcdev_register(
 	}
 
 	if (s_usfcdev_events[event_type_ind].registered_event) {
-		pr_info("%s: handler[%d] was already registered\n",
+		pr_debug("%s: handler[%d] was already registered\n",
 			__func__,
 			event_type_ind);
 		return true;

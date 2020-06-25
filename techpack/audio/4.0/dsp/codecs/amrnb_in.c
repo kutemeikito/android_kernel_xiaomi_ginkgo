@@ -38,7 +38,7 @@ static long amrnb_in_ioctl_shared(struct file *file,
 		pr_debug("%s:session id %d: default buf alloc[%d]\n", __func__,
 				audio->ac->session, audio->buf_alloc);
 		if (audio->enabled == 1) {
-			pr_info("%s:AUDIO_START already over\n", __func__);
+			pr_debug("%s:AUDIO_START already over\n", __func__);
 			rc = 0;
 			break;
 		}
@@ -324,7 +324,7 @@ static int amrnb_in_open(struct inode *inode, struct file *file)
 			rc = -ENODEV;
 			goto fail;
 		}
-		pr_info("%s:session id %d: NT mode encoder success\n",
+		pr_debug("%s:session id %d: NT mode encoder success\n",
 				__func__, audio->ac->session);
 	} else if (!(file->f_mode & FMODE_WRITE) &&
 				(file->f_mode & FMODE_READ)) {
@@ -345,7 +345,7 @@ static int amrnb_in_open(struct inode *inode, struct file *file)
 			rc = -ENODEV;
 			goto fail;
 		}
-		pr_info("%s:session id %d: T mode encoder success\n",
+		pr_debug("%s:session id %d: T mode encoder success\n",
 				__func__, audio->ac->session);
 	} else {
 		pr_err("%s:session id %d: Unexpected mode\n", __func__,
@@ -361,7 +361,7 @@ static int amrnb_in_open(struct inode *inode, struct file *file)
 	audio->enc_ioctl = amrnb_in_ioctl;
 	file->private_data = audio;
 
-	pr_info("%s:session id %d: success\n", __func__, audio->ac->session);
+	pr_debug("%s:session id %d: success\n", __func__, audio->ac->session);
 	return 0;
 fail:
 	q6asm_audio_client_free(audio->ac);

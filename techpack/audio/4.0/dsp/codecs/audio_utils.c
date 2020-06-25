@@ -715,7 +715,7 @@ ssize_t audio_in_read(struct file *file,
 				sizeof(struct meta_out_dsp)))) {
 			unsigned char num_of_frames;
 
-			pr_info("%s:session id %d: eos %d at output\n",
+			pr_debug("%s:session id %d: eos %d at output\n",
 				__func__, audio->ac->session, audio->eos_rsp);
 			if (buf != start)
 				break;
@@ -921,7 +921,7 @@ ssize_t audio_in_write(struct file *file,
 				nflags, buf, start);
 	if (nflags & AUD_EOS_SET) {
 		rc = q6asm_cmd(audio->ac, CMD_EOS);
-		pr_info("%s:session id %d: eos %d at input\n", __func__,
+		pr_debug("%s:session id %d: eos %d at input\n", __func__,
 				audio->ac->session, audio->eos_rsp);
 	}
 	pr_debug("%s:session id %d: Written %zd Avail Buf[%d]", __func__,
@@ -938,7 +938,7 @@ int audio_in_release(struct inode *inode, struct file *file)
 {
 	struct q6audio_in  *audio = file->private_data;
 
-	pr_info("%s: session id %d\n", __func__, audio->ac->session);
+	pr_debug("%s: session id %d\n", __func__, audio->ac->session);
 	mutex_lock(&audio->lock);
 	audio_in_disable(audio);
 	q6asm_audio_client_free(audio->ac);

@@ -2448,13 +2448,13 @@ static int msm_lsm_open(struct snd_pcm_substream *substream)
 				SNDRV_PCM_HW_PARAM_RATE,
 				&constraints_sample_rates);
 	if (ret < 0)
-		pr_info("%s: snd_pcm_hw_constraint_list failed ret %d\n",
+		pr_debug("%s: snd_pcm_hw_constraint_list failed ret %d\n",
 			 __func__, ret);
 	/* Ensure that buffer size is a multiple of period size */
 	ret = snd_pcm_hw_constraint_integer(runtime,
 			    SNDRV_PCM_HW_PARAM_PERIODS);
 	if (ret < 0)
-		pr_info("%s: snd_pcm_hw_constraint_integer failed ret %d\n",
+		pr_debug("%s: snd_pcm_hw_constraint_integer failed ret %d\n",
 			__func__, ret);
 
 	ret = snd_pcm_hw_constraint_minmax(runtime,
@@ -2462,18 +2462,18 @@ static int msm_lsm_open(struct snd_pcm_substream *substream)
 		CAPTURE_MIN_NUM_PERIODS * CAPTURE_MIN_PERIOD_SIZE,
 		CAPTURE_MAX_NUM_PERIODS * CAPTURE_MAX_PERIOD_SIZE);
 	if (ret < 0)
-		pr_info("%s: constraint for buffer bytes min max ret = %d\n",
+		pr_debug("%s: constraint for buffer bytes min max ret = %d\n",
 			__func__, ret);
 	ret = snd_pcm_hw_constraint_step(runtime, 0,
 		SNDRV_PCM_HW_PARAM_PERIOD_BYTES, 32);
 	if (ret < 0) {
-		pr_info("%s: constraint for period bytes step ret = %d\n",
+		pr_debug("%s: constraint for period bytes step ret = %d\n",
 			__func__, ret);
 	}
 	ret = snd_pcm_hw_constraint_step(runtime, 0,
 		SNDRV_PCM_HW_PARAM_BUFFER_BYTES, 32);
 	if (ret < 0)
-		pr_info("%s: constraint for buffer bytes step ret = %d\n",
+		pr_debug("%s: constraint for buffer bytes step ret = %d\n",
 			__func__, ret);
 	prtd->lsm_client = q6lsm_client_alloc(
 				lsm_event_handler, prtd);

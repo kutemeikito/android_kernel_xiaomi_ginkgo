@@ -338,7 +338,7 @@ static int g711_in_open(struct inode *inode, struct file *file)
 	audio->enc_ioctl = g711_in_ioctl;
 	file->private_data = audio;
 
-	pr_info("%s:session id %d: success\n", __func__, audio->ac->session);
+	pr_debug("%s:session id %d: success\n", __func__, audio->ac->session);
 	return 0;
 fail:
 	q6asm_audio_client_free(audio->ac);

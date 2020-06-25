@@ -3538,7 +3538,7 @@ static int msm_audrx_init(struct snd_soc_pcm_runtime *rtd)
 						    138, 139, 140, 141, 142,
 						    143};
 
-	pr_info("%s: dev_name%s\n", __func__, dev_name(cpu_dai->dev));
+	pr_debug("%s: dev_name%s\n", __func__, dev_name(cpu_dai->dev));
 
 	rtd->pmdown_time = 0;
 
