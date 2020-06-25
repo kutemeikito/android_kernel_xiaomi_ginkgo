@@ -293,7 +293,7 @@ static int tas2562_set_power_state(struct tas2562_priv *pTAS2562,
 
 		pTAS2562->mbPowerUp = true;
 		pTAS2562->mnPowerState = TAS2562_POWER_ACTIVE;
-		schedule_delayed_work(&pTAS2562->irq_work, msecs_to_jiffies(10));
+		queue_delayed_work(system_power_efficient_wq, &pTAS2562->irq_work, msecs_to_jiffies(10));
 		break;
 
 	case TAS2562_POWER_MUTE:
@@ -1019,7 +1019,7 @@ void tas2562_LoadConfig(struct tas2562_priv *pTAS2562)
 end:
 /* power up failed, restart later */
 	if (ret < 0)
-		schedule_delayed_work(&pTAS2562->irq_work,
+		queue_delayed_work(system_power_efficient_wq, &pTAS2562->irq_work,
 				msecs_to_jiffies(1000));
 }
 

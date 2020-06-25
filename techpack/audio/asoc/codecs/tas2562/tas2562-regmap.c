@@ -387,7 +387,7 @@ void tas2562_enableIRQ(struct tas2562_priv *pTAS2562, bool enable)
 		if (gpio_is_valid(pTAS2562->mnIRQGPIO2))
 			enable_irq(pTAS2562->mnIRQ2);
 #endif
-		schedule_delayed_work(&pTAS2562->irq_work, msecs_to_jiffies(10));
+		queue_delayed_work(system_power_efficient_wq, &pTAS2562->irq_work, msecs_to_jiffies(10));
 		pTAS2562->mbIRQEnable = true;
 	} else {
 		if (gpio_is_valid(pTAS2562->mnIRQGPIO))
@@ -618,7 +618,7 @@ static enum hrtimer_restart timer_func(struct hrtimer *timer)
 
 	if (pTAS2562->mbPowerUp) {
 		if (!delayed_work_pending(&pTAS2562->irq_work))
-			schedule_delayed_work(&pTAS2562->irq_work,
+			queue_delayed_work(system_power_efficient_wq, &pTAS2562->irq_work,
 				msecs_to_jiffies(20));
 	}
 
@@ -631,7 +631,7 @@ static irqreturn_t tas2562_irq_handler(int irq, void *dev_id)
 
 	tas2562_enableIRQ(pTAS2562, false);
 	/* get IRQ status after 100 ms */
-	schedule_delayed_work(&pTAS2562->irq_work, msecs_to_jiffies(100));
+	queue_delayed_work(system_power_efficient_wq, &pTAS2562->irq_work, msecs_to_jiffies(100));
 	return IRQ_HANDLED;
 }
 
