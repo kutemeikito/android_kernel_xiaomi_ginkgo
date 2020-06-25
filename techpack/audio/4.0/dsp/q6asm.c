@@ -448,7 +448,7 @@ static void config_debug_fs_read_cb(void)
 		 */
 		if (in_cont_index == 7) {
 			in_cont_tv = get_monotonic_timeval();
-			pr_info("%s: read buffer at %ld sec %ld microsec\n",
+			pr_debug("%s: read buffer at %ld sec %ld microsec\n",
 				__func__,
 				in_cont_tv.tv_sec, in_cont_tv.tv_usec);
 		}

@@ -11432,7 +11432,7 @@ static int tasha_set_prim_interpolator_rate(struct snd_soc_dai *dai,
 					__func__, j, sample_rate);
 				/* sample_rate is in Hz */
 				if ((j == 0) && (sample_rate == 44100)) {
-					pr_info("%s: Cannot set 44.1KHz on INT0\n",
+					pr_debug("%s: Cannot set 44.1KHz on INT0\n",
 						__func__);
 				} else
 					snd_soc_update_bits(codec, int_fs_reg,

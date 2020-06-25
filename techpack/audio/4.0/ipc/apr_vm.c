@@ -354,7 +354,7 @@ static const struct snd_event_ops apr_ssr_ops = {
 
 static void apr_adsp_down(unsigned long opcode)
 {
-	pr_info("%s: Q6 is Down\n", __func__);
+	pr_debug("%s: Q6 is Down\n", __func__);
 	snd_event_notify(apr_priv->dev, SND_EVENT_DOWN);
 	apr_set_q6_state(APR_SUBSYS_DOWN);
 	dispatch_event(opcode, APR_DEST_QDSP6);
@@ -373,7 +373,7 @@ static void apr_add_child_devices(struct work_struct *work)
 
 static void apr_adsp_up(void)
 {
-	pr_info("%s: Q6 is Up\n", __func__);
+	pr_debug("%s: Q6 is Up\n", __func__);
 	apr_set_q6_state(APR_SUBSYS_LOADED);
 
 	spin_lock(&apr_priv->apr_lock);
@@ -1370,7 +1370,7 @@ static int apr_probe(struct platform_device *pdev)
 		habmm_socket_close(hab_handle_tx);
 		return ret;
 	}
-	pr_info("%s: hab_handle_tx %x hab_handle_rx %x\n",
+	pr_debug("%s: hab_handle_tx %x hab_handle_rx %x\n",
 			__func__, hab_handle_tx, hab_handle_rx);
 
 	/* create apr ch rx cb thread */
@@ -1385,7 +1385,7 @@ static int apr_probe(struct platform_device *pdev)
 	    return ret;
 	}
 	pid = apr_vm_cb_thread_task->pid;
-	pr_info("%s: apr_vm_cb_thread started pid %d\n",
+	pr_debug("%s: apr_vm_cb_thread started pid %d\n",
 			__func__, pid);
 
 	for (i = 0; i < APR_DEST_MAX; i++)

@@ -134,7 +134,7 @@ static long audio_ioctl_shared(struct file *file, unsigned int cmd,
 			pr_err("Audio Start procedure failed rc=%d\n", rc);
 			break;
 		}
-		pr_info("%s: AUDIO_START sessionid[%d]enable[%d]\n", __func__,
+		pr_debug("%s: AUDIO_START sessionid[%d]enable[%d]\n", __func__,
 						audio->ac->session,
 						audio->enabled);
 		if (audio->stopped == 1)
@@ -490,7 +490,7 @@ static int audio_open(struct inode *inode, struct file *file)
 	if (IS_ERR(audio->dentry))
 		pr_debug("debugfs_create_file failed\n");
 #endif
-	pr_info("%s:AAC 5.1 Decoder OPEN success mode[%d]session[%d]\n",
+	pr_debug("%s:AAC 5.1 Decoder OPEN success mode[%d]session[%d]\n",
 		__func__, audio->feedback, audio->ac->session);
 	return rc;
 fail:

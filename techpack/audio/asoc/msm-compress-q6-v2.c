@@ -1331,7 +1331,7 @@ static int msm_compr_configure_dsp_for_playback
 			bits_per_sample = target_asm_bit_width;
 		}
 	} else {
-		pr_info("%s: failed to get mixer ctl for %s.\n",
+		pr_debug("%s: failed to get mixer ctl for %s.\n",
 			__func__, DSP_BIT_WIDTH_MIXER_CTL);
 	}
 
@@ -2454,7 +2454,7 @@ static int msm_compr_trigger(struct snd_compr_stream *cstream, int cmd)
 			atomic_set(&prtd->eos, 1);
 			pr_debug("issue CMD_EOS stream_id %d\n", ac->stream_id);
 			q6asm_stream_cmd_nowait(ac, CMD_EOS, ac->stream_id);
-			pr_info("PARTIAL DRAIN, do not wait for EOS ack\n");
+			pr_debug("PARTIAL DRAIN, do not wait for EOS ack\n");
 
 			/* send a zero length buffer */
 			atomic_set(&prtd->xrun, 0);

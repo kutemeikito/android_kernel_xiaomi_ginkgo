@@ -2293,7 +2293,7 @@ static enum cpe_svc_result cpe_tgt_wcd9335_boot(int debug_mode)
 				WCD9335_CPE_SS_WDOG_CFG,
 				0x3f, 0x31);
 	else
-		pr_info("%s: CPE in debug mode, WDOG disabled\n",
+		pr_debug("%s: CPE in debug mode, WDOG disabled\n",
 			__func__);
 
 	rc |= cpe_register_write(WCD9335_CPE_SS_CPARMAD_BUFRDY_INT_PERIOD, 19);

@@ -378,7 +378,7 @@ static int audio_open(struct inode *inode, struct file *file)
 	if (IS_ERR(audio->dentry))
 		pr_debug("debugfs_create_file failed\n");
 #endif
-	pr_info("%s:wmapro decoder open success, session_id = %d\n", __func__,
+	pr_debug("%s:wmapro decoder open success, session_id = %d\n", __func__,
 				audio->ac->session);
 	return rc;
 fail:

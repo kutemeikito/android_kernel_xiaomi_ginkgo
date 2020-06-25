@@ -185,7 +185,7 @@ static int audio_notifer_reg_service(int service, int domain)
 	service_data[service][domain].state = curr_state;
 	service_data[service][domain].handle = handle;
 
-	pr_info("%s: service %s is in use\n",
+	pr_debug("%s: service %s is in use\n",
 		__func__, service_data[service][domain].name);
 	pr_debug("%s: service %s has current state %d, handle 0x%pK\n",
 		__func__, service_data[service][domain].name,

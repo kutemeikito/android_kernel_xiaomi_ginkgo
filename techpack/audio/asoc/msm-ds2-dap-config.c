@@ -964,9 +964,9 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 				 * Not Fatal can continue bypass operations.
 				 * Do not need to block playback
 				 */
-				pr_info("%s :Set volume port_id %d",
+				pr_debug("%s :Set volume port_id %d",
 					__func__, port_id);
-				pr_info("copp_idx %d, error %d\n",
+				pr_debug("copp_idx %d, error %d\n",
 					copp_idx, rc);
 			}
 
@@ -974,9 +974,9 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 					    (ramp_wait +
 					     DOLBY_ADDITIONAL_RAMP_WAIT));
 			if (rc == -EINTR) {
-				pr_info("%s:bypass interrupted-ignore,port %d",
+				pr_debug("%s:bypass interrupted-ignore,port %d",
 					__func__, port_id);
-				pr_info("copp_idx %d\n", copp_idx);
+				pr_debug("copp_idx %d\n", copp_idx);
 				rc = 0;
 				continue;
 			}
@@ -998,16 +998,16 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 					rc = dap_set_custom_stereo_onoff(i,
 								!cs_onoff);
 					if (rc < 0) {
-						pr_info("%s:D_CS i %d,rc %d\n",
+						pr_debug("%s:D_CS i %d,rc %d\n",
 							__func__, i, rc);
 					}
 					rc = qti_set_custom_stereo_on(port_id,
 								      copp_idx,
 								      cs_onoff);
 					if (rc < 0) {
-						pr_info("%s:Q_CS port id 0x%x",
+						pr_debug("%s:Q_CS port id 0x%x",
 							 __func__, port_id);
-						pr_info("copp idx %d, rc %d\n",
+						pr_debug("copp idx %d, rc %d\n",
 							copp_idx, rc);
 					}
 				}
@@ -1039,7 +1039,7 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 					 * Not fatal,continue bypass operations.
 					 * Do not need to block playback
 					 */
-					pr_info("%s:send cal err %d index %d\n",
+					pr_debug("%s:send cal err %d index %d\n",
 						__func__, rc, i);
 				}
 			} else {
@@ -1078,15 +1078,15 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 								copp_idx,
 								!cs_onoff);
 					if (rc < 0) {
-						pr_info("%s:Q_CS port_id 0x%x",
+						pr_debug("%s:Q_CS port_id 0x%x",
 							__func__, port_id);
-						pr_info("copp_idx %d rc %d\n",
+						pr_debug("copp_idx %d rc %d\n",
 							copp_idx, rc);
 					}
 					rc = dap_set_custom_stereo_onoff(i,
 								cs_onoff);
 					if (rc < 0) {
-						pr_info("%s:D_CS i %d,rc %d\n",
+						pr_debug("%s:D_CS i %d,rc %d\n",
 							__func__, i, rc);
 					}
 				}
@@ -1095,7 +1095,7 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 			rc = msm_ds2_dap_handle_bypass_wait(port_id, copp_idx,
 				DOLBY_MODULE_ENABLE_PERIOD);
 			if (rc == -EINTR) {
-				pr_info("%s:bypass interrupted port_id %d copp_idx %d\n",
+				pr_debug("%s:bypass interrupted port_id %d copp_idx %d\n",
 					__func__, port_id, copp_idx);
 				/* Interrupted ignore bypass */
 				rc = 0;
@@ -1110,7 +1110,7 @@ static int msm_ds2_dap_handle_bypass(struct dolby_param_data *dolby_data)
 				 * Not Fatal can continue bypass operations.
 				 * Do not need to block playback
 				 */
-				pr_info("%s: Set vol port %d copp %d, rc %d\n",
+				pr_debug("%s: Set vol port %d copp %d, rc %d\n",
 					__func__, port_id, copp_idx, rc);
 				rc = 0;
 			}

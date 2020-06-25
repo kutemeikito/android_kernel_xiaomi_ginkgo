@@ -6266,7 +6266,7 @@ static struct dentry *debugfs_afelb_gain;
 static int afe_debug_open(struct inode *inode, struct file *file)
 {
 	file->private_data = inode->i_private;
-	pr_info("%s: debug intf %s\n", __func__, (char *) file->private_data);
+	pr_debug("%s: debug intf %s\n", __func__, (char *) file->private_data);
 	return 0;
 }
 
@@ -6324,7 +6324,7 @@ static ssize_t afe_debug_write(struct file *filp,
 	if (!strcmp(lb_str, "afe_loopback")) {
 		rc = afe_get_parameters(lbuf, param, 3);
 		if (!rc) {
-			pr_info("%s: %lu %lu %lu\n", lb_str, param[0], param[1],
+			pr_debug("%s: %lu %lu %lu\n", lb_str, param[0], param[1],
 				param[2]);
 
 			if ((param[0] != AFE_LOOPBACK_ON) && (param[0] !=
@@ -6353,7 +6353,7 @@ static ssize_t afe_debug_write(struct file *filp,
 	} else if (!strcmp(lb_str, "afe_loopback_gain")) {
 		rc = afe_get_parameters(lbuf, param, 2);
 		if (!rc) {
-			pr_info("%s: %s %lu %lu\n",
+			pr_debug("%s: %s %lu %lu\n",
 				__func__, lb_str, param[0], param[1]);
 
 			rc = q6audio_validate_port(param[0]);
@@ -7801,7 +7801,7 @@ int afe_spk_prot_get_calib_data(struct afe_spkr_prot_get_vi_calib *calib_resp)
 	}
 	memcpy(&calib_resp->res_cfg, &this_afe.calib_data.res_cfg,
 		sizeof(this_afe.calib_data.res_cfg));
-	pr_info("%s: state %s resistance %d %d\n", __func__,
+	pr_debug("%s: state %s resistance %d %d\n", __func__,
 		fbsp_state[calib_resp->res_cfg.th_vi_ca_state],
 		calib_resp->res_cfg.r0_cali_q24[SP_V2_SPKR_1],
 		calib_resp->res_cfg.r0_cali_q24[SP_V2_SPKR_2]);

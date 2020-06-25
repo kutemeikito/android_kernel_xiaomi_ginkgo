@@ -152,7 +152,7 @@ static int audio_open(struct inode *inode, struct file *file)
 	if (IS_ERR(audio->dentry))
 		pr_debug("debugfs_create_file failed\n");
 #endif
-	pr_info("%s:dec success mode[%d]session[%d]\n", __func__,
+	pr_debug("%s:dec success mode[%d]session[%d]\n", __func__,
 						audio->feedback,
 						audio->ac->session);
 	return 0;

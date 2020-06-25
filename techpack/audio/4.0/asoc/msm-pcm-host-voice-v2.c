@@ -1452,7 +1452,7 @@ static struct snd_soc_platform_driver msm_soc_platform = {
 static int msm_pcm_probe(struct platform_device *pdev)
 {
 
-	pr_info("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
+	pr_debug("%s: dev name %s\n", __func__, dev_name(&pdev->dev));
 	return snd_soc_register_platform(&pdev->dev, &msm_soc_platform);
 }
 

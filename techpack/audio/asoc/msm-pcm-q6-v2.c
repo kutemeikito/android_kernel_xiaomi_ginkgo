@@ -230,7 +230,7 @@ static void event_handler(uint32_t opcode,
 				atomic_inc(&prtd->in_count);
 			}
 			if (atomic_read(&prtd->in_count) == prtd->periods) {
-				pr_info("%s: reclaimed all bufs\n", __func__);
+				pr_debug("%s: reclaimed all bufs\n", __func__);
 				if (atomic_read(&prtd->start))
 					snd_pcm_period_elapsed(substream);
 				wake_up(&the_locks.read_wait);
@@ -459,7 +459,7 @@ static int msm_pcm_playback_prepare(struct snd_pcm_substream *substream)
 		}
 	}
 	if (ret < 0)
-		pr_info("%s: CMD Format block failed\n", __func__);
+		pr_debug("%s: CMD Format block failed\n", __func__);
 
 	atomic_set(&prtd->out_count, runtime->periods);
 
@@ -703,7 +703,7 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 	prtd->audio_client = q6asm_audio_client_alloc(
 				(app_cb)event_handler, prtd);
 	if (!prtd->audio_client) {
-		pr_info("%s: Could not allocate memory\n", __func__);
+		pr_debug("%s: Could not allocate memory\n", __func__);
 		kfree(prtd);
 		return -ENOMEM;
 	}
@@ -725,12 +725,12 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 				SNDRV_PCM_HW_PARAM_RATE,
 				&constraints_sample_rates);
 	if (ret < 0)
-		pr_info("snd_pcm_hw_constraint_list failed\n");
+		pr_debug("snd_pcm_hw_constraint_list failed\n");
 	/* Ensure that buffer size is a multiple of period size */
 	ret = snd_pcm_hw_constraint_integer(runtime,
 					    SNDRV_PCM_HW_PARAM_PERIODS);
 	if (ret < 0)
-		pr_info("snd_pcm_hw_constraint_integer failed\n");
+		pr_debug("snd_pcm_hw_constraint_integer failed\n");
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 		ret = snd_pcm_hw_constraint_minmax(runtime,

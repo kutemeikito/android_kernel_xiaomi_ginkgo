@@ -841,7 +841,7 @@ static int msm_pcm_routing_get_app_type_idx(int app_type)
 		if (app_type_cfg[idx].app_type == app_type)
 			return idx;
 	}
-	pr_info("%s: App type not available, fallback to default\n", __func__);
+	pr_debug("%s: App type not available, fallback to default\n", __func__);
 	return 0;
 }
 
@@ -23675,7 +23675,7 @@ static int msm_routing_put_device_pp_params_mixer(struct snd_kcontrol *kcontrol,
 					idx, latency);
 			break;
 		default:
-			pr_info("%s, device pp param %d not supported\n",
+			pr_debug("%s, device pp param %d not supported\n",
 				__func__, pp_id);
 			break;
 		}

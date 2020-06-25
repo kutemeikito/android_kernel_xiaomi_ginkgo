@@ -1676,7 +1676,7 @@ static int q6lsm_snd_cal_alloc(struct lsm_client *client,
 	}
 
 	if (!cal_block_found) {
-		pr_info("%s: cal not found for stage_idx %d\n", __func__, stage_idx);
+		pr_debug("%s: cal not found for stage_idx %d\n", __func__, stage_idx);
 		goto exit;
 	}
 
