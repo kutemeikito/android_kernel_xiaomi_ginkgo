@@ -151,6 +151,7 @@
 #include "wlan_osif_priv.h"
 #include "wlan_pkt_capture_ucfg_api.h"
 #include "ftm_time_sync_ucfg_api.h"
+#include <wlan_hdd_hang_event.h>
 
 #ifdef MODULE
 #define WLAN_MODULE_NAME  module_name(THIS_MODULE)
@@ -178,6 +179,7 @@
 
 int wlan_start_ret_val;
 static DECLARE_COMPLETION(wlan_start_comp);
+static qdf_atomic_t wlan_hdd_state_fops_ref;
 static unsigned int dev_num = 1;
 static struct cdev wlan_hdd_state_cdev;
 static struct class *class;
@@ -2540,8 +2542,10 @@ static int __hdd_pktcapture_open(struct net_device *dev)
 	}
 
 	adapter->vdev = hdd_objmgr_get_vdev(sta_adapter);
-	if (!adapter->vdev)
+	if (!adapter->vdev) {
+		hdd_err("station interface is not up");
 		return -EINVAL;
+	}
 
 	hdd_mon_mode_ether_setup(dev);
 
@@ -2550,12 +2554,10 @@ static int __hdd_pktcapture_open(struct net_device *dev)
 						  adapter);
 	if (ret) {
 		hdd_objmgr_put_vdev(sta_adapter->vdev);
-		return ret;
+		adapter->vdev = NULL;
+		return -EINVAL;
 	}
-
-	ret = ucfg_pkt_capture_enable_ops(adapter->vdev);
-	if (!ret)
-		set_bit(DEVICE_IFACE_OPENED, &adapter->event_flags);
+	set_bit(DEVICE_IFACE_OPENED, &adapter->event_flags);
 
 	return ret;
 }
@@ -3093,6 +3095,38 @@ static int hdd_update_country_code(struct hdd_context *hdd_ctx)
 }
 
 /**
+ * wlan_hdd_init_tx_rx_histogram() - init tx/rx histogram stats
+ * @hdd_ctx: hdd context
+ *
+ * Return: 0 for success or error code
+ */
+static int wlan_hdd_init_tx_rx_histogram(struct hdd_context *hdd_ctx)
+{
+	hdd_ctx->hdd_txrx_hist = qdf_mem_malloc(
+		(sizeof(struct hdd_tx_rx_histogram) * NUM_TX_RX_HISTOGRAM));
+	if (hdd_ctx->hdd_txrx_hist == NULL) {
+		hdd_err("Failed malloc for hdd_txrx_hist");
+		return -ENOMEM;
+	}
+	return 0;
+}
+
+/**
+ * wlan_hdd_deinit_tx_rx_histogram() - deinit tx/rx histogram stats
+ * @hdd_ctx: hdd context
+ *
+ * Return: none
+ */
+static void wlan_hdd_deinit_tx_rx_histogram(struct hdd_context *hdd_ctx)
+{
+	if (!hdd_ctx || hdd_ctx->hdd_txrx_hist == NULL)
+		return;
+
+	qdf_mem_free(hdd_ctx->hdd_txrx_hist);
+	hdd_ctx->hdd_txrx_hist = NULL;
+}
+
+/**
  * hdd_wlan_start_modules() - Single driver state machine for starting modules
  * @hdd_ctx: HDD context
  * @reinit: flag to indicate from SSR or normal path
@@ -3267,6 +3301,8 @@ int hdd_wlan_start_modules(struct hdd_context *hdd_ctx, bool reinit)
 		}
 
 		hdd_enable_power_management();
+
+		wlan_hdd_init_tx_rx_histogram(hdd_ctx);
 
 		break;
 
@@ -3552,7 +3588,8 @@ static int __hdd_stop(struct net_device *dev)
 
 	mac_handle = hdd_ctx->mac_handle;
 
-	if (!wlan_hdd_is_session_type_monitor(adapter->device_mode)) {
+	if (!wlan_hdd_is_session_type_monitor(adapter->device_mode) &&
+	    adapter->device_mode != QDF_FTM_MODE) {
 		hdd_debug("Disabling Auto Power save timer");
 		sme_ps_disable_auto_ps_timer(
 			mac_handle,
@@ -3571,10 +3608,20 @@ static int __hdd_stop(struct net_device *dev)
 				     WLAN_STOP_ALL_NETIF_QUEUE_N_CARRIER,
 				     WLAN_CONTROL_PATH);
 
-	if (adapter->device_mode == QDF_STA_MODE)
+	if (adapter->device_mode == QDF_STA_MODE) {
 		hdd_lpass_notify_stop(hdd_ctx);
 
-	if (wlan_hdd_is_session_type_monitor(adapter->device_mode)) {
+		if (ucfg_pkt_capture_get_mode(hdd_ctx->psoc)) {
+			struct hdd_adapter *adapter;
+
+			adapter = hdd_get_adapter(hdd_ctx, QDF_MONITOR_MODE);
+			if (adapter)
+				wlan_hdd_del_monitor(hdd_ctx, adapter, true);
+		}
+	}
+
+	if (wlan_hdd_is_session_type_monitor(adapter->device_mode) &&
+	    adapter->vdev) {
 		ucfg_pkt_capture_deregister_callbacks(adapter->vdev);
 		hdd_objmgr_put_vdev(adapter->vdev);
 		adapter->vdev = NULL;
@@ -5773,6 +5820,7 @@ struct hdd_adapter *hdd_open_adapter(struct hdd_context *hdd_ctx, uint8_t sessio
 	qdf_list_create(&adapter->blocked_scan_request_q, WLAN_MAX_SCAN_COUNT);
 	qdf_mutex_create(&adapter->blocked_scan_request_q_lock);
 	qdf_event_create(&adapter->acs_complete_event);
+	qdf_event_create(&adapter->peer_cleanup_done);
 
 	if (QDF_STATUS_SUCCESS == status) {
 		/* Add it to the hdd's session list. */
@@ -5842,6 +5890,7 @@ QDF_STATUS hdd_close_adapter(struct hdd_context *hdd_ctx, struct hdd_adapter *ad
 	qdf_list_destroy(&adapter->blocked_scan_request_q);
 	qdf_mutex_destroy(&adapter->blocked_scan_request_q_lock);
 	qdf_event_destroy(&adapter->acs_complete_event);
+	qdf_event_destroy(&adapter->peer_cleanup_done);
 
 	/* cleanup adapter */
 	policy_mgr_clear_concurrency_mode(hdd_ctx->psoc,
@@ -5942,6 +5991,25 @@ void wlan_hdd_reset_prob_rspies(struct hdd_adapter *adapter)
 	}
 }
 
+static void
+hdd_peer_cleanup(struct hdd_context *hdd_ctx, struct hdd_adapter *adapter)
+{
+	QDF_STATUS qdf_status = QDF_STATUS_SUCCESS;
+
+	/* Check if there is any peer present on the NDI */
+	if (!hdd_any_valid_peer_present(adapter))
+		return;
+
+	qdf_status = sme_handle_peer_cleanup(hdd_ctx->mac_handle,
+					     adapter->session_id);
+	if (QDF_IS_STATUS_ERROR(qdf_status))
+		return;
+	qdf_status = qdf_wait_for_event_completion(&adapter->peer_cleanup_done,
+						   WLAN_WAIT_PEER_CLEANUP);
+	if (QDF_IS_STATUS_ERROR(qdf_status))
+		hdd_debug("peer_cleanup_done wait fail");
+}
+
 QDF_STATUS hdd_stop_adapter(struct hdd_context *hdd_ctx,
 			    struct hdd_adapter *adapter)
 {
@@ -5963,6 +6031,21 @@ QDF_STATUS hdd_stop_adapter_ext(struct hdd_context *hdd_ctx,
 	enum eSirMacReasonCodes reason = eSIR_MAC_IFACE_DOWN;
 
 	hdd_enter();
+
+	if (adapter->device_mode == QDF_STA_MODE &&
+	    ucfg_pkt_capture_get_mode(hdd_ctx->psoc)) {
+		struct hdd_adapter *adapter;
+
+		adapter = hdd_get_adapter(hdd_ctx, QDF_MONITOR_MODE);
+		if (adapter) {
+			if (hdd_is_interface_up(adapter)) {
+				hdd_stop_adapter(hdd_ctx, adapter);
+				hdd_deinit_adapter(hdd_ctx, adapter,
+						   true);
+			}
+			hdd_close_adapter(hdd_ctx, adapter, true);
+		}
+	}
 
 	if (adapter->session_id != HDD_SESSION_ID_INVALID)
 		wlan_hdd_cfg80211_deregister_frames(adapter);
@@ -6008,13 +6091,14 @@ QDF_STATUS hdd_stop_adapter_ext(struct hdd_context *hdd_ctx,
 				reason = eSIR_MAC_DEVICE_RECOVERY;
 
 			/* For NDI do not use roam_profile */
-			if (QDF_NDI_MODE == adapter->device_mode)
+			if (QDF_NDI_MODE == adapter->device_mode) {
+				hdd_peer_cleanup(hdd_ctx, adapter);
 				qdf_ret_status = sme_roam_disconnect(
 					mac_handle,
 					adapter->session_id,
 					eCSR_DISCONNECT_REASON_NDI_DELETE,
 					reason);
-			else if (roam_profile->BSSType ==
+			} else if (roam_profile->BSSType ==
 						eCSR_BSS_TYPE_START_IBSS)
 				qdf_ret_status = sme_roam_disconnect(
 					mac_handle,
@@ -6115,15 +6199,11 @@ QDF_STATUS hdd_stop_adapter_ext(struct hdd_context *hdd_ctx,
 		break;
 
 	case QDF_MONITOR_MODE:
-		if (wlan_hdd_is_session_type_monitor(QDF_MONITOR_MODE)) {
-			adapter = hdd_get_adapter(hdd_ctx, QDF_MONITOR_MODE);
-
-			if (adapter->vdev) {
-				ucfg_pkt_capture_deregister_callbacks(
-						adapter->vdev);
-				hdd_objmgr_put_vdev(adapter->vdev);
-				adapter->vdev = NULL;
-			}
+		if (wlan_hdd_is_session_type_monitor(QDF_MONITOR_MODE) &&
+		    adapter->vdev) {
+			ucfg_pkt_capture_deregister_callbacks(adapter->vdev);
+			hdd_objmgr_put_vdev(adapter->vdev);
+			adapter->vdev = NULL;
 		}
 		wlan_hdd_scan_abort(adapter);
 		hdd_deregister_tx_flow_control(adapter);
@@ -8011,8 +8091,6 @@ static void hdd_context_destroy(struct hdd_context *hdd_ctx)
 
 	cds_set_context(QDF_MODULE_ID_HDD, NULL);
 
-	wlan_hdd_deinit_tx_rx_histogram(hdd_ctx);
-
 	hdd_context_deinit(hdd_ctx);
 
 	qdf_mem_free(hdd_ctx->config);
@@ -8892,38 +8970,6 @@ void hdd_bus_bw_compute_reset_prev_txrx_stats(struct hdd_adapter *adapter)
 
 #endif /* MSM_PLATFORM */
 
-/**
- * wlan_hdd_init_tx_rx_histogram() - init tx/rx histogram stats
- * @hdd_ctx: hdd context
- *
- * Return: 0 for success or error code
- */
-static int wlan_hdd_init_tx_rx_histogram(struct hdd_context *hdd_ctx)
-{
-	hdd_ctx->hdd_txrx_hist = qdf_mem_malloc(
-		(sizeof(struct hdd_tx_rx_histogram) * NUM_TX_RX_HISTOGRAM));
-	if (hdd_ctx->hdd_txrx_hist == NULL) {
-		hdd_err("Failed malloc for hdd_txrx_hist");
-		return -ENOMEM;
-	}
-	return 0;
-}
-
-/**
- * wlan_hdd_deinit_tx_rx_histogram() - deinit tx/rx histogram stats
- * @hdd_ctx: hdd context
- *
- * Return: none
- */
-void wlan_hdd_deinit_tx_rx_histogram(struct hdd_context *hdd_ctx)
-{
-	if (!hdd_ctx || hdd_ctx->hdd_txrx_hist == NULL)
-		return;
-
-	qdf_mem_free(hdd_ctx->hdd_txrx_hist);
-	hdd_ctx->hdd_txrx_hist = NULL;
-}
-
 static uint8_t *convert_level_to_string(uint32_t level)
 {
 	switch (level) {
@@ -9036,7 +9082,7 @@ hdd_display_netif_queue_history_compact(struct hdd_context *hdd_ctx)
 
 	bytes_written = 0;
 
-	hdd_for_each_adapter(hdd_ctx, adapter) {
+	hdd_for_each_adapter_dev_held(hdd_ctx, adapter) {
 		curr_time = qdf_system_ticks();
 		total = curr_time - adapter->start_time;
 		delta = curr_time - adapter->last_time;
@@ -9080,6 +9126,8 @@ hdd_display_netif_queue_history_compact(struct hdd_context *hdd_ctx)
 			temp_str);
 
 		adapter_num++;
+		/* dev_put has to be done here */
+		dev_put(adapter->dev);
 	}
 
 	/* using QDF_TRACE to avoid printing function name */
@@ -9093,6 +9141,82 @@ hdd_display_netif_queue_history_compact(struct hdd_context *hdd_ctx)
 }
 
 /**
+ * wlan_hdd_display_adapter_netif_queue_stats() - display adapter based
+ * netif queue stats
+ * @adapter: hdd adapter
+ *
+ * Return: none
+ */
+static void
+wlan_hdd_display_adapter_netif_queue_stats(struct hdd_adapter *adapter)
+{
+	int i;
+	qdf_time_t total, pause, unpause, curr_time, delta;
+
+	hdd_debug("Netif queue operation statistics:");
+	hdd_debug("Session_id %d device mode %d",
+		  adapter->session_id, adapter->device_mode);
+	hdd_debug("Current pause_map value %x", adapter->pause_map);
+	curr_time = qdf_system_ticks();
+	total = curr_time - adapter->start_time;
+	delta = curr_time - adapter->last_time;
+	if (adapter->pause_map) {
+		pause = adapter->total_pause_time + delta;
+		unpause = adapter->total_unpause_time;
+	} else {
+		unpause = adapter->total_unpause_time + delta;
+		pause = adapter->total_pause_time;
+	}
+	hdd_debug("Total: %ums Pause: %ums Unpause: %ums",
+		  qdf_system_ticks_to_msecs(total),
+		  qdf_system_ticks_to_msecs(pause),
+		  qdf_system_ticks_to_msecs(unpause));
+	hdd_debug("reason_type: pause_cnt: unpause_cnt: pause_time");
+
+	for (i = WLAN_CONTROL_PATH; i < WLAN_REASON_TYPE_MAX; i++) {
+		qdf_time_t pause_delta = 0;
+
+		if (adapter->pause_map & (1 << i))
+			pause_delta = delta;
+
+		/* using hdd_log to avoid printing function name */
+		hdd_debug("%s: %d: %d: %ums",
+			  hdd_reason_type_to_string(i),
+			  adapter->queue_oper_stats[i].pause_count,
+			  adapter->queue_oper_stats[i].unpause_count,
+			  qdf_system_ticks_to_msecs(
+			  adapter->queue_oper_stats[i].total_pause_time +
+			  pause_delta));
+	}
+
+	hdd_debug("Netif queue operation history:");
+	hdd_debug("Total entries: %d current index %d",
+		  WLAN_HDD_MAX_HISTORY_ENTRY, adapter->history_index);
+
+	hdd_debug("index: time: action_type: reason_type: pause_map");
+
+	for (i = 0; i < WLAN_HDD_MAX_HISTORY_ENTRY; i++) {
+		/* using hdd_log to avoid printing function name */
+		if (adapter->queue_oper_history[i].time == 0)
+			continue;
+		hdd_debug("%d: %u: %s: %s: %x",
+			  i, qdf_system_ticks_to_msecs(
+				adapter->queue_oper_history[i].time),
+			  hdd_action_type_to_string(
+			  adapter->queue_oper_history[i].netif_action),
+			  hdd_reason_type_to_string(
+			  adapter->queue_oper_history[i].netif_reason),
+			  adapter->queue_oper_history[i].pause_map);
+	}
+}
+
+void
+wlan_hdd_display_adapter_netif_queue_history(struct hdd_adapter *adapter)
+{
+	wlan_hdd_display_adapter_netif_queue_stats(adapter);
+}
+
+/**
  * wlan_hdd_display_netif_queue_history() - display netif queue history
  * @hdd_ctx: hdd context
  *
@@ -9102,72 +9226,17 @@ void
 wlan_hdd_display_netif_queue_history(struct hdd_context *hdd_ctx,
 				     enum qdf_stats_verbosity_level verb_lvl)
 {
-
 	struct hdd_adapter *adapter = NULL;
-	int i;
-	qdf_time_t total, pause, unpause, curr_time, delta;
 
 	if (verb_lvl == QDF_STATS_VERBOSITY_LEVEL_LOW) {
 		hdd_display_netif_queue_history_compact(hdd_ctx);
 		return;
 	}
 
-	hdd_for_each_adapter(hdd_ctx, adapter) {
-		hdd_debug("Netif queue operation statistics:");
-		hdd_debug("Session_id %d device mode %d",
-			adapter->session_id, adapter->device_mode);
-		hdd_debug("Current pause_map value %x", adapter->pause_map);
-		curr_time = qdf_system_ticks();
-		total = curr_time - adapter->start_time;
-		delta = curr_time - adapter->last_time;
-		if (adapter->pause_map) {
-			pause = adapter->total_pause_time + delta;
-			unpause = adapter->total_unpause_time;
-		} else {
-			unpause = adapter->total_unpause_time + delta;
-			pause = adapter->total_pause_time;
-		}
-		hdd_debug("Total: %ums Pause: %ums Unpause: %ums",
-			qdf_system_ticks_to_msecs(total),
-			qdf_system_ticks_to_msecs(pause),
-			qdf_system_ticks_to_msecs(unpause));
-		hdd_debug("reason_type: pause_cnt: unpause_cnt: pause_time");
-
-		for (i = WLAN_CONTROL_PATH; i < WLAN_REASON_TYPE_MAX; i++) {
-			qdf_time_t pause_delta = 0;
-
-			if (adapter->pause_map & (1 << i))
-				pause_delta = delta;
-
-			/* using hdd_log to avoid printing function name */
-			hdd_debug("%s: %d: %d: %ums",
-				 hdd_reason_type_to_string(i),
-				 adapter->queue_oper_stats[i].pause_count,
-				 adapter->queue_oper_stats[i].unpause_count,
-				 qdf_system_ticks_to_msecs(
-				 adapter->queue_oper_stats[i].total_pause_time +
-				 pause_delta));
-		}
-
-		hdd_debug("Netif queue operation history:");
-		hdd_debug("Total entries: %d current index %d",
-			WLAN_HDD_MAX_HISTORY_ENTRY, adapter->history_index);
-
-		hdd_debug("index: time: action_type: reason_type: pause_map");
-
-		for (i = 0; i < WLAN_HDD_MAX_HISTORY_ENTRY; i++) {
-			/* using hdd_log to avoid printing function name */
-			if (adapter->queue_oper_history[i].time == 0)
-				continue;
-			hdd_debug("%d: %u: %s: %s: %x",
-				  i, qdf_system_ticks_to_msecs(
-					adapter->queue_oper_history[i].time),
-				  hdd_action_type_to_string(
-				  adapter->queue_oper_history[i].netif_action),
-				  hdd_reason_type_to_string(
-				  adapter->queue_oper_history[i].netif_reason),
-				  adapter->queue_oper_history[i].pause_map);
-		}
+	hdd_for_each_adapter_dev_held(hdd_ctx, adapter) {
+		wlan_hdd_display_adapter_netif_queue_stats(adapter);
+		/* dev_put has to be done here */
+		dev_put(adapter->dev);
 	}
 }
 
@@ -10281,13 +10350,9 @@ static struct hdd_context *hdd_context_create(struct device *dev)
 
 	cds_set_multicast_logging(hdd_ctx->config->multicast_host_fw_msgs);
 
-	ret = wlan_hdd_init_tx_rx_histogram(hdd_ctx);
-	if (ret)
-		goto err_deinit_hdd_context;
-
 	ret = hdd_init_netlink_services(hdd_ctx);
 	if (ret)
-		goto err_deinit_txrx_histogram;
+		goto err_deinit_hdd_context;
 
 	hdd_set_wlan_logging(hdd_ctx);
 
@@ -10301,9 +10366,6 @@ skip_multicast_logging:
 	hdd_exit();
 
 	return hdd_ctx;
-
-err_deinit_txrx_histogram:
-	wlan_hdd_deinit_tx_rx_histogram(hdd_ctx);
 
 err_deinit_hdd_context:
 	hdd_context_deinit(hdd_ctx);
@@ -12164,6 +12226,7 @@ int hdd_configure_cds(struct hdd_context *hdd_ctx)
 		wma_cli_set_command(0, WMI_PDEV_PARAM_FAST_PWR_TRANSITION,
 			hdd_ctx->config->enable_phy_reg_retention, PDEV_CMD);
 
+	wlan_hdd_hang_event_notifier_register(hdd_ctx);
 	return 0;
 
 cds_disable:
@@ -12188,6 +12251,7 @@ static int hdd_deconfigure_cds(struct hdd_context *hdd_ctx)
 
 	hdd_enter();
 
+	wlan_hdd_hang_event_notifier_unregister();
 	/* De-init features */
 	hdd_features_deinit(hdd_ctx);
 
@@ -12300,6 +12364,8 @@ int hdd_wlan_stop_modules(struct hdd_context *hdd_ctx, bool ftm_mode)
 
 		if (hdd_get_conparam() == QDF_GLOBAL_FTM_MODE)
 			break;
+
+		wlan_hdd_deinit_tx_rx_histogram(hdd_ctx);
 
 		hdd_disable_power_management();
 		if (hdd_deconfigure_cds(hdd_ctx)) {
@@ -13763,6 +13829,8 @@ void hdd_deinit(void)
 static int wlan_hdd_state_ctrl_param_open(struct inode *inode,
 					  struct file *file)
 {
+	qdf_atomic_inc(&wlan_hdd_state_fops_ref);
+
 	return 0;
 }
 
@@ -13809,7 +13877,7 @@ static ssize_t wlan_hdd_state_ctrl_param_write(struct file *filp,
 		rc = wait_for_completion_timeout(&wlan_start_comp,
 				msecs_to_jiffies(HDD_WLAN_START_WAIT_TIME));
 		if (!rc) {
-			hdd_alert("Timed-out waiting in wlan_hdd_state_ctrl_param_write");
+			pr_err("Timed-out in wlan_hdd_state_ctrl_param_write");
 			ret = -EINVAL;
 			return ret;
 		}
@@ -13821,11 +13889,32 @@ exit:
 	return count;
 }
 
+/**
+ * wlan_hdd_state_ctrl_param_release() -  Release callback for /dev/wlan.
+ *
+ * @inode: struct inode pinter.
+ * @file: struct file pointer.
+ *
+ * Release callback that would be invoked when the file operations has
+ * completed fully. This is implemented to provide a reference count mechanism
+ * via which the driver can wait till all possible usage of the /dev/wlan
+ * file is completed.
+ *
+ * Return: Success
+ */
+static int wlan_hdd_state_ctrl_param_release(struct inode *inode,
+					     struct file *file)
+{
+	qdf_atomic_dec(&wlan_hdd_state_fops_ref);
+
+	return 0;
+}
 
 const struct file_operations wlan_hdd_state_fops = {
 	.owner = THIS_MODULE,
 	.open = wlan_hdd_state_ctrl_param_open,
 	.write = wlan_hdd_state_ctrl_param_write,
+	.release = wlan_hdd_state_ctrl_param_release,
 };
 
 static int  wlan_hdd_state_ctrl_param_create(void)
@@ -13834,6 +13923,7 @@ static int  wlan_hdd_state_ctrl_param_create(void)
 	int ret;
 	struct device *dev;
 
+	qdf_atomic_init(&wlan_hdd_state_fops_ref);
 	device = MKDEV(wlan_hdd_state_major, 0);
 
 	ret = alloc_chrdev_region(&device, 0, dev_num, "qcwlanstate");
@@ -13856,6 +13946,9 @@ static int  wlan_hdd_state_ctrl_param_create(void)
 	}
 
 	cdev_init(&wlan_hdd_state_cdev, &wlan_hdd_state_fops);
+
+	wlan_hdd_state_cdev.owner = THIS_MODULE;
+
 	ret = cdev_add(&wlan_hdd_state_cdev, device, dev_num);
 	if (ret) {
 		pr_err("Failed to add cdev error");
@@ -14060,6 +14153,9 @@ static int hdd_driver_load(void)
 
 pld_deinit:
 	pld_deinit();
+	/* Wait for any ref taken on /dev/wlan to be released */
+	while (qdf_atomic_read(&wlan_hdd_state_fops_ref))
+		;
 wakelock_destroy:
 	qdf_wake_lock_destroy(&wlan_wake_lock);
 comp_deinit:
