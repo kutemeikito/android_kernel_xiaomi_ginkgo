@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
  * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -263,9 +263,12 @@ enum {
 	/* IDX 185 to 186 */
 	IDX_SLIMBUS_9_RX,
 	IDX_SLIMBUS_9_TX,
-	/* IDX 187 -> 189 */
+	/* IDX 187 -> 188 */
 	IDX_AFE_PORT_ID_SENARY_PCM_RX,
 	IDX_AFE_PORT_ID_SENARY_PCM_TX,
+	/* IDX 189 -> 190 */
+	IDX_RT_PROXY_PORT_002_RX,
+	IDX_RT_PROXY_PORT_002_TX,
 	AFE_MAX_PORTS
 };
 
