@@ -46,7 +46,6 @@
 #define MHI_RING_PRIMARY_EVT_ID		1
 #define MHI_1K_SIZE			0x1000
 /* Updated Specification for event start is NER - 2 and end - NER -1 */
-#define MHI_HW_ACC_EVT_RING_START	3
 #define MHI_HW_ACC_EVT_RING_END		1
 
 #define MHI_HOST_REGION_NUM             2
@@ -1133,7 +1132,7 @@ static void mhi_dev_get_erdb_db_cfg(struct mhi_dev *mhi,
 		erdb_cfg->end = HW_CHANNEL_END;
 	} else {
 		erdb_cfg->base = mhi->cfg.event_rings -
-					MHI_HW_ACC_EVT_RING_START;
+					(mhi->cfg.hw_event_rings);
 		erdb_cfg->end =  mhi->cfg.event_rings -
 					MHI_HW_ACC_EVT_RING_END;
 	}
@@ -1323,6 +1322,11 @@ static int mhi_hwc_chcmd(struct mhi_dev *mhi, uint chid,
 	switch (type) {
 	case MHI_DEV_RING_EL_RESET:
 	case MHI_DEV_RING_EL_STOP:
+		if ((chid-HW_CHANNEL_BASE) > NUM_HW_CHANNELS) {
+			pr_err("Invalid Channel ID = 0x%X\n", chid);
+			return -EINVAL;
+		}
+
 		rc = ipa_mhi_disconnect_pipe(
 			mhi->ipa_clnt_hndl[chid-HW_CHANNEL_BASE]);
 		if (rc)
@@ -1333,34 +1337,20 @@ static int mhi_hwc_chcmd(struct mhi_dev *mhi, uint chid,
 		connect_params.channel_id = chid;
 		connect_params.sys.skip_ep_cfg = true;
 
-		switch (chid) {
-		case MHI_CLIENT_ADPL_IN:
-			connect_params.sys.client = IPA_CLIENT_MHI_DPL_CONS;
-			break;
-		case MHI_CLIENT_IP_HW_QDSS:
-			connect_params.sys.client = IPA_CLIENT_MHI_QDSS_CONS;
-			break;
-		case MHI_CLIENT_IP_HW_0_OUT:
-			connect_params.sys.client = IPA_CLIENT_MHI_PROD;
-			break;
-		case MHI_CLIENT_IP_HW_0_IN:
-			connect_params.sys.client = IPA_CLIENT_MHI_CONS;
-			break;
-		case MHI_CLIENT_QMAP_FLOW_CTRL_OUT:
-			connect_params.sys.client = IPA_CLIENT_MHI_LOW_LAT_PROD;
-			break;
-		case MHI_CLIENT_QMAP_FLOW_CTRL_IN:
-			connect_params.sys.client = IPA_CLIENT_MHI_LOW_LAT_CONS;
-			break;
-		default:
-			pr_err("Invalid channel = 0x%x\n", chid);
+		if (chid > HW_CHANNEL_END) {
+			pr_err("Channel DB for %d not enabled\n", chid);
+			return -EINVAL;
+		}
+
+		if ((chid-HW_CHANNEL_BASE) > NUM_HW_CHANNELS) {
+			pr_err("Invalid Channel = 0x%X\n", chid);
 			return -EINVAL;
 		}
 
 		rc = ipa_mhi_connect_pipe(&connect_params,
 			&mhi->ipa_clnt_hndl[chid-HW_CHANNEL_BASE]);
 		if (rc)
-			pr_err("HW Channel%d start failed 0x%X\n",
+			pr_err("HW Channel%d start failed : %d\n",
 							chid, rc);
 		break;
 	case MHI_DEV_RING_EL_INVALID:
@@ -2418,6 +2408,10 @@ static int mhi_dev_cache_host_cfg(struct mhi_dev *mhi)
 		return rc;
 	}
 
+	mhi_log(MHI_MSG_VERBOSE,
+		"Number of Event rings : %d, HW Event rings : %d\n",
+			mhi->cfg.event_rings, mhi->cfg.hw_event_rings);
+
 	mhi->cmd_ctx_shadow.size = sizeof(struct mhi_dev_cmd_ctx);
 	mhi->ev_ctx_shadow.size = sizeof(struct mhi_dev_ev_ctx) *
 					mhi->cfg.event_rings;
@@ -3312,6 +3306,11 @@ static void mhi_dev_enable(struct work_struct *work)
 		pr_err("%s: get mhi state failed\n", __func__);
 		return;
 	}
+	if (mhi_reset) {
+		mhi_dev_mmio_clear_reset(mhi);
+		mhi_log(MHI_MSG_VERBOSE,
+			"Cleared reset before waiting for M0\n");
+	}
 
 	while (state != MHI_DEV_M0_STATE &&
 		((max_cnt < MHI_SUSPEND_TIMEOUT) || mhi->no_m0_timeout)) {
@@ -3321,6 +3320,11 @@ static void mhi_dev_enable(struct work_struct *work)
 		if (rc) {
 			pr_err("%s: get mhi state failed\n", __func__);
 			return;
+		}
+		if (mhi_reset) {
+			mhi_dev_mmio_clear_reset(mhi);
+			mhi_log(MHI_MSG_VERBOSE,
+				"Cleared reset while waiting for M0\n");
 		}
 		max_cnt++;
 	}
