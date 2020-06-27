@@ -1229,11 +1229,6 @@ int sdhci_msm_execute_tuning(struct sdhci_host *host, u32 opcode)
 		return 0;
 
 	/*
-<<<<<<< HEAD
-<<<<<<< HEAD
-	 * Don't allow re-tuning for CRC errors observed for any commands
-	 * that are sent during tuning sequence itself.
-=======
 	 * Clear tuning_done flag before tuning to ensure proper
 	 * HS400 settings.
 	 */
@@ -1243,11 +1238,8 @@ int sdhci_msm_execute_tuning(struct sdhci_host *host, u32 opcode)
 	 * For HS400 tuning in HS200 timing requires:
 	 * - select MCLK/2 in VENDOR_SPEC
 	 * - program MCLK to 400MHz (or nearest supported) in GCC
->>>>>>> 539a88827e7b9e4b8f0c6b7b24a2324ad2bc9367
-=======
 	 * Don't allow re-tuning for CRC errors observed for any commands
 	 * that are sent during tuning sequence itself.
->>>>>>> 4.14/kernel.lnx.4.14.r7-rel
 	 */
 	if (msm_host->tuning_in_progress)
 		return 0;
@@ -4721,6 +4713,20 @@ static bool sdhci_msm_is_bootdevice(struct device *dev)
 	 */
 	return true;
 }
+
+/* add sdcard slot info for factory mode
+ *    begin
+ *    */
+static struct kobject *card_slot_device = NULL;
+static struct sdhci_host *card_host =NULL;
+static ssize_t card_slot_status_show(struct device *dev,
+					       struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", mmc_gpio_get_cd(card_host->mmc));
+}
+
+static DEVICE_ATTR(card_slot_status, S_IRUGO ,
+						card_slot_status_show, NULL);
 
 int32_t card_slot_init_device_name(void)
 {
