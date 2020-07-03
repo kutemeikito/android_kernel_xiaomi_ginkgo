@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -3080,8 +3081,9 @@ __wlan_hdd_cfg80211_get_supported_features(struct wiphy *wiphy,
 	}
 #endif
 	if (wlan_hdd_nan_is_supported(hdd_ctx)) {
-		hdd_debug("NAN is supported by firmware");
-		fset |= WIFI_FEATURE_NAN;
+		//hdd_debug("NAN is supported by firmware");
+		//fset |= WIFI_FEATURE_NAN;
+		//remove ended
 	}
 	if (sme_is_feature_supported_by_fw(RTT) &&
 	    hdd_ctx->config->enable_rtt_support) {
