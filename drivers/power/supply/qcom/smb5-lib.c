@@ -1252,7 +1252,6 @@ void smblib_suspend_on_debug_battery(struct smb_charger *chg)
 {
 	int rc;
 	union power_supply_propval val;
-	const struct apsd_result *apsd_result;
 
 	rc = smblib_get_prop_from_bms(chg,
 			POWER_SUPPLY_PROP_DEBUG_BATTERY, &val);

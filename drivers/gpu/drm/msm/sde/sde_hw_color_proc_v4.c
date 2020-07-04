@@ -20,6 +20,7 @@ static unsigned short kcal_red = 256;
 static unsigned short kcal_green = 256;
 static unsigned short kcal_blue = 256;
 static unsigned short kcal_tianma = 230; // Limit for tianma panel
+static unsigned short kcal_min = 20;
 
 static unsigned short kcal_hue = 0;
 static unsigned short kcal_sat = 255;
@@ -237,9 +238,9 @@ void sde_setup_dspp_pccv4(struct sde_hw_dspp *ctx, void *cfg)
 	}
 
 	// KCAL values can't be less than 20
-	kcal_red = max(kcal_red, 20);
-	kcal_green = max(kcal_green, 20);
-	kcal_blue = max(kcal_blue, 20);
+	kcal_red = max(kcal_red, kcal_min);
+	kcal_green = max(kcal_green, kcal_min);
+	kcal_blue = max(kcal_blue, kcal_min);
 
 	// Prevent image retention on nt36672a tianma panel
 	// Keep RGB <= 230 always
