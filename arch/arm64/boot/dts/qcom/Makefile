@@ -236,17 +236,7 @@ ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 		trinket-external-codec-idp-overlay.dtbo \
 		trinket-usbc-external-codec-idp-overlay.dtbo \
 		trinket-usbc-idp-overlay.dtbo \
-		trinket-dp-idp-overlay.dtbo \
-		qcm6125-iot-idp-overlay.dtbo \
-		qcs6125-iot-idp-overlay.dtbo \
-		qcm6125-iot-external-codec-idp-overlay.dtbo \
-		qcs6125-iot-external-codec-idp-overlay.dtbo \
-		qcm6125-iot-usbc-external-codec-idp-overlay.dtbo \
-		qcs6125-iot-usbc-external-codec-idp-overlay.dtbo \
-		qcm6125-iot-usbc-idp-overlay.dtbo \
-		qcs6125-iot-usbc-idp-overlay.dtbo \
-		qcm6125-iot-dp-idp-overlay.dtbo \
-		qcs6125-iot-dp-idp-overlay.dtbo
+		trinket-dp-idp-overlay.dtbo
 
 trinket-rumi-overlay.dtbo-base := trinket.dtb
 trinket-idp-overlay.dtbo-base := trinket.dtb
