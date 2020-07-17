@@ -16,6 +16,9 @@
 #define ISRHEL7
 #elif RHEL_MAJOR == 8
 #define ISRHEL8
+#if RHEL_MINOR == 2
+#define ISCENTOS8
+#endif
 #endif
 #endif
 #ifdef UTS_UBUNTU_RELEASE_ABI
@@ -30,9 +33,6 @@
 #elif LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 3, 0)
 #define ISUBUNTU1910
 #endif
-#endif
-#if defined(CONFIG_SUSE_KERNEL) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
-#define ISOPENSUSE15
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 10, 0)
@@ -281,7 +281,7 @@ static const struct in6_addr __compat_in6addr_any = IN6ADDR_ANY_INIT;
 #define in6addr_any __compat_in6addr_any
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && !defined(ISOPENSUSE15)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0)
 #include <linux/completion.h>
 #include <linux/random.h>
 #include <linux/errno.h>
@@ -377,7 +377,7 @@ static inline bool rng_is_initialized(void)
 }
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && !defined(ISOPENSUSE15)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 static inline int get_random_bytes_wait(void *buf, int nbytes)
 {
 	int ret = wait_for_random_bytes();
@@ -520,7 +520,7 @@ static inline void __compat_kvfree(const void *addr)
 #define priv_destructor destructor
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && !defined(ISOPENSUSE15)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 #define wg_newlink(a,b,c,d,e) wg_newlink(a,b,c,d)
 #endif
 
@@ -664,7 +664,7 @@ struct __compat_dummy_container { char dev; };
 #define genl_dump_check_consistent(a, b) genl_dump_check_consistent(a, b, &genl_family)
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && !defined(ISRHEL7) && !defined(ISOPENSUSE15)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0) && !defined(ISRHEL7)
 static inline void *skb_put_data(struct sk_buff *skb, const void *data, unsigned int len)
 {
 	void *tmp = skb_put(skb, len);
@@ -860,11 +860,6 @@ static inline void skb_mark_not_on_list(struct sk_buff *skb)
 })
 #endif
 
-
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 5) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)) || (LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 18) && !defined(ISRHEL82))
-#define ipv6_dst_lookup_flow(a, b, c, d) ipv6_dst_lookup(a, b, &dst, c) + (void *)0 ?: dst
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0)
 #include <linux/skbuff.h>
 #ifndef skb_list_walk_safe
@@ -944,10 +939,10 @@ static inline int skb_ensure_writable(struct sk_buff *skb, int write_len)
 #include <net/ipv6.h>
 #include <net/icmp.h>
 #include <net/netfilter/nf_conntrack.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) && !defined(ISRHEL8)
 #include <net/netfilter/nf_nat_core.h>
 #endif
-static inline void icmp_ndo_send(struct sk_buff *skb_in, int type, int code, __be32 info)
+static inline void __compat_icmp_ndo_send(struct sk_buff *skb_in, int type, int code, __be32 info)
 {
 	struct sk_buff *cloned_skb = NULL;
 	enum ip_conntrack_info ctinfo;
@@ -976,7 +971,7 @@ static inline void icmp_ndo_send(struct sk_buff *skb_in, int type, int code, __b
 out:
 	consume_skb(cloned_skb);
 }
-static inline void icmpv6_ndo_send(struct sk_buff *skb_in, u8 type, u8 code, __u32 info)
+static inline void __compat_icmpv6_ndo_send(struct sk_buff *skb_in, u8 type, u8 code, __u32 info)
 {
 	struct sk_buff *cloned_skb = NULL;
 	enum ip_conntrack_info ctinfo;
@@ -1006,17 +1001,20 @@ out:
 	consume_skb(cloned_skb);
 }
 #else
-#define icmp_ndo_send icmp_send
-#define icmpv6_ndo_send icmpv6_send
+#define __compat_icmp_ndo_send icmp_send
+#define __compat_icmpv6_ndo_send icmpv6_send
 #endif
+#define icmp_ndo_send __compat_icmp_ndo_send
+#define icmpv6_ndo_send __compat_icmpv6_ndo_send
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0)
 #define COMPAT_CANNOT_USE_MAX_MTU
 #endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 14) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)) || (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 29) && !defined(ISUBUNTU1910) && !defined(ISUBUNTU1904))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 14) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)) || (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 29) && !defined(ISUBUNTU1910) && !defined(ISUBUNTU1904) && (!defined(ISRHEL8) || defined(ISCENTOS8)))
 #include <linux/skbuff.h>
+#include <net/sch_generic.h>
 static inline void skb_reset_redirect(struct sk_buff *skb)
 {
 #ifdef CONFIG_NET_SCHED
@@ -1042,9 +1040,32 @@ static inline void skb_reset_redirect(struct sk_buff *skb)
 #define pre_exit exit
 #endif
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 8, 0)
+#include <linux/skbuff.h>
+static inline __be16 ip_tunnel_parse_protocol(const struct sk_buff *skb)
+{
+	if (skb_network_header(skb) >= skb->head &&
+	    (skb_network_header(skb) + sizeof(struct iphdr)) <= skb_tail_pointer(skb) &&
+	    ip_hdr(skb)->version == 4)
+		return htons(ETH_P_IP);
+	if (skb_network_header(skb) >= skb->head &&
+	    (skb_network_header(skb) + sizeof(struct ipv6hdr)) <= skb_tail_pointer(skb) &&
+	    ipv6_hdr(skb)->version == 6)
+		return htons(ETH_P_IPV6);
+	return 0;
+}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) || defined(ISRHEL8)
+static const struct header_ops ip_tunnel_header_ops = { .parse_protocol = ip_tunnel_parse_protocol };
+#else
+#define header_ops hard_header_len
+#define ip_tunnel_header_ops *(char *)0 - (char *)0
+#endif
+#endif
+
 #if defined(ISUBUNTU1604) || defined(ISRHEL7)
 #include <linux/siphash.h>
 #ifndef _WG_LINUX_SIPHASH_H
+#define hsiphash_1u32 siphash_1u32
 #define hsiphash_2u32 siphash_2u32
 #define hsiphash_3u32 siphash_3u32
 #define hsiphash_key_t siphash_key_t
