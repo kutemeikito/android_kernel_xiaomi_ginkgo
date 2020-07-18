@@ -7,15 +7,6 @@
 
 wm97xx-ts-y := wm97xx-core.o
 
-# HMI_M516_A01
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_info.o
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_selftest.o
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_gesture.o
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_grip_area.o
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += lct_tp_work.o
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += nt36xxx_spi_c3j/
-obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J) += ft8719_spi_c3j/
-
 obj-$(CONFIG_TOUCHSCREEN_PROPERTIES)	+= of_touchscreen.o
 obj-$(CONFIG_TOUCHSCREEN_88PM860X)	+= 88pm860x-ts.o
 obj-$(CONFIG_TOUCHSCREEN_AD7877)	+= ad7877.o
@@ -121,3 +112,5 @@ obj-$(CONFIG_TOUCHSCREEN_RASPBERRYPI_FW)	+= raspberrypi-ts.o
 obj-$(CONFIG_TOUCHSCREEN_IQS5XX)	+= iqs5xx.o
 obj-$(CONFIG_TOUCHSCREEN_ST)	+= st/
 obj-$(CONFIG_TOUCHSCREEN_FTS)	+= focaltech_touch/
+obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J)	+= nt36xxx_spi_c3j/
+obj-$(CONFIG_TOUCHSCREEN_XIAOMI_C3J)	+= ft8719_spi_c3j/

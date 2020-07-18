@@ -32,15 +32,6 @@
 
 #include "nt36xxx_mem_map.h"
 
-// include longcheer header
-#include "../lct_tp_info.h"
-#include "../lct_tp_selftest.h"
-#include "../lct_tp_gesture.h"
-#include "../lct_tp_grip_area.h"
-#include "../lct_tp_work.h"
-
-#define NVT_DEBUG 0
-
 //---GPIO number---
 #define NVTTOUCH_RST_PIN 87
 #define NVTTOUCH_INT_PIN 88
@@ -102,12 +93,6 @@ extern const uint16_t gesture_key_array[];
 
 //enable 'check touch vendor' feature
 #define CHECK_TOUCH_VENDOR
-
-//enable tp work feature
-#define LCT_TP_WORK_EN      1
-
-//enable tp grip area feature
-#define LCT_TP_GRIP_AREA_EN 1
 
 //---Touch Vendor ID---
 #define TP_VENDOR_UNKNOW    0x00

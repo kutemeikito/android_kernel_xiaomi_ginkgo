@@ -54,10 +54,7 @@ extern char *saved_command_line;
 #endif
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
 extern char g_lcd_id[128];
-/* Update /proc/tp_info & /proc/tp_lockdown_info node */
-extern void update_lct_tp_info(char *tp_info_buf, char *tp_lockdown_info_buf);
-/* Set tp_lockdown_info node callback funcation */
-extern void set_lct_tp_lockdown_info_callback(int (*pfun)(void));
+extern char *saved_command_line;
 #endif
 
 DEFINE_MUTEX(dsi_display_clk_mutex);
@@ -5415,72 +5412,6 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 
 }
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
-int lct_tp_lockdown_info_callback(void)
-{
-	static bool is_already_read = false;
-	ssize_t rc = 0;
-	char *buf = NULL;
-	struct dsi_display *display;
-	struct dsi_display_ctrl *ctrl = NULL;
-
-	display = whitep_display;
-
-	if (is_already_read)
-		return 0;
-
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	if (display->tx_cmd_buf == NULL) {
-		rc = dsi_host_alloc_cmd_tx_buffer(display);
-		if (rc) {
-			pr_err("failed to allocate cmd tx buffer memory\n");
-			goto done;
-		}
-	}
-
-	rc = dsi_display_cmd_engine_enable(display);
-	if (rc) {
-		pr_err("cmd engine enable failed\n");
-		return -EPERM;
-	}
-
-	buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
-	if (IS_ERR_OR_NULL(buf)){
-		pr_err("%s: kzalloc() request memory failed!\n", __func__);
-		return -ENOMEM;
-	}
-
-	ctrl = &display->ctrl[display->cmd_master_idx];
-	if ((strstr(g_lcd_id, "huaxing") != NULL)) {
-		rc = dsi_display_write_reg_page(ctrl, 0x00, 0x50, buf, sizeof(buf));
-		rc = dsi_display_read_reg(ctrl, 0xf4, 0x00, buf, sizeof(buf));
-	} else {
-		rc = dsi_display_write_reg_page(ctrl, 0xff, 0x21, buf, sizeof(buf));
-		rc = dsi_display_read_reg(ctrl, 0xf7, 0, buf, sizeof(buf));
-	}
-
-	if (rc < 0) {
-		pr_err("get lockdown failed rc=%zd\n", rc);
-		goto exit;
-	}
-
-	rc = snprintf(buf, PAGE_SIZE, "%02X%02X%02X%02X%02X%02X%02X%02X\n",
-		       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
-
-	update_lct_tp_info(NULL, buf);
-	is_already_read = true;
-
-exit:
-	kfree(buf);
-	dsi_display_cmd_engine_disable(display);
-done:
-	return rc;
-}
-#endif
 
 /**
  * dsi_display_bind - bind dsi device with controlling device
@@ -5702,9 +5633,6 @@ static int dsi_display_bind(struct device *dev,
 
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
 	dsi_display_whitepoint_create_sysfs();
-#endif
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
-	set_lct_tp_lockdown_info_callback(lct_tp_lockdown_info_callback);
 #endif
 
 	goto error;
