@@ -19,6 +19,7 @@ import fnmatch
 import os
 import struct
 import zlib
+import fnmatch
 from array import array
 from collections import namedtuple
 from sys import stdout
@@ -756,11 +757,10 @@ def create_dtbo_image_from_config(fout, argv):
     params['version'] = version
     dt_entries = []
     for dt_arg in dt_args:
-        filepath = dt_arg['filename']
-        if not os.path.isabs(filepath):
-            for root, dirnames, filenames in os.walk(args.dtbdir):
-                for filename in fnmatch.filter(filenames, os.path.basename(filepath)):
-                    filepath = os.path.join(root, filename)
+        filepath = None
+        for root, dirnames, filenames in os.walk(args.dtbdir):
+            for filename in fnmatch.filter(filenames, dt_arg['filename']):
+                filepath = os.path.join(root, filename)
         params['dt_file'] = open(filepath, 'rb')
         params['dt_offset'] = 0
         params['dt_size'] = os.fstat(params['dt_file'].fileno()).st_size
