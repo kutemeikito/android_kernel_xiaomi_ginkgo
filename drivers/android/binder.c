@@ -6003,6 +6003,7 @@ int binder_transactions_show(struct seq_file *m, void *unused)
 	return 0;
 }
 
+#ifdef CONFIG_DEBUG_FS
 static int proc_show(struct seq_file *m, void *unused)
 {
 	struct binder_proc *itr;
@@ -6019,6 +6020,7 @@ static int proc_show(struct seq_file *m, void *unused)
 
 	return 0;
 }
+#endif
 
 static void print_binder_transaction_log_entry(struct seq_file *m,
 					struct binder_transaction_log_entry *e)
