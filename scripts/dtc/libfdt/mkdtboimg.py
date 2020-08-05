@@ -227,6 +227,8 @@ class Dtbo(object):
                              dt_entry.dt_offset, dt_entry.image_id, dt_entry.rev,
                              dt_entry.flags, dt_entry.custom0, dt_entry.custom1,
                              dt_entry.custom2)
+
+
     def _update_metadata(self):
         """Updates the DTBO metadata.
         Initialize the internal metadata buffer and fill it with all Device
