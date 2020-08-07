@@ -28,7 +28,7 @@ done
 if ! [ -d "../toolchain" ]; then
     wget -O proton.tar.zst https://github.com/kdrag0n/proton-clang/archive/20200801.tar.gz
     mkdir -p ../toolchain/clang12.0
-    sudo tar -I zstd -xvf proton.tar.zst -C ../toolchain/clang12.0 --strip-components=1
+    sudo tar -I zstd -xvf proton.tar.zst -C ../toolchain/clang --strip-components=1
 else
     echo "${bold}Folder Toolchain Sudah Tersedia, Tidak Perlu Di Clone${normal}"
 fi
@@ -40,9 +40,9 @@ PARENT_DIR="$(dirname "$KERNEL_DIR")"
 KERN_IMG="$KERNEL_DIR/out/arch/arm64/boot/Image.gz-dtb"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="AMDRyzen"
-export PATH="$PARENT_DIR/toolchain/nusantaraclang11/bin:$PATH"
-export LD_LIBRARY_PATH="$PARENT_DIR/toolchain/nusantaraclang11/lib:$LD_LIBRARY_PATH"
-export KBUILD_COMPILER_STRING="$("$PARENT_DIR"/toolchain/nusantaraclang11/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
+export PATH="$PARENT_DIR/toolchain/nusantaraclang12/bin:$PATH"
+export LD_LIBRARY_PATH="$PARENT_DIR/toolchain/nusantaraclang12/lib:$LD_LIBRARY_PATH"
+export KBUILD_COMPILER_STRING="$("$PARENT_DIR"/toolchain/nusantaraclang12/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
 
 # Functions
 clang_build () {
