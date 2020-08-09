@@ -230,9 +230,7 @@ endif
 
 ifeq ($(CONFIG_BUILD_ARM64_DT_OVERLAY),y)
 	dtbo-$(CONFIG_ARCH_TRINKET) += \
-		trinket-rumi-overlay.dtbo \
 		trinket-idp-overlay.dtbo \
-		trinket-qrd-overlay.dtbo \
 		trinket-external-codec-idp-overlay.dtbo \
 		trinket-usbc-external-codec-idp-overlay.dtbo \
 		trinket-usbc-idp-overlay.dtbo \
