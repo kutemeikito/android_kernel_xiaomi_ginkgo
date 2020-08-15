@@ -733,7 +733,7 @@ static ssize_t hispeed_freq_store(struct gov_attr_set *attr_set,
 	if (kstrtouint(buf, 10, &val))
 		return -EINVAL;
 
-	tunables->hispeed_freq = val;
+	tunables->hispeed_freq = 0;
 	list_for_each_entry(sg_policy, &attr_set->policy_list, tunables_hook) {
 		raw_spin_lock_irqsave(&sg_policy->update_lock, flags);
 		hs_util = freq_to_util(sg_policy,
