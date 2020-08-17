@@ -102,6 +102,7 @@ enum gsi_intr_type {
  * @rel_clk_cb: callback to release peripheral clock
  * @user_data:  cookie used for notifications
  * @clk_status_cb: callback to update the current msm bus clock vote
+ * @enable_clk_bug_on: enable IPA clock for dump saving before assert
  *
  * All the callbacks are in interrupt context
  *
@@ -123,6 +124,7 @@ struct gsi_per_props {
 	void (*notify_cb)(struct gsi_per_notify *notify);
 	void (*req_clk_cb)(void *user_data, bool *granted);
 	int (*rel_clk_cb)(void *user_data);
+	void (*enable_clk_bug_on)(void);
 	void *user_data;
 	int (*clk_status_cb)(void);
 };
@@ -1849,6 +1851,7 @@ static inline int gsi_read_channel_scratch(unsigned long chan_hdl,
 
 static inline int gsi_pending_irq_type(void)
 {
+	return -GSI_STATUS_UNSUPPORTED_OP;
 }
 
 static inline int gsi_update_mhi_channel_scratch(unsigned long chan_hdl,
