@@ -438,6 +438,7 @@ struct msm_vidc_core {
 	unsigned long min_freq;
 	unsigned long curr_freq;
 	struct msm_vidc_core_ops *core_ops;
+	struct vidc_bus_vote_data bus_vote_data[MAX_SUPPORTED_INSTANCES];
 };
 
 struct msm_vidc_inst {
