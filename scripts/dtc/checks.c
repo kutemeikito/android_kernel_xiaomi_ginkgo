@@ -1091,6 +1091,7 @@ static bool prop_is_gpio(struct property *prop)
 	return true;
 }
 
+#if 0
 static void check_gpios_property(struct check *c,
 					  struct dt_info *dti,
 				          struct node *node)
@@ -1115,6 +1116,7 @@ static void check_gpios_property(struct check *c,
 
 }
 WARNING(gpios_property, check_gpios_property, NULL, &phandle_references);
+#endif
 
 static void check_deprecated_gpio_property(struct check *c,
 					   struct dt_info *dti,
@@ -1139,6 +1141,7 @@ static void check_deprecated_gpio_property(struct check *c,
 }
 CHECK(deprecated_gpio_property, check_deprecated_gpio_property, NULL);
 
+#if 0
 static bool node_is_interrupt_provider(struct node *node)
 {
 	struct property *prop;
@@ -1153,6 +1156,7 @@ static bool node_is_interrupt_provider(struct node *node)
 
 	return false;
 }
+
 static void check_interrupts_property(struct check *c,
 				      struct dt_info *dti,
 				      struct node *node)
@@ -1223,6 +1227,7 @@ static void check_interrupts_property(struct check *c,
 	}
 }
 WARNING(interrupts_property, check_interrupts_property, &phandle_references);
+#endif
 
 static struct check *check_table[] = {
 	&duplicate_node_names, &duplicate_property_names,
@@ -1273,8 +1278,8 @@ static struct check *check_table[] = {
 	&thermal_sensors_property,
 
 	&deprecated_gpio_property,
-	&gpios_property,
-	&interrupts_property,
+	//&gpios_property,
+	//&interrupts_property,
 
 	&always_fail,
 };
