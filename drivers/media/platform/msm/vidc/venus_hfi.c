@@ -1109,7 +1109,6 @@ static int __vote_buses(struct venus_hfi_device *device,
 {
 	int rc = 0;
 	struct bus_info *bus = NULL;
-	struct vidc_bus_vote_data *new_data = NULL;
 
 	if (!num_data) {
 		dprintk(VIDC_DBG, "No vote data available\n");
