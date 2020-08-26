@@ -770,10 +770,10 @@ static void clk_core_unprepare(struct clk_core *core)
 	if (!core)
 		return;
 
-	if (core->prepare_count == 0)
+	if (WARN_ON(core->prepare_count == 0))
 		return;
 
-	if (core->prepare_count == 1 && core->flags & CLK_IS_CRITICAL)
+	if (WARN_ON(core->prepare_count == 1 && core->flags & CLK_IS_CRITICAL))
 		return;
 
 	if (--core->prepare_count > 0)
@@ -909,10 +909,10 @@ static void clk_core_disable(struct clk_core *core)
 	if (!core)
 		return;
 
-	if (core->enable_count == 0)
+	if (WARN_ON(core->enable_count == 0))
 		return;
 
-	if (core->enable_count == 1 && core->flags & CLK_IS_CRITICAL)
+	if (WARN_ON(core->enable_count == 1 && core->flags & CLK_IS_CRITICAL))
 		return;
 
 	if (--core->enable_count > 0)
@@ -2702,18 +2702,6 @@ static u32 debug_suspend;
 static DEFINE_MUTEX(clk_debug_lock);
 static HLIST_HEAD(clk_debug_list);
 
-<<<<<<< HEAD
-static struct hlist_head *all_lists[] = {
-	&clk_root_list,
-	&clk_orphan_list,
-	NULL,
-};
-
-static struct hlist_head *orphan_list[] = {
-	&clk_orphan_list,
-	NULL,
-};
-
 static void clk_state_subtree(struct clk_core *c)
 {
 	int vdd_level = 0;
@@ -2764,8 +2752,6 @@ static const struct file_operations clk_state_fops = {
 	.release	= single_release,
 };
 
-=======
->>>>>>> e761f59736bafbf095575565f82ef82652aca4ba
 static void clk_summary_show_one(struct seq_file *s, struct clk_core *c,
 				 int level)
 {
