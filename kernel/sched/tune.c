@@ -237,7 +237,7 @@ bool task_sched_boost(struct task_struct *p)
 	return st->sched_boost_enabled;
 }
 
-static u64
+static u64 __maybe_unused
 sched_boost_override_read(struct cgroup_subsys_state *css,
 			struct cftype *cft)
 {
@@ -246,7 +246,8 @@ sched_boost_override_read(struct cgroup_subsys_state *css,
 	return st->sched_boost_no_override;
 }
 
-static int sched_boost_override_write(struct cgroup_subsys_state *css,
+static int __maybe_unused
+sched_boost_override_write(struct cgroup_subsys_state *css,
 			struct cftype *cft, u64 override)
 {
 	struct schedtune *st = css_st(css);
