@@ -61,6 +61,7 @@
 #include <linux/kmod.h>
 #include <linux/capability.h>
 #include <linux/binfmts.h>
+#include <linux/sched.h>
 #include <linux/sched/sysctl.h>
 #include <linux/sched/coredump.h>
 #include <linux/kexec.h>
@@ -117,6 +118,11 @@ extern int sysctl_nr_trim_pages;
 /* Constants used for minimum and  maximum */
 #ifdef CONFIG_LOCKUP_DETECTOR
 static int sixty = 60;
+#endif
+
+#ifdef CONFIG_DYNAMIC_STUNE_BOOST
+static int boost_slot_ta;
+static int boost_slot_fg;
 #endif
 
 static int __maybe_unused neg_one = -1;
@@ -3437,6 +3443,20 @@ int sched_boost_handler(struct ctl_table *table, int write,
 		return ret;
 
 	pr_debug("%s set sb to %i\n", current->comm, *data);
+
+#ifdef CONFIG_DYNAMIC_STUNE_BOOST
+	if (*data == 1) {
+		do_stune_boost("top-app", 15, &boost_slot_ta);
+		do_stune_boost("foreground", 5, &boost_slot_fg);
+	} else if (*data == 3) {
+		do_stune_boost("top-app", 10, &boost_slot_ta);
+		do_stune_boost("foreground", 1, &boost_slot_fg);
+	} else {
+		reset_stune_boost("top-app", boost_slot_ta);
+		reset_stune_boost("foreground", boost_slot_fg);
+	}
+#endif
+
 	return ret;
 }
 #endif
