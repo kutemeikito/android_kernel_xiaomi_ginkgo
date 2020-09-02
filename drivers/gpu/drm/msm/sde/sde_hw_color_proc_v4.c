@@ -12,16 +12,12 @@
  */
 #include <linux/moduleparam.h>
 #include <drm/msm_drm_pp.h>
-#include <dsi_panel.h>
 #include "sde_hw_color_proc_common_v4.h"
 #include "sde_hw_color_proc_v4.h"
 
 static unsigned short kcal_red = 256;
 static unsigned short kcal_green = 256;
 static unsigned short kcal_blue = 256;
-static unsigned short kcal_tianma = 230; // Limit for tianma panel
-static unsigned short kcal_min = 20;
-
 static unsigned short kcal_hue = 0;
 static unsigned short kcal_sat = 255;
 static unsigned short kcal_val = 255;
@@ -229,6 +225,7 @@ void sde_setup_dspp_pccv4(struct sde_hw_dspp *ctx, void *cfg)
 	struct drm_msm_pcc *pcc_cfg;
 	struct drm_msm_pcc_coeff *coeffs = NULL;
 	int i = 0;
+	int kcal_min = 20;
 	u32 base = 0;
 	u32 opcode = 0, local_opcode = 0;
 
@@ -237,20 +234,12 @@ void sde_setup_dspp_pccv4(struct sde_hw_dspp *ctx, void *cfg)
 		return;
 	}
 
-	// KCAL values can't be less than 20
-	kcal_red = max(kcal_red, kcal_min);
-	kcal_green = max(kcal_green, kcal_min);
-	kcal_blue = max(kcal_blue, kcal_min);
-
-	// Prevent image retention on nt36672a tianma panel
-	// Keep RGB <= 230 always
-	// Ref: https://forum.xda-developers.com/-/-t4075133
-	if (is_tianma_panel()) {
-		DRM_INFO_ONCE("KCAL: tianma panel detected - limiting RGB to 230\n");
-		kcal_red = min(kcal_red, kcal_tianma);
-		kcal_green = min(kcal_green, kcal_tianma);
-		kcal_blue = min(kcal_blue, kcal_tianma);
-	}
+	if (kcal_red < kcal_min)
+		kcal_red = kcal_min;
+	if (kcal_green < kcal_min)
+		kcal_green = kcal_min;
+	if (kcal_blue < kcal_min)
+		kcal_blue = kcal_min;
 
 	if (!hw_cfg->payload) {
 		DRM_DEBUG_DRIVER("disable pcc feature\n");
