@@ -315,18 +315,6 @@ config MAX_BOOST_FREQ_PERF
 	default "0"
 	help
 	  Max-boost frequency for the performance CPU cluster.
-
-config MIN_FREQ_LP
-	int "LP cluster min boost to set after boost"
-	default "0"
-	help
-	  Min freq to set for lp cluster when boost is over.
-
-config MIN_FREQ_PERF
-	int "HP cluster min boost to set after boost"
-	default "0"
-	help
-	  Min freq to set for hp cluster when boost is over.
 endif
 
 comment "CPU frequency scaling drivers"

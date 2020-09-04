@@ -41,6 +41,8 @@ struct boost_drv {
 	wait_queue_head_t boost_waitq;
 	atomic_long_t max_boost_expires;
 	unsigned long state;
+	unsigned int min_freq_lp;
+	unsigned int min_freq_perf;
 };
 
 static void input_unboost_worker(struct work_struct *work);
@@ -54,14 +56,15 @@ static struct boost_drv boost_drv_g __read_mostly = {
 	.boost_waitq = __WAIT_QUEUE_HEAD_INITIALIZER(boost_drv_g.boost_waitq)
 };
 
-static unsigned int get_input_boost_freq(struct cpufreq_policy *policy)
+static unsigned int get_input_boost_freq(struct cpufreq_policy *policy,
+					 struct boost_drv *b)
 {
 	unsigned int freq;
 
 	if (cpumask_test_cpu(policy->cpu, cpu_lp_mask))
-		freq = max(input_boost_freq_lp, (unsigned int)CONFIG_MIN_FREQ_LP);
+		freq = max(input_boost_freq_lp, b->min_freq_lp);
 	else
-		freq = max(input_boost_freq_hp, (unsigned int)CONFIG_MIN_FREQ_PERF);
+		freq = max(input_boost_freq_hp, b->min_freq_perf);
 
 	return min(freq, policy->max);
 }
@@ -196,6 +199,14 @@ static int cpu_notifier_cb(struct notifier_block *nb, unsigned long action,
 	if (action != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
+	/* Save original min_freq of both clusters before boosting */
+	if (test_bit(MAX_BOOST, &b->state) || test_bit(INPUT_BOOST, &b->state)) {
+		if (cpumask_test_cpu(policy->cpu, cpu_lp_mask))
+			b->min_freq_lp = policy->min;
+		else
+			b->min_freq_perf = policy->min;
+	}
+
 	/* Unboost when the screen is off */
 	if (test_bit(SCREEN_OFF, &b->state)) {
 		policy->min = policy->cpuinfo.min_freq;
@@ -209,15 +220,15 @@ static int cpu_notifier_cb(struct notifier_block *nb, unsigned long action,
 	}
 
 	/*
-	 * Boost to policy->max if the boost frequency is higher. When
-	 * unboosting, set policy->min to the absolute min freq for the CPU.
+	 * Boost to policy->max if the boost frequency is higher. When unboosting,
+	 * set policy->min to the previously saved min_freq of the CPU.
 	 */
 	if (test_bit(INPUT_BOOST, &b->state))
-		policy->min = get_input_boost_freq(policy);
+		policy->min = get_input_boost_freq(policy, b);
 	else if (cpumask_test_cpu(policy->cpu, cpu_lp_mask))
-		policy->min = CONFIG_MIN_FREQ_LP;
+		policy->min = b->min_freq_lp;
 	else
-		policy->min = CONFIG_MIN_FREQ_PERF;
+		policy->min = b->min_freq_perf;
 
 	return NOTIFY_OK;
 }
