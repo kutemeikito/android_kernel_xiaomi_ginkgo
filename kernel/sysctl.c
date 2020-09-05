@@ -3448,7 +3448,7 @@ int sched_boost_handler(struct ctl_table *table, int write,
 
 #ifdef CONFIG_DYNAMIC_STUNE_BOOST
 	if (*data == 1) {
-		do_stune_boost("top-app", 15, &boost_slot_ta);
+		do_stune_boost("top-app", 20, &boost_slot_ta);
 		do_stune_boost("foreground", 5, &boost_slot_fg);
 	} else if (*data == 3) {
 		do_stune_boost("top-app", 10, &boost_slot_ta);
