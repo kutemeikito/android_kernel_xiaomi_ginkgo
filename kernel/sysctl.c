@@ -67,7 +67,7 @@
 #include <linux/kexec.h>
 #include <linux/bpf.h>
 #include <linux/mount.h>
-
+#include <linux/battery_saver.h>
 #include <linux/uaccess.h>
 #include <asm/processor.h>
 
@@ -3447,6 +3447,9 @@ int sched_boost_handler(struct ctl_table *table, int write,
 	pr_debug("%s set sb to %i\n", current->comm, *data);
 
 #ifdef CONFIG_DYNAMIC_STUNE_BOOST
+	if (is_battery_saver_on())
+		return ret;
+
 	if (*data == 1) {
 		do_stune_boost("top-app", 20, &boost_slot_ta);
 		do_stune_boost("foreground", 5, &boost_slot_fg);
