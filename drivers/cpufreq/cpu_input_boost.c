@@ -13,6 +13,7 @@
 #include <linux/moduleparam.h>
 #include <linux/slab.h>
 #include <linux/version.h>
+#include <linux/battery_saver.h>
 
 static unsigned int input_boost_freq_lp = CONFIG_INPUT_BOOST_FREQ_LP;
 static unsigned int input_boost_freq_hp = CONFIG_INPUT_BOOST_FREQ_PERF;
@@ -187,6 +188,11 @@ static int cpu_notifier_cb(struct notifier_block *nb, unsigned long action,
 	if (action != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
 
+	if (is_battery_saver_on()) {
+		policy->min = policy->cpuinfo.min_freq;
+		return NOTIFY_OK;
+	}
+
 	/* Save original min_freq of both clusters before boosting */
 	if (test_bit(MAX_BOOST, &b->state) || test_bit(INPUT_BOOST, &b->state)) {
 		if (cpumask_test_cpu(policy->cpu, cpu_lp_mask))
@@ -195,8 +201,8 @@ static int cpu_notifier_cb(struct notifier_block *nb, unsigned long action,
 			b->min_freq_perf = policy->min;
 	}
 
-	/* Unboost when the screen is off */
-	if (test_bit(SCREEN_OFF, &b->state)) {
+	/* Unboost when the screen is off or battery saver is on */
+	if (is_battery_saver_on() || test_bit(SCREEN_OFF, &b->state)) {
 		policy->min = policy->cpuinfo.min_freq;
 		return NOTIFY_OK;
 	}
