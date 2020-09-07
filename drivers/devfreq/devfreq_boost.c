@@ -10,6 +10,7 @@
 #include <linux/input.h>
 #include <linux/kthread.h>
 #include <linux/slab.h>
+#include <linux/battery_saver.h>
 #include <uapi/linux/sched/types.h>
 
 enum {
@@ -136,7 +137,7 @@ static void devfreq_update_boosts(struct boost_dev *b, unsigned long state)
 	struct devfreq *df = b->df;
 
 	mutex_lock(&df->lock);
-	if (test_bit(SCREEN_OFF, &state)) {
+	if (is_battery_saver_on() || test_bit(SCREEN_OFF, &state)) {
 		df->min_freq = df->profile->freq_table[0];
 		df->max_boost = false;
 	} else {
