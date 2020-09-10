@@ -834,10 +834,10 @@ static inline void skb_mark_not_on_list(struct sk_buff *skb)
 #endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 20, 0) && !defined(ISRHEL8)
-#define NLA_EXACT_LEN NLA_UNSPEC
+#define NLA_POLICY_EXACT_LEN(_len) { .type = NLA_UNSPEC, .len = _len }
 #endif
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 2, 0) && !defined(ISRHEL8)
-#define NLA_MIN_LEN NLA_UNSPEC
+#define NLA_POLICY_MIN_LEN(_len) { .type = NLA_UNSPEC, .len = _len }
 #define COMPAT_CANNOT_INDIVIDUAL_NETLINK_OPS_POLICY
 #endif
 
@@ -1065,6 +1065,10 @@ static const struct header_ops ip_tunnel_header_ops = { .parse_protocol = ip_tun
 #define header_ops hard_header_len
 #define ip_tunnel_header_ops *(char *)0 - (char *)0
 #endif
+#endif
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0)
+#define kfree_sensitive(a) kzfree(a)
 #endif
 
 #if defined(ISUBUNTU1604) || defined(ISRHEL7)
