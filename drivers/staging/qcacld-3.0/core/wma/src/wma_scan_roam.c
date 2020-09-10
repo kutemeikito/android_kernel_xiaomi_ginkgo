@@ -1954,7 +1954,8 @@ QDF_STATUS wma_process_roaming_config(tp_wma_handle wma_handle,
 
 		if (roam_req->reason == REASON_ROAM_STOP_ALL ||
 		    roam_req->reason == REASON_DISCONNECTED ||
-		    roam_req->reason == REASON_ROAM_SYNCH_FAILED) {
+		    roam_req->reason == REASON_ROAM_SYNCH_FAILED ||
+		    roam_req->reason == REASON_SUPPLICANT_DISABLED_ROAMING) {
 			mode = WMI_ROAM_SCAN_MODE_NONE;
 		} else {
 			if (csr_roamIsRoamOffloadEnabled(pMac))
@@ -2497,14 +2498,14 @@ static int wma_fill_roam_synch_buffer(tp_wma_handle wma,
 		kck_len = KCK_192BIT_KEY_LEN;
 		kek_len = KEK_256BIT_KEY_LEN;
 
-		roam_synch_ind_ptr->kek_len = kek_len;
-		qdf_mem_copy(roam_synch_ind_ptr->kek,
-			     key_ft->key_buffer, kek_len);
-
 		roam_synch_ind_ptr->kck_len = kck_len;
 		qdf_mem_copy(roam_synch_ind_ptr->kck,
-			     (key_ft->key_buffer + kek_len),
-			     kck_len);
+			     key_ft->key_buffer, kck_len);
+
+		roam_synch_ind_ptr->kek_len = kek_len;
+		qdf_mem_copy(roam_synch_ind_ptr->kek,
+			     (key_ft->key_buffer + kck_len),
+			     kek_len);
 
 		qdf_mem_copy(roam_synch_ind_ptr->replay_ctr,
 			     (key_ft->key_buffer + kek_len + kck_len),
@@ -3402,8 +3403,16 @@ wma_get_trigger_detail_str(struct wmi_roam_trigger_info *roam_info, char *buf)
 		return;
 	case WMI_ROAM_TRIGGER_REASON_LOW_RSSI:
 	case WMI_ROAM_TRIGGER_REASON_PERIODIC:
-		buf_cons = qdf_snprint(temp, buf_left, "Cur_rssi_threshold: %d",
-				       roam_info->rssi_trig_data.threshold);
+		/*
+		 * Use roam_info->current_rssi get the RSSI of current AP after
+		 * roam scan is triggered. This avoids discrepency with the
+		 * next rssi threshold value printed in roam scan details.
+		 * roam_info->rssi_trig_data.threshold gives the rssi of AP
+		 * before the roam scan was triggered.
+		 */
+		buf_cons = qdf_snprint(temp, buf_left,
+				       " Current AP RSSI: %d",
+				       roam_info->current_rssi);
 		temp += buf_cons;
 		buf_left -= buf_cons;
 		return;
