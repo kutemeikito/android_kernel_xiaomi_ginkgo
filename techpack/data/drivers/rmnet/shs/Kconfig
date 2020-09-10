@@ -2,7 +2,7 @@
 # RMNET_SHS driver
 #
 
-config RMNET_SHS
+menuconfig RMNET_SHS
     tristate "Rmnet SHS driver"
     default m
 #    depends on RMNET
