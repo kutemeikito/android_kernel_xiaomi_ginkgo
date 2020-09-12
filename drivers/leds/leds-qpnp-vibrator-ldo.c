@@ -381,6 +381,7 @@ static struct device_attribute qpnp_vib_attrs[] = {
 	__ATTR(duration, 0664, qpnp_vib_show_duration, qpnp_vib_store_duration),
 	__ATTR(activate, 0664, qpnp_vib_show_activate, qpnp_vib_store_activate),
 	__ATTR(vmax_mv, 0664, qpnp_vib_show_vmax, qpnp_vib_store_vmax),
+        __ATTR(vtg_level, 0664, qpnp_vib_show_vmax, qpnp_vib_store_vmax),
 };
 
 static int qpnp_vib_parse_dt(struct device *dev, struct vib_ldo_chip *chip)
