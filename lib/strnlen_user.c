@@ -107,13 +107,6 @@ long strnlen_user(const char __user *str, long count)
 		unsigned long max = max_addr - src_addr;
 		long retval;
 
-		/*
-		 * Truncate 'max' to the user-specified limit, so that
-		 * we only have one limit we need to check in the loop
-		 */
-		if (max > count)
-			max = count;
-
 		if (user_access_begin(VERIFY_READ, str, max)) {
 			retval = do_strnlen_user(str, count, max);
 			user_access_end();

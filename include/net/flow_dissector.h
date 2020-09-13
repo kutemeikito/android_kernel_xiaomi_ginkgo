@@ -5,7 +5,6 @@
 #include <linux/types.h>
 #include <linux/in6.h>
 #include <linux/siphash.h>
-#include <linux/string.h>
 #include <uapi/linux/if_ether.h>
 
 /**
