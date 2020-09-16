@@ -11,21 +11,13 @@
  */
 
 /dts-v1/;
-/plugin/;
 
-#include <dt-bindings/interrupt-controller/arm-gic.h>
-
-#include "qcs6125-iot-idp.dtsi"
-#include "trinket-tasha-codec-audio-overlay.dtsi"
-#include "trinket-tasha-codec.dtsi"
+#include "trinket-iot.dtsi"
+#include "trinket-iot-idp.dtsi"
+#include "trinket-iot-usbc-idp.dtsi"
 
 / {
-	model = "Ext Audio Codec IDP";
-	compatible = "qcom,qcs6125-idp", "qcom,qcs6125", "qcom,idp";
-	qcom,msm-id = <468 0x10000>;
-	qcom,board-id = <34 1>;
-};
-
-&dsi_td4330_truly_cmd_display {
-	qcom,dsi-display-active;
+	model = "Qualcomm Technologies, Inc. TRINKET IOT USBC Audio IDP";
+	compatible = "qcom,trinket-iot-idp", "qcom,trinket-iot", "qcom,idp";
+	qcom,board-id = <34 2>;
 };
