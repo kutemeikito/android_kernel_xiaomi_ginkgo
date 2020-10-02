@@ -2752,9 +2752,7 @@ static int wp_page_copy(struct vm_fault *vmf)
 	} else {
 		new_page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma,
 				vmf->address);
-		if (!new_page)
-			goto oom;
-
+				
 		if (!cow_user_page(new_page, old_page, vmf)) {
 			/*
 			 * COW failed, if the fault was solved by other,
