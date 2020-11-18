@@ -1,40 +1,92 @@
-export PATH="$HOME/proton/bin:$PATH"
-SECONDS=0
-ZIPNAME="QuicksilveR-ginkgo-$(date '+%Y%m%d-%H%M').zip"
+#!/usr/bin/env bash
+#
+# Copyright (C) 2020 Edwiin Kusuma Jaya (MWG_Ryzen)
+#
+# Simple Local Kernel Build Script
+#
+# Configured for Redmi Note 8 / ginkgo custom kernel source
+#
+# Setup build env with akhilnarang/scripts repo
+#
+# Use this script on root of kernel directory
 
-if ! [ -d "$HOME/proton" ]; then
-echo "Proton clang not found! Cloning..."
-if ! git clone -q https://github.com/kdrag0n/proton-clang ~/proton; then
-echo "Cloning failed! Aborting..."
-exit 1
-fi
-fi
+bold=$(tput bold)
+normal=$(tput sgr0)
 
-mkdir -p out
-make O=out ARCH=arm64 vendor/ginkgo-perf_defconfig
+# Scrip option
+while (( ${#} )); do
+    case ${1} in
+        "-Z"|"--zip") ZIP=true ;;
+    esac
+    shift
+done
 
-if [[ $1 == "-r" || $1 == "--regen" ]]; then
-cp out/.config arch/arm64/configs/vendor/ginkgo-perf_defconfig
-echo -e "\nRegened defconfig succesfully!"
-exit 0
+[[ -z ${ZIP} ]] && { echo "${bold}Gunakan -Z atau --zip Untuk Membuat Zip Kernel Installer${normal}"; }
+
+# Clone toolchain
+if ! [ -d "../toolchain" ]; then
+    wget -O proton.tar.zst https://github.com/kdrag0n/proton-clang/archive/20200801.tar.gz
+    mkdir -p ../toolchain/clang12.0
+    sudo tar -I zstd -xvf proton.tar.zst -C ../toolchain/clang --strip-components=1
 else
-echo -e "\nStarting compilation...\n"
-make -j16 O=out ARCH=arm64 CC=clang LD=ld.lld AR=llvm-ar AS=llvm-as NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- Image.gz-dtb
+    echo "${bold}Folder Toolchain Sudah Tersedia, Tidak Perlu Di Clone${normal}"
 fi
 
-if [ -f "out/arch/arm64/boot/Image.gz-dtb" ]; then
-git clone -q https://github.com/ghostrider-reborn/AnyKernel3
-cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3
-rm -f *zip
-cd AnyKernel3
-zip -r9 "../$ZIPNAME" * -x '*.git*' README.md *placeholder
-cd ..
-rm -rf AnyKernel3
-echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
-echo "Zip: $ZIPNAME"
-if command -v gdrive &> /dev/null; then
-gdrive upload --share $ZIPNAME
+# ENV
+CONFIG=vendor/ginkgo-perf_defconfig
+KERNEL_DIR=$(pwd)
+PARENT_DIR="$(dirname "$KERNEL_DIR")"
+KERN_IMG="/home/ryzen/out-new/arch/arm64/boot/Image.gz-dtb"
+export KBUILD_BUILD_USER="EdwiinKJ"
+export KBUILD_BUILD_HOST="AMDRyzen"
+export PATH="/home/ryzen/toolchain/nusantaraclang12/bin:$PATH"
+export LD_LIBRARY_PATH="/home/ryzen/toolchain/nusantaraclang12/lib:$LD_LIBRARY_PATH"
+export KBUILD_COMPILER_STRING="$(/home/ryzen/toolchain/nusantaraclang12/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
+export out=/home/ryzen/out-new
+
+# Functions
+clang_build () {
+    make -j4 O=$out \
+                          ARCH=arm64 \
+                          CC="clang" \
+                          AR="llvm-ar" \
+                          NM="llvm-nm" \
+					      LD="ld.lld" \
+			              AS="llvm-as" \
+						  STRIP="llvm-strip" \
+			              OBJCOPY="llvm-objcopy" \
+			              OBJDUMP="llvm-objdump" \
+						  CLANG_TRIPLE=aarch64-linux-gnu- \
+                          CROSS_COMPILE=aarch64-linux-gnu-  \
+                          CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+}
+
+# Build kernel
+make O=$out ARCH=arm64 $CONFIG > /dev/null
+echo -e "${bold}Compiling with CLANG${normal}\n$KBUILD_COMPILER_STRING"
+clang_build
+
+if ! [ -a $KERN_IMG ]; then
+    echo "${bold}Build error, Tolong Perbaiki Masalah Ini${normal}"
+    exit 1
 fi
+
+[[ -z ${ZIP} ]] && { exit; }
+
+# clone AnyKernel3
+if ! [ -d "AnyKernel3" ]; then
+    git clone https://github.com/kutemeikito/AnyKernel3
 else
-echo -e "\nCompilation failed!"
+    echo "${bold}Direktori AnyKernel3 Sudah Ada, Tidak Perlu di Clone${normal}"
 fi
+
+# ENV
+ZIP_DIR=$KERNEL_DIR/AnyKernel3
+VENDOR_MODULEDIR="$ZIP_DIR/modules/vendor/lib/modules"
+STRIP="aarch64-linux-gnu-strip"
+
+# Make zip
+make -C "$ZIP_DIR" clean
+wifi_modules
+cp "$KERN_IMG" "$ZIP_DIR"/
+make -C "$ZIP_DIR" normal
