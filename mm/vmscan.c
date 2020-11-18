@@ -3739,7 +3739,11 @@ void wakeup_kswapd(struct zone *zone, int order, enum zone_type highest_zoneidx)
 
 	if (!cpuset_zone_allowed(zone, GFP_KERNEL | __GFP_HARDWALL))
 		return;
+
 	pgdat = zone->zone_pgdat;
+
+	if (READ_ONCE(pgdat->kswapd_order) < order)
+		WRITE_ONCE(pgdat->kswapd_order, order);
 
 	if (pgdat->kswapd_highest_zoneidx == MAX_NR_ZONES)
 		pgdat->kswapd_highest_zoneidx = highest_zoneidx;
