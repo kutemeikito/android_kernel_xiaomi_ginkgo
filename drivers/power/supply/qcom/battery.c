@@ -49,6 +49,7 @@
 #define FCC_STEPPER_VOTER		"FCC_STEPPER_VOTER"
 #define FCC_VOTER			"FCC_VOTER"
 #define MAIN_FCC_VOTER			"MAIN_FCC_VOTER"
+#define PD_VOTER			"PD_VOTER"
 
 struct pl_data {
 	int			pl_mode;
@@ -197,7 +198,7 @@ static int cp_get_parallel_mode(struct pl_data *chip, int mode)
 	return pval.intval;
 }
 
-static int get_hvdcp3_icl_limit(struct pl_data *chip)
+static int get_adapter_icl_based_ilim(struct pl_data *chip)
 {
 	int rc, main_icl, target_icl = -EINVAL;
 	union power_supply_propval pval = {0, };
@@ -209,21 +210,22 @@ static int get_hvdcp3_icl_limit(struct pl_data *chip)
 		return target_icl;
 
 	/*
-	 * For HVDCP3 adapters, limit max. ILIM as follows:
-	 * HVDCP3_ICL: Maximum ICL of HVDCP3 adapter(from DT configuration)
 	 * For Parallel input configurations:
-	 * VBUS: target_icl = HVDCP3_ICL - main_ICL
-	 * VMID: target_icl = HVDCP3_ICL
+	 * VBUS: final_icl = adapter_icl - main_ICL
+	 * VMID: final_icl = adapter_icl
 	 */
-	target_icl = chip->chg_param->hvdcp3_max_icl_ua;
+	final_icl = adapter_icl;
 	if (cp_get_parallel_mode(chip, PARALLEL_INPUT_MODE)
 					== POWER_SUPPLY_PL_USBIN_USBIN) {
 		main_icl = get_effective_result_locked(chip->usb_icl_votable);
-		if ((main_icl >= 0) && (main_icl < target_icl))
-			target_icl -= main_icl;
+		if ((main_icl >= 0) && (main_icl < adapter_icl))
+			final_icl = adapter_icl - main_icl;
 	}
 
-	return target_icl;
+	pr_debug("charger_type=%d final_icl=%d adapter_icl=%d main_icl=%d\n",
+		chip->charger_type, final_icl, adapter_icl, main_icl);
+
+	return final_icl;
 }
 
 /*
@@ -254,7 +256,7 @@ static void cp_configure_ilim(struct pl_data *chip, const char *voter, int ilim)
 					== POWER_SUPPLY_PL_OUTPUT_VPH)
 		return;
 
-	target_icl = get_hvdcp3_icl_limit(chip);
+	target_icl = get_adapter_icl_based_ilim(chip);
 	ilim = (target_icl > 0) ? min(ilim, target_icl) : ilim;
 
 	rc = power_supply_get_property(chip->cp_master_psy,
@@ -742,7 +744,7 @@ static void get_fcc_stepper_params(struct pl_data *chip, int main_fcc_ua,
 		if (!chip->cp_ilim_votable)
 			chip->cp_ilim_votable = find_votable("CP_ILIM");
 
-		target_icl = get_hvdcp3_icl_limit(chip) * 2;
+		target_icl = get_adapter_icl_based_ilim(chip) * 2;
 		total_fcc_ua -= chip->main_fcc_ua;
 
 		/*
