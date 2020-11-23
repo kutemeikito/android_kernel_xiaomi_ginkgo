@@ -10,6 +10,7 @@
 #
 # Use this script on root of kernel directory
 
+sudo ln -sf /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
 bold=$(tput bold)
 normal=$(tput sgr0)
 
