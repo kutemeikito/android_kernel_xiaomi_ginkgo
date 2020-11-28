@@ -2695,9 +2695,24 @@ static int f2fs_quota_sync_file(struct f2fs_sb_info *sbi, int type)
 	struct address_space *mapping = dqopt->files[type]->i_mapping;
 	int ret = 0;
 
-	ret = dquot_writeback_dquots(sbi->sb, type);
-	if (ret)
-		goto out;
+	/*
+	 * do_quotactl
+	 *  f2fs_quota_sync
+	 *  down_read(quota_sem)
+	 *  dquot_writeback_dquots()
+	 *  f2fs_dquot_commit
+	 *                            block_operation
+	 *                            down_read(quota_sem)
+	 *
+	 * However, we cannot use the cp_rwsem to prevent this
+	 * deadlock, as the cp_rwsem is taken for read inside the
+	 * f2fs_dquot_commit code, and rwsem is not recursive.
+	 *
+	 * We therefore use a special lock to synchronize
+	 * f2fs_quota_sync with block_operations, as this is the only
+	 * place where such recursion occurs.
+	 */
+	down_read(&sbi->cp_quota_rwsem);
 
 	ret = filemap_fdatawrite(mapping);
 	if (ret)
@@ -2761,6 +2776,11 @@ int f2fs_quota_sync(struct super_block *sb, int type)
 		if (ret)
 			break;
 	}
+out:
+	if (ret)
+		set_sbi_flag(F2FS_SB(sb), SBI_QUOTA_NEED_REPAIR);
+	up_read(&sbi->quota_sem);
+	up_read(&sbi->cp_quota_rwsem);
 	return ret;
 }
 
@@ -4122,8 +4142,9 @@ try_onemore:
 	if (err)
 		goto free_bio_info;
 
-	init_f2fs_rwsem(&sbi->cp_rwsem);
-	init_f2fs_rwsem(&sbi->quota_sem);
+	init_rwsem(&sbi->cp_rwsem);
+	init_rwsem(&sbi->quota_sem);
+	init_rwsem(&sbi->cp_quota_rwsem);
 	init_waitqueue_head(&sbi->cp_wait);
 	init_sb_info(sbi);
 
