@@ -92,6 +92,8 @@ struct gadget_info {
 	bool unbinding;
 	char b_vendor_code;
 	char qw_sign[OS_STRING_QW_SIGN_LEN];
+	spinlock_t spinlock;
+	bool unbind;
 #ifdef CONFIG_USB_CONFIGFS_UEVENT
 	bool connected;
 	bool sw_connected;
@@ -1590,14 +1592,14 @@ static const struct usb_gadget_driver configfs_driver_template = {
 	.reset          = android_disconnect,
 	.disconnect     = android_disconnect,
 #else
-	.setup          = composite_setup,
-	.reset          = composite_disconnect,
-	.disconnect     = composite_disconnect,
+	.setup          = configfs_composite_setup,
+	.reset          = configfs_composite_disconnect,
+	.disconnect     = configfs_composite_disconnect,
 #endif
-	.suspend	= composite_suspend,
-	.resume		= composite_resume,
+	.suspend	= configfs_composite_suspend,
+	.resume		= configfs_composite_resume,
 
-	.max_speed	= USB_SPEED_SUPER_PLUS,
+	.max_speed	= USB_SPEED_SUPER,
 	.driver = {
 		.owner          = THIS_MODULE,
 		.name		= "configfs-gadget",
