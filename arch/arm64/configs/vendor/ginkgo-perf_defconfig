@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.209 kernel Configuration
+# Linux/arm64 4.14.210 kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -909,9 +909,8 @@ CONFIG_TCP_CONG_WESTWOOD=y
 CONFIG_TCP_CONG_BBR=y
 CONFIG_TCP_CONG_BBR2=y
 # CONFIG_DEFAULT_CUBIC is not set
-CONFIG_DEFAULT_WESTWOOD=y
+CONFIG_DEFAULT_BBR2=y
 # CONFIG_DEFAULT_BBR is not set
-# CONFIG_DEFAULT_BBR2 is not set
 # CONFIG_DEFAULT_RENO is not set
 CONFIG_DEFAULT_TCP_CONG="bbr2"
 # CONFIG_TCP_MD5SIG is not set
