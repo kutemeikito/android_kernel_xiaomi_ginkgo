@@ -1510,6 +1510,9 @@ static int a6xx_reset(struct kgsl_device *device, int fault)
 	if (!gmu_core_gpmu_isenabled(device))
 		return adreno_reset(device, fault);
 
+	/* Clear ctrl_flags to ensure clocks and regulators are turned off */
+	device->pwrctrl.ctrl_flags = 0;
+
 	/* Transition from ACTIVE to RESET state */
 	kgsl_pwrctrl_change_state(device, KGSL_STATE_RESET);
 
