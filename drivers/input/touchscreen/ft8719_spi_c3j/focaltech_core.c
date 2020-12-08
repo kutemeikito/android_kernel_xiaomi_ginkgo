@@ -703,9 +703,11 @@ static void fts_irq_read_report(void)
     fts_prc_queue_work(ts_data);
 #endif
 
-    ret = fts_read_parse_touchdata(ts_data);
-    if (ret == 0) {
-        mutex_lock(&ts_data->report_mutex);
+	pm_qos_update_request(&ts_data->pm_qos_req, 100);
+
+	ret = fts_read_parse_touchdata(ts_data);
+	if (ret == 0) {
+		mutex_lock(&ts_data->report_mutex);
 #if FTS_MT_PROTOCOL_B_EN
         fts_input_report_b(ts_data);
 #else
@@ -713,6 +715,8 @@ static void fts_irq_read_report(void)
 #endif
         mutex_unlock(&ts_data->report_mutex);
     }
+
+ 	pm_qos_update_request(&ts_data->pm_qos_req, PM_QOS_DEFAULT_VALUE);
 
 #if FTS_ESDCHECK_EN
     fts_esdcheck_set_intr(0);
@@ -1592,11 +1596,15 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
     }
 #endif
 
-    ret = fts_irq_registration(ts_data);
-    if (ret) {
-        FTS_ERROR("request irq failed");
-        goto err_irq_req;
-    }
+
+	pm_qos_add_request(&ts_data->pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
+			PM_QOS_DEFAULT_VALUE);
+
+	ret = fts_irq_registration(ts_data);
+	if (ret) {
+		FTS_ERROR("request irq failed");
+		goto err_irq_req;
+	}
 
     ret = fts_fwupg_init(ts_data);
     if (ret) {
@@ -1623,7 +1631,8 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	return 0;
 
 err_irq_req:
-    fts_ts_enable_regulator(false);
+	pm_qos_remove_request(&ts_data->pm_qos_req);
+	fts_ts_enable_regulator(false);
 err_enable_regulator:
     fts_ts_get_regulator(false);
 err_get_regulator:
@@ -1688,8 +1697,10 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     free_irq(ts_data->irq, ts_data);
     input_unregister_device(ts_data->input_dev);
 
-    if (ts_data->ts_workqueue)
-        destroy_workqueue(ts_data->ts_workqueue);
+	pm_qos_remove_request(&ts_data->pm_qos_req);
+
+	if (ts_data->ts_workqueue)
+		destroy_workqueue(ts_data->ts_workqueue);
 
 #if defined(CONFIG_FB)
     if (msm_drm_unregister_client(&ts_data->fb_notif))
