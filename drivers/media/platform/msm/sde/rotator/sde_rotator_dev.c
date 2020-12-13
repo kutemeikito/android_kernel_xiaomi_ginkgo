@@ -55,11 +55,6 @@
 #define SDE_ROTATOR_DEGREE_180		180
 #define SDE_ROTATOR_DEGREE_90		90
 
-/* Inline rotator qos request */
-#define SDE_ROTATOR_ADD_REQUEST		1
-#define SDE_ROTATOR_REMOVE_REQUEST		0
-
-
 static void sde_rotator_submit_handler(struct kthread_work *work);
 static void sde_rotator_retire_handler(struct kthread_work *work);
 static void sde_rotator_pm_qos_request(struct sde_rotator_device *rot_dev,
