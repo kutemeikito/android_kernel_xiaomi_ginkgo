@@ -1243,6 +1243,9 @@ config LD_DEAD_CODE_DATA_ELIMINATION
 	  silently broken kernel if the required annotations are not
 	  present. This option is not well tested yet, so use at your
 	  own risk.
+	  
+config LTO_GCC
+	bool "Enable Link Time Optimization for GCC"
 
 config SYSCTL
 	bool
