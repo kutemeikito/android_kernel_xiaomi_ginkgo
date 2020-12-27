@@ -139,6 +139,7 @@
 	qcom,hold-soc-while-full;
 	qcom,linearize-soc;
 	qcom,qg-use-s7-ocv;
+	qcom,bass-enable;
 	qcom,cl-disable = <1>;
 };
 
