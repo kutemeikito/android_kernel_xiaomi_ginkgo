@@ -24,26 +24,17 @@ done
 
 [[ -z ${ZIP} ]] && { echo "${bold}Gunakan -Z atau --zip Untuk Membuat Zip Kernel Installer${normal}"; }
 
-# Clone toolchain
-if ! [ -d "../toolchain" ]; then
-    wget -O proton.tar.zst https://github.com/kdrag0n/proton-clang/archive/20200801.tar.gz
-    mkdir -p ../toolchain/clang12.0
-    sudo tar -I zstd -xvf proton.tar.zst -C ../toolchain/clang --strip-components=1
-else
-    echo "${bold}Folder Toolchain Sudah Tersedia, Tidak Perlu Di Clone${normal}"
-fi
-
 # ENV
 CONFIG=vendor/ginkgo-perf_defconfig
 KERNEL_DIR=$(pwd)
 PARENT_DIR="$(dirname "$KERNEL_DIR")"
-KERN_IMG="/home/ryzen/out-meme/arch/arm64/boot/Image.gz-dtb"
+KERN_IMG="/home/ryuzenn/out-meme/arch/arm64/boot/Image.gz-dtb"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="RastaMod69"
-export PATH="/home/ryzen/toolchain/rastamod-clang/bin:$PATH"
-export LD_LIBRARY_PATH="/home/ryzen/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
-export KBUILD_COMPILER_STRING="$(/home/ryzen/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
-export out=/home/ryzen/out-meme
+export PATH="/home/ryuzenn/toolchain/rastamod-clang/bin:$PATH"
+export LD_LIBRARY_PATH="/home/ryuzenn/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
+export KBUILD_COMPILER_STRING="$(/home/ryuzenn/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
+export out=/home/ryuzenn/out-meme
 
 # Functions
 clang_build () {
