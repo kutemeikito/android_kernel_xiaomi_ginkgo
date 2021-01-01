@@ -111,7 +111,7 @@ static ssize_t power_supply_show_property(struct device *dev,
 				dev_dbg(dev, "driver has no data for `%s' property\n",
 					attr->attr.name);
 			else if (ret != -ENODEV && ret != -EAGAIN)
-				dev_err_ratelimited(dev,
+				dev_dbg(dev,
 					"driver failed to report `%s' property: %zd\n",
 					attr->attr.name, ret);
 			return ret;
@@ -488,13 +488,10 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 	int ret = 0, j;
 	char *prop_buf;
 	char attrname[64];
-<<<<<<< HEAD
-=======
 
-#ifdef CONFIG_MACH_XIAOMI_MOJITO
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	dev_dbg(dev, "uevent\n");
 #endif
->>>>>>> 43ca85240fde (power_supply: sysfs: Don't allocate attrname)
 
 	if (!psy || !psy->desc) {
 		dev_dbg(dev, "No power supply yet\n");
@@ -535,11 +532,6 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 		ustr = attrname;
 		while (*str)
 			*ustr++ = toupper(*str++);
-<<<<<<< HEAD
-=======
-
-		*ustr = 0;
->>>>>>> 43ca85240fde (power_supply: sysfs: Don't allocate attrname)
 
 		*ustr = 0;
 
