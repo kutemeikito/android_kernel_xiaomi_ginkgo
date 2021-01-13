@@ -1696,13 +1696,10 @@ static inline int android_device_create(struct gadget_info *gi)
 	return 0;
 }
 
-	.max_speed	= USB_SPEED_SUPER_PLUS,
-	.driver = {
-		.owner          = THIS_MODULE,
-		.name		= "configfs-gadget",
-	},
-	.match_existing_only = 1,
-};
+static inline void android_device_destroy(struct device *dev)
+{
+}
+#endif
 
 static struct config_group *gadgets_make(
 		struct config_group *group,
