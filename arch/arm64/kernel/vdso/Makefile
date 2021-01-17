@@ -22,8 +22,11 @@ ccflags-y += -DDISABLE_BRANCH_PROFILING -ffixed-x18
 ccflags-y += $(call cc-option, -fno-whole-program)
 
 CFLAGS_REMOVE_vgettimeofday.o = -pg -Os
-CFLAGS_vgettimeofday.o = -O3 -fPIC
-ifneq ($(cc-name),clang)
+CFLAGS_vgettimeofday.o = -fPIC
+ifeq ($(cc-name),clang)
+CFLAGS_vgettimeofday.o = -O3
+else
+CFLAGS_vgettimeofday.o = -O2
 CFLAGS_vgettimeofday.o += -mcmodel=tiny
 else
 ccflags-y += $(DISABLE_LTO)
