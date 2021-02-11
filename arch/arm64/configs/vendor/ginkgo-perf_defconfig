@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.219 Kernel Configuration
+# Linux/arm64 4.14.221 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -1500,7 +1500,7 @@ CONFIG_ZRAM_DEDUP=y
 # CONFIG_ZRAM_WRITEBACK is not set
 # CONFIG_ZRAM_MEMORY_TRACKING is not set
 CONFIG_ZRAM_DEFAULT_COMP_ALGORITHM="lz4"
-CONFIG_ZRAM_SIZE_OVERRIDE=4
+CONFIG_ZRAM_SIZE_OVERRIDE=2
 # CONFIG_BLK_DEV_DAC960 is not set
 # CONFIG_BLK_DEV_UMEM is not set
 # CONFIG_BLK_DEV_COW_COMMON is not set
