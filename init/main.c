@@ -541,11 +541,12 @@ static void __init mm_init(void)
 
 int fpsensor=1;
 
+int lct_hardwareid = 0;  //if board id is 2,it`s new board for imx582
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
 	char *after_dashes;
-	char *p = NULL;
+	char *p=NULL;
 
 	set_task_stack_end_magic(&init_task);
 	smp_setup_processor_id();
@@ -582,9 +583,8 @@ asmlinkage __visible void __init start_kernel(void)
 	page_alloc_init();
 
 	pr_notice("Kernel command line: %s\n", boot_command_line);
-	/* parameters may set static keys */
-	jump_label_init();
 
+<<<<<<< HEAD
 	p = strstr(command_line, "androidboot.fpsensor=fpc");
 	if (p) {
 		pr_info("You have fpc scanner\n");
@@ -595,6 +595,29 @@ asmlinkage __visible void __init start_kernel(void)
 	}
 
 	pr_notice("Kernel command line: %s\n", boot_command_line);
+=======
+	p = NULL;
+	p= strstr(command_line, "androidboot.fpsensor=fpc");
+	if(p) {
+		fpsensor = 1;//fpc fingerprint
+		printk("I am fpc fingerprint");
+	} else {
+		fpsensor = 2;//goodix fingerprint
+		printk("I am goodix fingerprint");
+	}
+
+	p = NULL;
+	p= strstr(command_line, "androidboot.hwversion=2");
+	if(p) {
+               lct_hardwareid = 2;
+		printk("I am new board for imx582 camera");
+	} else {
+               lct_hardwareid = 0;
+		printk("I am old board for imx582 camera");
+	}
+
+
+>>>>>>> 404fa870df4b... init: Import Xiaomi changes
 	parse_early_param();
 	after_dashes = parse_args("Booting kernel",
 				  static_command_line, __start___param,
