@@ -29,6 +29,7 @@ CONFIG=vendor/ginkgo-perf_defconfig
 KERNEL_DIR=$(pwd)
 PARENT_DIR="$(dirname "$KERNEL_DIR")"
 KERN_IMG="/home/ryuzenn/out-meme/arch/arm64/boot/Image.gz-dtb"
+DTBO_IMG="/home/ryuzenn/out-meme/arch/arm64/boot/dtbo.img"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="RastaMod69"
 export PATH="/home/ryuzenn/toolchain/rastamod-clang/bin:$PATH"
@@ -80,5 +81,5 @@ STRIP="aarch64-linux-gnu-strip"
 # Make zip
 make -C "$ZIP_DIR" clean
 wifi_modules
-cp "$KERN_IMG" "$ZIP_DIR"/
+cp "$KERN_IMG" "$DTBO_IMG" "$ZIP_DIR"/
 make -C "$ZIP_DIR" normal
