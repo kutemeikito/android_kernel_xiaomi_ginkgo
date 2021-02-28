@@ -61,3 +61,12 @@
 		qcom,lut-index = <0>;
 	};
 };
+
+&thermal_zones {
+	soc {
+		cooling-maps {
+			/delete-node/ soc_cpu6;
+			/delete-node/ soc_cpu7;
+		};
+	};
+};

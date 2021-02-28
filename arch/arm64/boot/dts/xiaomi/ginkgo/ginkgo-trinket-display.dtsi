@@ -14,11 +14,18 @@
 
 &dsi_panel_pwr_supply {
 	qcom,panel-supply-entry@0 {
-		qcom,supply-pre-off-sleep = <20>;
+		qcom,supply-post-on-sleep = <1>;
+		qcom,supply-pre-off-sleep = <15>;
 	};
 
 	qcom,panel-supply-entry@1 {
-		qcom,supply-post-on-sleep = <10>;
+		qcom,supply-pre-off-sleep = <10>;
+		qcom,supply-post-on-sleep = <3>;
+	};
+
+	qcom,panel-supply-entry@2 {
+		/delete-property/ qcom,supply-post-on-sleep;
+		qcom,supply-pre-off-sleep = <4>;
 	};
 };
 
