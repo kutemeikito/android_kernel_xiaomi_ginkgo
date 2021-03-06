@@ -719,7 +719,7 @@ ifeq ($(cc-name),clang)
 KBUILD_CFLAGS	+= -mcpu=cortex-a55 -mtune=cortex-a55
 endif
 endif
-endif
+
 
 ifdef CONFIG_CC_WERROR
 KBUILD_CFLAGS	+= -Werror
