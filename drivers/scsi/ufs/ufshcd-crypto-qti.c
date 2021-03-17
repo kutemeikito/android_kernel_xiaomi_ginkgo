@@ -115,6 +115,8 @@ static int ufshcd_crypto_qti_keyslot_program(struct keyslot_manager *ksm,
 	ufshcd_release(hba, false);
 
 out:
+	if (!hba->pm_op_in_progress)
+		pm_runtime_put_sync(hba->dev);
 	return err;
 }
 
