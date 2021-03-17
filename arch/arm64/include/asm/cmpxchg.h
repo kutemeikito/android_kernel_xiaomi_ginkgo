@@ -197,8 +197,6 @@ __CMPXCHG_GEN(_mb)
 	__ret; \
 })
 
-<<<<<<< HEAD
-=======
 /* this_cpu_cmpxchg */
 #define _protect_cmpxchg_local(pcp, o, n)			\
 ({								\
@@ -225,7 +223,6 @@ __CMPXCHG_GEN(_mb)
 	__ret;								\
 })
 
->>>>>>> fddb3beee1853dcc354c049f90a91313ab9673f3
 #define __CMPWAIT_CASE(w, sfx, sz)					\
 static inline void __cmpwait_case_##sz(volatile void *ptr,		\
 				       unsigned long val)		\
