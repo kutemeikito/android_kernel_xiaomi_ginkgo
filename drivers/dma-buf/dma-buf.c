@@ -135,7 +135,8 @@ static void dma_buf_release(struct dentry *dentry)
 		reservation_object_fini(dmabuf->resv);
 
 	module_put(dmabuf->owner);
-	dmabuf_dent_put(dmabuf);
+	kfree(dmabuf->name);
+	kfree(dmabuf);
 }
 
 static const struct dentry_operations dma_buf_dentry_ops = {
@@ -1228,6 +1229,9 @@ EXPORT_SYMBOL_GPL(dma_buf_kunmap);
 int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
 		 unsigned long pgoff)
 {
+	struct file *oldfile;
+	int ret;
+
 	if (WARN_ON(!dmabuf || !vma))
 		return -EINVAL;
 
@@ -1241,11 +1245,22 @@ int dma_buf_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma,
 		return -EINVAL;
 
 	/* readjust the vma */
-	fput(vma->vm_file);
-	vma->vm_file = get_file(dmabuf->file);
+	get_file(dmabuf->file);
+	oldfile = vma->vm_file;
+	vma->vm_file = dmabuf->file;
 	vma->vm_pgoff = pgoff;
 
-	return dmabuf->ops->mmap(dmabuf, vma);
+	ret = dmabuf->ops->mmap(dmabuf, vma);
+	if (ret) {
+		/* restore old parameters on failure */
+		vma->vm_file = oldfile;
+		fput(dmabuf->file);
+	} else {
+		if (oldfile)
+			fput(oldfile);
+	}
+	return ret;
+
 }
 EXPORT_SYMBOL_GPL(dma_buf_mmap);
 
