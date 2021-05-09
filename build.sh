@@ -63,6 +63,7 @@ if ! [ -a $KERN_IMG ]; then
     echo "${bold}Build error, Tolong Perbaiki Masalah Ini${normal}"
     exit 1
 fi
+echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
 
 [[ -z ${ZIP} ]] && { exit; }
 
@@ -83,3 +84,4 @@ make -C "$ZIP_DIR" clean
 wifi_modules
 cp "$KERN_IMG" "$DTBO_IMG" "$ZIP_DIR"/
 make -C "$ZIP_DIR" normal
+echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
