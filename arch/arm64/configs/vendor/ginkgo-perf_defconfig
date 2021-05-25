@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.232 Kernel Configuration
+# Linux/arm64 4.14.233 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -173,6 +173,7 @@ CONFIG_NAMESPACES=y
 CONFIG_NET_NS=y
 # CONFIG_SCHED_AUTOGROUP is not set
 CONFIG_SCHED_TUNE=y
+CONFIG_VMSTAT_INTERVAL=20
 CONFIG_DEFAULT_USE_ENERGY_AWARE=y
 # CONFIG_SYSFS_DEPRECATED is not set
 # CONFIG_RELAY is not set
