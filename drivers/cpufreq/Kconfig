@@ -252,6 +252,12 @@ config CPU_FREQ_GOV_INTERACTIVE
 
 comment "CPU frequency scaling drivers"
 
+config FINGERPRINT_BOOST
+       bool "Fingerprint Boost"
+       default y
+       help
+         Boosts available CPUs to max frequency on fingerprint sensor input.
+
 config CPUFREQ_DT
 	tristate "Generic DT based cpufreq driver"
 	depends on HAVE_CLK && OF
