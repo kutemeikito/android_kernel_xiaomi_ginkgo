@@ -10,3 +10,7 @@ source "drivers/platform/goldfish/Kconfig"
 source "drivers/platform/chrome/Kconfig"
 
 source "drivers/platform/msm/Kconfig"
+
+if ARCH_TRINKET
+source "drivers/platform/ginkgo/Kconfig"
+endif
