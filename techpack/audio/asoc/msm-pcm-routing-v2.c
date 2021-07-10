@@ -16140,73 +16140,61 @@ static const struct snd_kcontrol_new tx_voip_mixer_controls[] = {
 	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
 	msm_routing_put_voice_mixer),
 
-#ifndef CONFIG_AUXPCM_DISABLE
-	SOC_DOUBLE_EXT("SEC_AUX_PCM_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_SEC_AUXPCM_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TERT_AUX_PCM_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TERT_AUXPCM_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("QUAT_AUX_PCM_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_QUAT_AUXPCM_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("QUIN_AUX_PCM_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_QUIN_AUXPCM_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-#endif
-	SOC_DOUBLE_EXT("PRI_MI2S_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_PRI_MI2S_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TERT_MI2S_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TERTIARY_MI2S_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("INT3_MI2S_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_INT3_MI2S_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("SLIM_7_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_SLIMBUS_7_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("SLIM_8_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_SLIMBUS_8_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("USB_AUDIO_TX_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_USB_TX,
-	MSM_FRONTEND_DAI_VOIP, 1, 0, msm_routing_get_voice_mixer,
-	msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("VA_CDC_DMA_TX_0_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_VA_CDC_DMA_TX_0, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("VA_CDC_DMA_TX_1_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_VA_CDC_DMA_TX_1, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TX_CDC_DMA_TX_0_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TX_CDC_DMA_TX_0, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TX_CDC_DMA_TX_1_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TX_CDC_DMA_TX_1, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TX_CDC_DMA_TX_2_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TX_CDC_DMA_TX_2, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TX_CDC_DMA_TX_3_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TX_CDC_DMA_TX_3, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TX_CDC_DMA_TX_4_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TX_CDC_DMA_TX_4, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-	SOC_DOUBLE_EXT("TX_CDC_DMA_TX_5_Voip", SND_SOC_NOPM,
-	MSM_BACKEND_DAI_TX_CDC_DMA_TX_5, MSM_FRONTEND_DAI_VOIP,
-	1, 0, msm_routing_get_voice_mixer, msm_routing_put_voice_mixer),
-};
+		for_each_set_bit(i, &msm_bedais[be_index].fe_sessions[0],
+				MSM_FRONTEND_DAI_MM_SIZE) {
+			if (fe_dai_map[i][SESSION_TYPE_RX].perf_mode !=
+			    LEGACY_PCM_MODE)
+				goto skip_send_custom_stereo;
+			session_id =
+				fe_dai_map[i][SESSION_TYPE_RX].strm_id;
+			if (is_custom_stereo_on) {
+				op_FL_ip_FL_weight =
+					Q14_GAIN_ZERO_POINT_FIVE;
+				op_FL_ip_FR_weight =
+					Q14_GAIN_ZERO_POINT_FIVE;
+				op_FR_ip_FL_weight =
+					Q14_GAIN_ZERO_POINT_FIVE;
+				op_FR_ip_FR_weight =
+					Q14_GAIN_ZERO_POINT_FIVE;
+			} else {
+				op_FL_ip_FL_weight = Q14_GAIN_UNITY;
+				op_FL_ip_FR_weight = 0;
+				op_FR_ip_FL_weight = 0;
+				op_FR_ip_FR_weight = Q14_GAIN_UNITY;
+			}
+			for (idx = 0; idx < MAX_COPPS_PER_PORT; idx++) {
+				unsigned long copp =
+					session_copp_map[i]
+					[SESSION_TYPE_RX][be_index];
+				if (!test_bit(idx, &copp))
+					goto skip_send_custom_stereo;
+				topo_id = adm_get_topology_for_port_copp_idx(
+					msm_bedais[be_index].port_id, idx);
+				if (topo_id < 0)
+					pr_debug("%s:Err:custom stereo topo %d",
+						 __func__, topo_id);
+				pr_debug("idx %d\n", idx);
+				if (topo_id == DS2_ADM_COPP_TOPOLOGY_ID)
+					rc = msm_ds2_dap_set_custom_stereo_onoff
+						(msm_bedais[be_index].port_id,
+						idx, is_custom_stereo_on);
+				else if (topo_id == DOLBY_ADM_COPP_TOPOLOGY_ID)
+					rc = dolby_dap_set_custom_stereo_onoff(
+						msm_bedais[be_index].port_id,
+						idx, is_custom_stereo_on);
+				else
+				rc = msm_qti_pp_send_stereo_to_custom_stereo_cmd
+						(msm_bedais[be_index].port_id,
+						idx, session_id,
+						op_FL_ip_FL_weight,
+						op_FL_ip_FR_weight,
+						op_FR_ip_FL_weight,
+						op_FR_ip_FR_weight);
+				if (rc < 0)
+skip_send_custom_stereo:
+					pr_err("%s: err setting custom stereo\n",
+						__func__);
+			}
 
 static const struct snd_kcontrol_new tx_voice_stub_mixer_controls[] = {
 	SOC_DOUBLE_EXT("STUB_TX_HL", SND_SOC_NOPM,
@@ -23423,14 +23411,6 @@ static const struct snd_soc_dapm_route intercon_mi2s[] = {
 	{"SEC_RX_Voice Mixer", "QCHAT", "QCHAT_DL"},
 	{"SEC_I2S_RX", NULL, "SEC_RX_Voice Mixer"},
 
-<<<<<<< HEAD
-	{"SEC_MI2S_RX_Voice Mixer", "Voip", "VOIP_DL"},
-	{"SEC_MI2S_RX_Voice Mixer", "DTMF", "DTMF_DL_HL"},
-	{"SEC_MI2S_RX_Voice Mixer", "QCHAT", "QCHAT_DL"},
-	{"SEC_MI2S_RX_Voice Mixer", "VoiceMMode1", "VOICEMMODE1_DL"},
-	{"SEC_MI2S_RX_Voice Mixer", "VoiceMMode2", "VOICEMMODE2_DL"},
-	{"SEC_MI2S_RX", NULL, "SEC_MI2S_RX_Voice Mixer"},
-=======
 	{"Voip_Tx Mixer", "PRI_TX_Voip", "PRI_I2S_TX"},
 	{"Voip_Tx Mixer", "MI2S_TX_Voip", "MI2S_TX"},
 	{"Voip_Tx Mixer", "TERT_MI2S_TX_Voip", "TERT_MI2S_TX"},
@@ -23452,7 +23432,6 @@ static const struct snd_soc_dapm_route intercon_mi2s[] = {
 	{"Voip_Tx Mixer", "TX_CDC_DMA_TX_3_Voip", "TX_CDC_DMA_TX_3"},
 #endif
 	{"VOIP_UL", NULL, "Voip_Tx Mixer"},
->>>>>>> 4a4136d31834... techpack: audio: Import Xiaomi changes
 
 
 	{"MI2S_RX_Voice Mixer", "Voip", "VOIP_DL"},
@@ -23521,12 +23500,6 @@ static const struct snd_soc_dapm_route intercon_mi2s[] = {
 	{"AUDIO_REF_EC_UL2 MUX", "TERT_MI2S_TX", "TERT_MI2S_TX"},
 	{"AUDIO_REF_EC_UL2 MUX", "QUAT_MI2S_TX", "QUAT_MI2S_TX"},
 
-<<<<<<< HEAD
-	{"AUDIO_REF_EC_UL3 MUX", "PRI_MI2S_TX", "PRI_MI2S_TX"},
-	{"AUDIO_REF_EC_UL3 MUX", "SEC_MI2S_TX", "SEC_MI2S_TX"},
-	{"AUDIO_REF_EC_UL3 MUX", "TERT_MI2S_TX", "TERT_MI2S_TX"},
-	{"AUDIO_REF_EC_UL3 MUX", "QUAT_MI2S_TX", "QUAT_MI2S_TX"},
-=======
 	/* connect to INT4_MI2S_DL_HL since same pcm_id */
 	{"INT0_MI2S_RX_DL_HL", "Switch", "INT4_MI2S_DL_HL"},
 	{"INT0_MI2S_RX", NULL, "INT0_MI2S_RX_DL_HL"},
@@ -23542,7 +23515,6 @@ static const struct snd_soc_dapm_route intercon_mi2s[] = {
 	{"SEC_MI2S_RX", NULL, "SEC_MI2S_RX_DL_HL"},
 	{"TERT_MI2S_RX_DL_HL", "Switch", "TERT_MI2S_DL_HL"},
 	{"TERT_MI2S_RX", NULL, "TERT_MI2S_RX_DL_HL"},
->>>>>>> 4a4136d31834... techpack: audio: Import Xiaomi changes
 
 	{"AUDIO_REF_EC_UL4 MUX", "PRI_MI2S_TX", "PRI_MI2S_TX"},
 	{"AUDIO_REF_EC_UL4 MUX", "SEC_MI2S_TX", "SEC_MI2S_TX"},
