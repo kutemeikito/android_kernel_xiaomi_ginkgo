@@ -27,7 +27,6 @@
 #include <linux/string.h>
 #include <linux/module.h>
 
-int force_fast_charge = 1;
 
 #ifdef CONFIG_UCI
 #include <linux/uci/uci.h>
