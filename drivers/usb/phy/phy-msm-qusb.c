@@ -1270,7 +1270,7 @@ static int qusb_phy_probe(struct platform_device *pdev)
 
 	size = 0;
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
-	pr_info ("panel_info %x\n",panel_info);
+	pr_info("panel_info %lx\n",panel_info);
 	if (panel_info == 1)
 		of_get_property(dev->of_node, "qcom,qusb-phy-init-seq", &size);
 	else if (panel_info == 0)
@@ -1429,7 +1429,7 @@ static int __init parameter_select(char *str)
 	if (panel_info > 1)
 		pr_err("can't get panel_info\n");
 
-	pr_info("get panel_info %x from cmdline\n", panel_info);
+	pr_info("get panel_info %lx from cmdline\n", panel_info);
 	return 1;
 }
 __setup("panel_info=", parameter_select);
