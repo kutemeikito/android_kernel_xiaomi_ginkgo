@@ -790,8 +790,8 @@ static int ramoops_probe(struct platform_device *pdev)
 	dump_mem_sz = cxt->size - cxt->console_size - cxt->ftrace_size
 			- cxt->pmsg_size;
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
-	pr_err("dump_mem_sz=%d,cxt->record_size=%d,cxt->size=%d,cxt->console_size=%d,cxt->ftrace_size=%d,cxt->pmsg_size=%d\n",
-		dump_mem_sz,cxt->record_size,cxt->size,cxt->console_size,cxt->ftrace_size,cxt->pmsg_size);
+	pr_err("dump_mem_sz=%ld, cxt->record_size=%ld, cxt->size=%ld, cxt->console_size=%ld, cxt->ftrace_size=%ld, cxt->pmsg_size=%ld\n",
+		dump_mem_sz, cxt->record_size, cxt->size, cxt->console_size, cxt->ftrace_size, cxt->pmsg_size);
 #endif
 	err = ramoops_init_przs("dump", dev, cxt, &cxt->dprzs, &paddr,
 				dump_mem_sz, cxt->record_size,
