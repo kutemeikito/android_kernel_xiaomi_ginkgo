@@ -1,0 +1,16 @@
+kind: pipeline
+name: samsoe
+
+clone:
+  depth: 1
+
+steps:
+- name: Building
+  image: fadlyas/kernel_dockerfile
+  environment:
+    bot_token:
+      from_secret:
+    chat_id:
+      from_secret:
+  commands:
+  - bash build.sh
