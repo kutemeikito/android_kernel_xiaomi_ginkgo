@@ -1,14 +1,14 @@
 #!/bin/bash
-CONFIG=vendor/ginkgo-perf_defconfig
+
 DATE=$(date +"%Y%m%d-%H%M")
-chat_id=-510134769543
-bot_token=170274243721:AAHmjDRs-y59hF2OyRAHR8EyofLVF5dsXgQA/getUpdates
+chat_id=-1001287929514
+bot_token=1678018441:AAGMshHVmiYQnl5XyRvm6vc2HM2L2gmxsHE
 make_build(){
 	print "Make kernel dtb..." green
 	if [ $TOOLCHAIN == clang ]; then
 		export KBUILD_COMPILER_STRING=$(clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
 		PATH="$(pwd)/clang/bin:${PATH}"
-		make O=out ARCH=arm64 $CONFIG
+		make O=out ARCH=arm64 $1
 		make -j$(nproc --all) O=out \
 				ARCH=arm64 \
 				CC=clang \
@@ -22,7 +22,7 @@ make_build(){
 	else
 		export CROSS_COMPILE=$(pwd)/gcc64/bin/aarch64-elf-
 		export CROSS_COMPILE_ARM32=$(pwd)/gcc32/bin/arm-eabi-
-		make O=out ARCH=arm64 $CONFIG
+		make O=out ARCH=arm64 $1
 		make -j$(nproc --all) O=out ARCH=arm64
 	fi
 }
@@ -36,29 +36,26 @@ send_msg(){
 	curl -s -X POST https://api.telegram.org/bot"${bot_token}"/sendMessage \
 		-d parse_mode="Markdown" \
 		-d chat_id="${chat_id}" \
-		-d text="${CONFIG}"
+		-d text="${1}"
 }
 
 send_file(){
 	print "Sending file..." green
 	curl -F chat_id="${chat_id}" \
 		-F caption="Build succesfully! | DEVICE: ${type} | SHA1 : $(sha1sum ${file} | awk '{ print $1 }')" \
-		-F document=@"${CONFIG}" \
+		-F document=@"${1}" \
 		 https://api.telegram.org/bot"${bot_token}"/sendDocument
 }
 
 mkzip(){
 	print "Generate zip file..." green
 
-	if [ -f $(pwd)/out/arch/arm64/boot/Image.gz-dtb ]; 
-	[ -f $(pwd)/out/arch/arm64/boot/dtbo.img ];
-	then
-		cp $(pwd)/out/arch/arm64/boot/Image.gz-dtb anykernel
-		cp $(pwd)/out/arch/arm64/boot/dtbo.img anykernel
+	if [ -f $(pwd)/out/arch/arm64/boot/Image.gz-dtb ]; then
+		cp $(pwd)/out/arch/arm64/boot/Image.gz-dtb  anykernel
 		cd anykernel
 		zip -r9 ../$1 * -x .git README.md *placeholder
 		cd ..
-		send_file $CONFIG
+		send_file $1
 	else
 		send_msg "Build error !"
 		print "Build error !" red
@@ -70,11 +67,11 @@ print(){
 	echo ""
 	case ${2} in
 		"red")
-		echo -e "\033[31m $CONFIG \033[0m";;
+		echo -e "\033[31m $1 \033[0m";;
 		"green")
-		echo -e "\033[32m $CONFIG \033[0m";;
+		echo -e "\033[32m $1 \033[0m";;
 		*)
-		echo $CONFIG
+		echo $1
 		;;
 	esac
 }
@@ -88,13 +85,20 @@ gen_toolchain(){
 		git clone --depth=1 https://github.com/chips-project/aarch64-elf gcc64
 		git clone --depth=1 https://github.com/chips-project/arm-eabi gcc32
 	fi
-	git clone --depth=1 https://github.com/avinakefin/Anykernel anykernel
+	git clone --depth=1 https://github.com/prooholic/AnyKernel3 -b master anykernel
 }
 
 build(){
 
+	export type="${1} ${2} ${3}"
+
 	make_clean
-	
-		make_build "$CONFIG"
-		mkzip "$LOCALVERSION-$DATE.zip"
+
+	if [ $2 == "-oldcam" ]
+	then
+		make_build "whyred_defconfig"
+	else
+		make_build "whyred-newcam_defconfig"
+	fi
+		mkzip "$KERNELNAME-$LOCALVERSION-${1}${2}${3}-$DATE.zip"
 }
