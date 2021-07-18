@@ -1,8 +1,8 @@
 #!/bin/bash
 
 DATE=$(date +"%Y%m%d-%H%M")
-chat_id=-1001287929514
-bot_token=1678018441:AAGMshHVmiYQnl5XyRvm6vc2HM2L2gmxsHE
+chat_id=-510134769
+bot_token=1702742721:AAHmjDRs-y59hF2OyRAH8EyofLVF5dsXgQA/getUpdates
 make_build(){
 	print "Make kernel dtb..." green
 	if [ $TOOLCHAIN == clang ]; then
@@ -12,6 +12,7 @@ make_build(){
 		make -j$(nproc --all) O=out \
 				ARCH=arm64 \
 				CC=clang \
+       LD=ld.lld \
 				AR=llvm-ar \
 				NM=llvm-nm \
 				OBJCOPY=llvm-objcopy \
