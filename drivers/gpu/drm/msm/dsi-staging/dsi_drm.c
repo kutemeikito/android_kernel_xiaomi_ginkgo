@@ -292,11 +292,10 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
  *            If timeout, dsi bridge will disable panel to avoid fingerprint
  *            touch by mistake.
  */
-
 int dsi_bridge_interface_enable(int timeout)
 {
 	int ret = 0;
-	pr_info("dsi_bridge_interface_enable start\n");
+	pr_debug("dsi_bridge_interface_enable start\n");
 	ret = wait_event_timeout(resume_wait_q,
 		!atomic_read(&resume_pending),
 		msecs_to_jiffies(WAIT_RESUME_TIMEOUT));
