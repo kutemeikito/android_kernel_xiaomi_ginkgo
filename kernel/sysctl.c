@@ -342,7 +342,7 @@ static int max_extfrag_threshold = 1000;
 
 static struct ctl_table kern_table[] = {
 	{
-		.procname	= "sched_child_runs_first",
+		.procname	= "sched_child_runs_first_nosys",
 		.data		= &sysctl_sched_child_runs_first,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
