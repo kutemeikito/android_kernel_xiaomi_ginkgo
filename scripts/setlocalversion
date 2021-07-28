@@ -49,7 +49,7 @@ scm_version()
 
 		# Get branch name, get commit sha, leave.
 		if test "$CONFIG_LOCALVERSION_BRANCH_SHA" = "y"; then
-			last_commit=$(git rev-parse --verify --short=10 HEAD)
+			last_commit=$(git rev-parse --verify --short=8 HEAD)
 			printf '%s' "/$last_commit"
 			return
 		fi
