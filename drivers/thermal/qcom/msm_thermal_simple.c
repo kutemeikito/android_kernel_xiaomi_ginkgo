@@ -63,7 +63,7 @@ static void thermal_throttle_worker(struct work_struct *work)
 	s64 temp_total = 0;
 	short i = 0;
 
-	for (i; i < NR_CPUS; i++) {
+	for (i = 0; i < NR_CPUS; i++) {
 		char zone_name[15];
 		sprintf(zone_name, "cpu-1-%i-usr", i);
 		thermal_zone_get_temp(thermal_zone_get_zone_by_name(zone_name), &temp);
