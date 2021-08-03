@@ -25,8 +25,6 @@
 #include <net/netlink.h>
 #include <net/genetlink.h>
 #include <linux/suspend.h>
-#include <linux/kobject.h>
-#include <../base/base.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/thermal.h>
@@ -50,8 +48,6 @@ static LIST_HEAD(thermal_governor_list);
 static DEFINE_MUTEX(thermal_list_lock);
 static DEFINE_MUTEX(thermal_governor_lock);
 static DEFINE_MUTEX(poweroff_lock);
-static DEFINE_MUTEX(cdev_softlink_lock);
-static DEFINE_MUTEX(tz_softlink_lock);
 
 static atomic_t in_suspend;
 static bool power_off_triggered;
@@ -1735,44 +1731,6 @@ static struct notifier_block thermal_pm_nb = {
 	.notifier_call = thermal_pm_notify,
 };
 
-#ifdef CONFIG_THERMAL_SWITCH
-int thermal_message_device_register(void) {
-	struct thermal_message_device *thermal_msg;
-	int result = 0;
-
-	thermal_msg = kzalloc(sizeof(struct thermal_message_device),GFP_KERNEL);
-	thermal_msg->device.class = &thermal_class;
-	dev_set_name(&thermal_msg->device,"thermal_message");
-
-	result = device_register(&thermal_msg->device);
-	if (result) {
-		kfree(thermal_msg);
-		return result;
-	}
-
-	result = device_create_file(&thermal_msg->device,&dev_attr_sconfig);
-
-	if (result)
-		goto unregister;
-
-	result = device_create_file(&thermal_msg->device,&dev_attr_temp_state);
-
-	if (result)
-		goto unregister;
-
-	return result;
-
-unregister:
-	device_unregister(&thermal_msg->device);
-	return result;
-}
-
-
-void thermal_message_device_unregister(void) {
-
-}
-#endif //CONFIG_THERMAL_SWITCH
-
 static int __init thermal_init(void)
 {
 	int result;
@@ -1803,10 +1761,6 @@ static int __init thermal_init(void)
 		pr_warn("Thermal: Can not register suspend notifier, return %d\n",
 			result);
 
-#ifdef CONFIG_THERMAL_SWITCH
-	result = thermal_message_device_register();
-#endif //CONFIG_THERMAL_SWITCH
-
 	return 0;
 
 exit_zone_parse:
@@ -1826,9 +1780,6 @@ error:
 
 static void thermal_exit(void)
 {
-#ifdef CONFIG_THERMAL_SWITCH
-	thermal_message_device_unregister();
-#endif //CONFIG_THERMAL_SWITCH
 	unregister_pm_notifier(&thermal_pm_nb);
 	of_thermal_destroy_zones();
 	destroy_workqueue(thermal_passive_wq);
