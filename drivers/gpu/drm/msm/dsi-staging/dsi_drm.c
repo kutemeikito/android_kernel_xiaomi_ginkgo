@@ -53,7 +53,6 @@ static struct wakeup_source prim_panel_wakelock;
 
 bool panel_init_judge;
 
-struct msm_drm_notifier g_notify_data;
 extern char *saved_command_line;
 #endif
 
@@ -193,6 +192,7 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
 	struct drm_device *dev = bridge->dev;
+	struct msm_drm_notifier g_notify_data;
 	int event = 0;
 
 	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
@@ -396,6 +396,7 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
 	struct drm_device *dev = bridge->dev;
+	struct msm_drm_notifier g_notify_data;
 	int event = 0;
 	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
 	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL)) {
