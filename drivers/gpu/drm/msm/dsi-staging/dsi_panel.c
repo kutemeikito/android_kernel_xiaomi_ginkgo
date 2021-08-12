@@ -24,6 +24,13 @@
 #include "dsi_ctrl_hw.h"
 #include "dsi_parser.h"
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+char g_lcd_id[128];
+extern bool panel_init_judge;
+
+bool backlight_val;
+#endif
+
 /**
  * topology is currently defined by a set of following 3 values:
  * 1. num of layer mixers
@@ -348,6 +355,16 @@ int dsi_panel_trigger_esd_attack(struct dsi_panel *panel)
 	return -EINVAL;
 }
 
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
+typedef int (*lct_tp_reset_enable_cb_t)(bool en);
+static lct_tp_reset_enable_cb_t lct_tp_reset_enable_cb_p = NULL;
+void set_tp_reset_gpio_callback(lct_tp_reset_enable_cb_t p_callback)
+{
+	lct_tp_reset_enable_cb_p = p_callback;
+}
+EXPORT_SYMBOL(set_tp_reset_gpio_callback);
+#endif
+
 static int dsi_panel_reset(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -362,6 +379,9 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 		}
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	usleep_range(12 * 1000, 12 * 1000);
+#endif
 	if (r_config->count) {
 		rc = gpio_direction_output(r_config->reset_gpio,
 			r_config->sequence[0].level);
@@ -371,6 +391,42 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 		}
 	}
 
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
+	if (strstr(g_lcd_id, "huaxing") != NULL) {
+		if (!IS_ERR_OR_NULL(lct_tp_reset_enable_cb_p)) {
+			lct_tp_reset_enable_cb_p(true);
+			usleep_range(5 * 1000, 5 * 1000);
+		}
+		gpio_set_value(r_config->reset_gpio, 1);
+		usleep_range(5 * 1000, 5 * 1000);
+
+		if (!IS_ERR_OR_NULL(lct_tp_reset_enable_cb_p)) {
+			lct_tp_reset_enable_cb_p(false);
+			usleep_range(5 * 1000, 5 * 1000);
+		}
+		gpio_set_value(r_config->reset_gpio, 0);
+		usleep_range(5 * 1000, 5 * 1000);
+
+		if (!IS_ERR_OR_NULL(lct_tp_reset_enable_cb_p)) {
+			lct_tp_reset_enable_cb_p(true);
+			usleep_range(5 * 1000, 5 * 1000);
+		}
+		gpio_set_value(r_config->reset_gpio, 1);
+		usleep_range(20 * 1000, 20 * 1000);
+
+	} else {
+		for (i = 0; i < r_config->count; i++) {
+			gpio_set_value(r_config->reset_gpio,
+					r_config->sequence[i].level);
+
+			pr_err("[NVT-ts] lcd-reset_gpio = %d\n", r_config->sequence[i].level);
+
+			if (r_config->sequence[i].sleep_ms)
+				usleep_range(r_config->sequence[i].sleep_ms * 1000,
+						(r_config->sequence[i].sleep_ms * 1000) + 100);
+		}
+	}
+#else
 	for (i = 0; i < r_config->count; i++) {
 		gpio_set_value(r_config->reset_gpio,
 			       r_config->sequence[i].level);
@@ -380,6 +436,7 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 			usleep_range(r_config->sequence[i].sleep_ms * 1000,
 				(r_config->sequence[i].sleep_ms * 1000) + 100);
 	}
+#endif
 
 	if (gpio_is_valid(panel->bl_config.en_gpio)) {
 		rc = gpio_direction_output(panel->bl_config.en_gpio, 1);
@@ -471,6 +528,15 @@ exit:
 	return rc;
 }
 
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
+static bool lcd_reset_keep_high = false;
+void set_lcd_reset_gpio_keep_high(bool en)
+{
+	lcd_reset_keep_high = en;
+}
+EXPORT_SYMBOL(set_lcd_reset_gpio_keep_high);
+#endif
+
 static int dsi_panel_power_off(struct dsi_panel *panel)
 {
 	int rc = 0;
@@ -478,8 +544,18 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
-	if (gpio_is_valid(panel->reset_config.reset_gpio))
+	if (gpio_is_valid(panel->reset_config.reset_gpio)) {
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
+		if (lcd_reset_keep_high)
+			pr_warn("%s: lcd-reset-gpio keep high\n", __func__);
+		else {
+			gpio_set_value(panel->reset_config.reset_gpio, 0);
+			pr_err("[NVT-ts] lcd-reset_gpio = 0\n");
+		}
+#else
 		gpio_set_value(panel->reset_config.reset_gpio, 0);
+#endif
+	}
 
 	if (gpio_is_valid(panel->reset_config.lcd_mode_sel_gpio))
 		gpio_set_value(panel->reset_config.lcd_mode_sel_gpio, 0);
@@ -607,6 +683,7 @@ static int dsi_panel_wled_register(struct dsi_panel *panel,
 	return 0;
 }
 
+#ifndef CONFIG_MACH_XIAOMI_GINKGO
 static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
@@ -629,6 +706,7 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 
 	return rc;
 }
+#endif
 
 static int dsi_panel_update_pwm_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
@@ -681,6 +759,27 @@ error:
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+extern int sgm_brightness_set(uint16_t brightness);
+static int dsi_panel_update_backlight_external(struct dsi_panel *panel, u32 bl_lvl)
+{
+
+	pr_err("backlight level :%d\n", bl_lvl);
+	if (bl_lvl > 0)
+		backlight_val = true;
+	else
+		backlight_val = false;
+
+	if (!panel || (bl_lvl > 0xffff)) {
+		pr_err("invalid params\n");
+		return -EINVAL;
+	}
+
+	sgm_brightness_set(bl_lvl);
+	return 0;
+}
+#endif
+
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
@@ -689,13 +788,19 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 	if (panel->host_config.ext_bridge_num)
 		return 0;
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	pr_info("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
+#else
 	pr_debug("backlight type:%d lvl:%d\n", bl->type, bl_lvl);
+#endif
 	switch (bl->type) {
 	case DSI_BACKLIGHT_WLED:
 		rc = backlight_device_set_brightness(bl->raw_bd, bl_lvl);
 		break;
 	case DSI_BACKLIGHT_DCS:
+#ifndef CONFIG_MACH_XIAOMI_GINKGO
 		rc = dsi_panel_update_backlight(panel, bl_lvl);
+#endif
 		break;
 	case DSI_BACKLIGHT_EXTERNAL:
 		break;
@@ -707,6 +812,9 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = -ENOTSUPP;
 	}
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	rc = dsi_panel_update_backlight_external(panel, bl_lvl);
+#endif
 	return rc;
 }
 
@@ -1732,6 +1840,16 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-pre-off-command",
 	"qcom,mdss-dsi-off-command",
 	"qcom,mdss-dsi-post-off-command",
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	"qcom,mdss-dsi-cabc-on-command",
+	"qcom,mdss-dsi-cabc-off-command",
+	"qcom,mdss-dsi-cabc_movie-on-command",
+	"qcom,mdss-dsi-cabc_still-on-command",
+	"qcom,mdss-dsi-hbm1-on-command",
+	"qcom,mdss-dsi-hbm2-on-command",
+	"qcom,mdss-dsi-hbm3-on-command",
+	"qcom,mdss-dsi-hbm-off-command",
+#endif
 	"qcom,mdss-dsi-pre-res-switch",
 	"qcom,mdss-dsi-res-switch",
 	"qcom,mdss-dsi-post-res-switch",
@@ -1758,6 +1876,16 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-pre-off-command-state",
 	"qcom,mdss-dsi-off-command-state",
 	"qcom,mdss-dsi-post-off-command-state",
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	"qcom,mdss-dsi-cabc-on-command-state",
+	"qcom,mdss-dsi-cabc-off-command-state",
+	"qcom,mdss-dsi-cabc_movie-on-command-state",
+	"qcom,mdss-dsi-cabc_still-on-command-state",
+	"qcom,mdss-dsi-hbm1-on-command-state",
+	"qcom,mdss-dsi-hbm2-on-command-state",
+	"qcom,mdss-dsi-hbm3-on-command-state",
+	"qcom,mdss-dsi-hbm-off-command-state",
+#endif
 	"qcom,mdss-dsi-pre-res-switch-state",
 	"qcom,mdss-dsi-res-switch-state",
 	"qcom,mdss-dsi-post-res-switch-state",
@@ -3264,6 +3392,38 @@ end:
 	utils->node = panel->panel_of_node;
 }
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+static ssize_t msm_fb_lcd_name(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	sprintf(buf, "%s\n", g_lcd_id);
+	ret = strlen(buf) + 1;
+	return ret;
+}
+static DEVICE_ATTR(lcd_name, 0664, msm_fb_lcd_name, NULL);
+
+static struct kobject *msm_lcd_name;
+static int msm_lcd_name_create_sysfs(void)
+{
+	int ret;
+	msm_lcd_name = kobject_create_and_add("android_lcd", NULL);
+
+	if (msm_lcd_name == NULL) {
+		pr_info("msm_lcd_name_create_sysfs_ failed\n");
+		ret = -ENOMEM;
+		return ret;
+	}
+
+	ret = sysfs_create_file(msm_lcd_name, &dev_attr_lcd_name.attr);
+	if (ret) {
+		pr_info("%s failed \n",__func__);
+		kobject_del(msm_lcd_name);
+	}
+	return 0;
+}
+#endif
+
 struct dsi_panel *dsi_panel_get(struct device *parent,
 				struct device_node *of_node,
 				struct device_node *parser_node,
@@ -3290,6 +3450,11 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 				"qcom,mdss-dsi-panel-name", NULL);
 	if (!panel->name)
 		panel->name = DSI_PANEL_DEFAULT_LABEL;
+
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	strcpy(g_lcd_id,panel->name);
+	msm_lcd_name_create_sysfs();
+#endif
 
 	/*
 	 * Set panel type to LCD as default.
@@ -4050,6 +4215,35 @@ exit:
 	return rc;
 }
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+int dsi_panel_set_feature(struct dsi_panel *panel, enum dsi_cmd_set_type type)
+{
+	int rc = 0;
+
+	if (!panel) {
+		pr_err("Invalid params\n");
+		return -EINVAL;
+	}
+	pr_info("xinj:%s panel_init_judge=%d type=%d,backlight_val = %d\n", 
+		__func__, panel_init_judge, type, backlight_val);
+
+	if ((!panel_init_judge) ||  (!backlight_val)) {
+		pr_err("xinj: con't set cmds type=%d\n",type);	
+		return -EINVAL;	
+	}
+
+	mutex_lock(&panel->panel_lock);
+
+	rc = dsi_panel_tx_cmd_set(panel, type);
+	if (rc) {
+		pr_err("[%s] failed to send DSI_CMD_SET_FEATURE_ON/OFF cmds, rc=%d,type=%d\n",
+			panel->name, rc,type);
+	}
+	mutex_unlock(&panel->panel_lock);
+	return rc;
+}
+#endif
+
 int dsi_panel_send_qsync_on_dcs(struct dsi_panel *panel,
 		int ctrl_idx)
 {
@@ -4261,8 +4455,12 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	if (rc)
 		pr_err("[%s] failed to send DSI_CMD_SET_ON cmds, rc=%d\n",
 		       panel->name, rc);
-	else
+	else {
 		panel->panel_initialized = true;
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+		panel_init_judge = true;
+#endif
+	}
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
@@ -4284,6 +4482,9 @@ int dsi_panel_post_enable(struct dsi_panel *panel)
 		       panel->name, rc);
 		goto error;
 	}
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	panel_init_judge = true;
+#endif
 error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4309,6 +4510,10 @@ int dsi_panel_pre_disable(struct dsi_panel *panel)
 
 error:
 	mutex_unlock(&panel->panel_lock);
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	panel->panel_initialized = false;
+	panel_init_judge =  false;
+#endif
 	return rc;
 }
 
@@ -4351,6 +4556,9 @@ int dsi_panel_disable(struct dsi_panel *panel)
 	panel->panel_initialized = false;
 	panel->power_mode = SDE_MODE_DPMS_OFF;
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	panel_init_judge = false;
+#endif
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }

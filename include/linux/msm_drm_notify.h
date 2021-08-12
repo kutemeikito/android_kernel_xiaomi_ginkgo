@@ -20,12 +20,28 @@
 /* A hardware display blank early change occurred */
 #define MSM_DRM_EARLY_EVENT_BLANK		0x02
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+#define DRM_EARLY_EVENT_BLANK   0x01
+#define DRM_EVENT_BLANK         0x02
+#endif
+
 enum {
 	/* panel: power on */
 	MSM_DRM_BLANK_UNBLANK,
 	/* panel: power off */
 	MSM_DRM_BLANK_POWERDOWN,
 };
+
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+enum {
+	DRM_BLANK_UNBLANK = 0,
+	DRM_BLANK_LP1,
+	DRM_BLANK_LP2,
+	DRM_BLANK_STANDBY,
+	DRM_BLANK_SUSPEND,
+	DRM_BLANK_POWERDOWN,
+};
+#endif
 
 enum msm_drm_display_id {
 	/* primary display */
@@ -40,6 +56,19 @@ struct msm_drm_notifier {
 	void *data;
 };
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+struct drm_notify_data {
+	bool is_primary;
+	void *data;
+};
+#endif
+
 int msm_drm_register_client(struct notifier_block *nb);
 int msm_drm_unregister_client(struct notifier_block *nb);
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+int drm_register_client(struct notifier_block *nb);
+int drm_unregister_client(struct notifier_block *nb);
+int drm_notifier_call_chain(unsigned long val, void *v);
+#endif
+
 #endif
