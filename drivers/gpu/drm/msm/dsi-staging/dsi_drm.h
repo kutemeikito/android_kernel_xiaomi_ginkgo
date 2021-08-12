@@ -30,6 +30,9 @@ struct dsi_bridge {
 
 	struct dsi_display *display;
 	struct dsi_display_mode dsi_mode;
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	struct mutex lock;
+#endif
 };
 
 /**

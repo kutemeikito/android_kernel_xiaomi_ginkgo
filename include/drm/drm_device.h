@@ -206,6 +206,10 @@ struct drm_device {
 	struct drm_vma_offset_manager *vma_offset_manager;
 	/*@} */
 	int switch_power_state;
+
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	int doze_state;
+#endif
 };
 
 #endif
