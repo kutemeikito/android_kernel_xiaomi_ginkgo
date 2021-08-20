@@ -480,6 +480,12 @@ config THERMAL_TSENS
 	  thermal userspace client when a threshold is reached. Warm/Cool
 	  temperature thresholds can be set independently for each sensor.
 
+config THERMAL_SWITCH
+	default n
+	bool "Support thermal config switch" 
+	help
+	  Support thermal config switch.
+
 menu "Qualcomm thermal drivers"
 depends on (ARCH_QCOM && OF) || COMPILE_TEST
 source "drivers/thermal/qcom/Kconfig"
