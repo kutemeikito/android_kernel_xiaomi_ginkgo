@@ -1105,7 +1105,7 @@ static int fw_load_from_user_helper(struct firmware *firmware,
 		}
 	} else {
 		ret = usermodehelper_read_trylock();
-		if (WARN_ON(ret)) {
+		if (ret) {
 			dev_err(device, "firmware: %s will not be loaded\n",
 				name);
 			return ret;
