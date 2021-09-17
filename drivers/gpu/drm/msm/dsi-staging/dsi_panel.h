@@ -218,6 +218,10 @@ struct dsi_panel {
 	bool sync_broadcast_en;
 	int power_mode;
 	enum dsi_panel_physical_type panel_type;
+
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	int hbm_mode;
+#endif
 };
 
 static inline bool dsi_panel_ulps_feature_enabled(struct dsi_panel *panel)
@@ -337,5 +341,9 @@ struct dsi_panel *dsi_panel_ext_bridge_get(struct device *parent,
 int dsi_panel_parse_esd_reg_read_configs(struct dsi_panel *panel);
 
 void dsi_panel_ext_bridge_put(struct dsi_panel *panel);
+
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+int dsi_panel_apply_hbm_mode(struct dsi_panel *panel);
+#endif
 
 #endif /* _DSI_PANEL_H_ */
