@@ -759,6 +759,7 @@ error:
 
 #ifdef CONFIG_MACH_XIAOMI_C3J
 extern int sgm_brightness_set(uint16_t brightness);
+extern int backlight_hbm_set(int hbm_mode);
 static int dsi_panel_update_backlight_external(struct dsi_panel *panel,
 					       u32 bl_lvl)
 {
@@ -1850,6 +1851,12 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command",
 	"qcom,mdss-dsi-qsync-on-commands",
 	"qcom,mdss-dsi-qsync-off-commands",
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	"qcom,mdss-dsi-hbm1-on-command",
+	"qcom,mdss-dsi-hbm2-on-command",
+	"qcom,mdss-dsi-hbm3-on-command",
+	"qcom,mdss-dsi-hbm-off-command",
+#endif
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -1876,6 +1883,12 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command-state",
 	"qcom,mdss-dsi-qsync-on-commands-state",
 	"qcom,mdss-dsi-qsync-off-commands-state",
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	"qcom,mdss-dsi-hbm1-on-command-state",
+	"qcom,mdss-dsi-hbm2-on-command-state",
+	"qcom,mdss-dsi-hbm3-on-command-state",
+	"qcom,mdss-dsi-hbm-off-command-state",
+#endif
 };
 
 static int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -4407,6 +4420,12 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	}
 
 	mutex_unlock(&panel->panel_lock);
+
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	if (panel->hbm_mode)
+		dsi_panel_apply_hbm_mode(panel);
+#endif
+
 	return rc;
 }
 
@@ -4552,3 +4571,32 @@ error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
+
+#ifdef CONFIG_MACH_XIAOMI_C3J
+int dsi_panel_apply_hbm_mode(struct dsi_panel *panel)
+{
+	static const enum dsi_cmd_set_type type_map[] = {
+		DSI_CMD_SET_HBM_OFF,
+		DSI_CMD_SET_HBM1_ON,
+		DSI_CMD_SET_HBM2_ON,
+		DSI_CMD_SET_HBM3_ON,
+	};
+
+	enum dsi_cmd_set_type type;
+	int rc;
+
+	if (panel->hbm_mode >= 0 &&
+		panel->hbm_mode < ARRAY_SIZE(type_map))
+		type = type_map[panel->hbm_mode];
+	else
+		type = type_map[0];
+
+	backlight_hbm_set(panel->hbm_mode);
+
+	mutex_lock(&panel->panel_lock);
+	rc = dsi_panel_tx_cmd_set(panel, type);
+	mutex_unlock(&panel->panel_lock);
+
+	return rc;
+}
+#endif
