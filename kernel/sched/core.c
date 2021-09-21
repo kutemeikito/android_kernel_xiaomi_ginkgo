@@ -4985,13 +4985,21 @@ int sysctl_sched_lib_name_handler(struct ctl_table *table, int write,
 			}
 		}
 
+#ifndef CONFIG_CPUINFO_CACHED_FREQ_TASKS
 		if (strnlen(sched_lib_name, LIB_PATH_LENGTH) == 0) {
 			spin_unlock(&__sched_lib_name_lock);
 			return 0;
 		}
+#endif
 
 		/* Split sched_lib_name by ',' and store in a linked list. */
 		strlcpy(dup_sched_lib_name, sched_lib_name, LIB_PATH_LENGTH);
+#ifdef CONFIG_CPUINFO_CACHED_FREQ_TASKS
+		if (strnlen(sched_lib_name, LIB_PATH_LENGTH) != 0)
+			strlcat(dup_sched_lib_name, ",", LIB_PATH_LENGTH);
+
+		strlcat(dup_sched_lib_name, CONFIG_LIST_CACHED_FREQ_TASKS, LIB_PATH_LENGTH);
+#endif
 		next = dup_sched_lib_name;
 		while ((curr = strsep(&next, ",")) != NULL) {
 			pos = kmalloc(sizeof(struct libname_node), GFP_KERNEL);
@@ -5014,8 +5022,10 @@ bool is_sched_lib_based_app(pid_t pid)
 	struct mm_struct *mm;
 	struct libname_node *pos;
 
+#ifndef CONFIG_CPUINFO_CACHED_FREQ_TASKS
 	if (strnlen(sched_lib_name, LIB_PATH_LENGTH) == 0)
 		return false;
+#endif
 
 	rcu_read_lock();
 

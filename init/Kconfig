@@ -1123,6 +1123,20 @@ config SCHED_TUNE
 
 	  If unsure, say N.
 
+config CPUINFO_CACHED_FREQ_TASKS
+	bool "Fixes for cached-frequency info enforcement"
+	help
+	  This feature allow us for configure library or tasks via defconfig
+	  to showed a cached-frequency instead of the actual policy.
+
+config LIST_CACHED_FREQ_TASKS
+	string "Default task names for cached-frequency info enforcement"
+	depends on CPUINFO_CACHED_FREQ_TASKS
+	help
+	  Define library or task based on defconfig. Example:
+
+	  CONFIG_LIST_CACHED_FREQ_TASKS="libabc.so,AppName,org.company.app"
+
 config STUNE_ASSIST
 	bool "SchedTune configuration helper"
 	depends on SCHED_TUNE
