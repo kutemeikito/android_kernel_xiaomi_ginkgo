@@ -52,6 +52,8 @@ aes-neon-bs-y := aes-neonbs-core.o aes-neonbs-glue.o
 
 ifeq ($(cc-name),gcc)
 ccflags-y += -mtune=cortex-a73.cortex-a53 -march=armv8-a+crc+crypto
+else ifeq ($(cc-name),clang)
+ccflags-y += -mcpu=cortex-a53 -mtune=cortex-a53+crc+crypto
 endif
 
 AFLAGS_aes-ce.o		:= -DINTERLEAVE=4
