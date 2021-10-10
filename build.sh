@@ -32,9 +32,9 @@ KERN_IMG="/home/ryuzenn/out-memer/arch/arm64/boot/Image.gz-dtb"
 DTBO_IMG="/home/ryuzenn/out-memer/arch/arm64/boot/dtbo.img"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="RastaMod69"
-export PATH="/home/ryuzenn/toolchain/rastamod-clang/bin:$PATH"
-export LD_LIBRARY_PATH="/home/ryuzenn/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
-export KBUILD_COMPILER_STRING="$(/home/ryuzenn/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
+export PATH="/home/ryuzenn/toolchain/clang-14.0/bin:$PATH"
+export LD_LIBRARY_PATH="/home/ryuzenn/toolchain/clang-14.0/lib:$LD_LIBRARY_PATH"
+export KBUILD_COMPILER_STRING="$(/home/ryuzenn/toolchain/clang-14.0/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
 export out=/home/ryuzenn/out-memer
 
 # Functions
