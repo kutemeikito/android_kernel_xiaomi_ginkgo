@@ -376,7 +376,7 @@
 	};
 
 	chosen {
-		bootargs = "rcu_nocbs=0-7 noirqdebug quiet";
+		bootargs = "rcu_nocbs=all noirqdebug quiet";
 	};
 
 	soc: soc { };
