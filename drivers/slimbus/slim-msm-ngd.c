@@ -279,7 +279,7 @@ static int dsp_domr_notify_cb(struct notifier_block *n, unsigned long code,
 		break;
 	case SUBSYS_AFTER_POWERUP:
 	case SERVREG_NOTIF_SERVICE_STATE_UP_V01:
-		SLIM_INFO(dev, "SLIM DSP SSR notify cb:0x%x\n", code);
+		SLIM_INFO(dev, "SLIM DSP SSR notify cb:0x%lx\n", code);
 		atomic_set(&dev->ssr_in_progress, 0);
 		schedule_work(&dev->dsp.dom_up);
 		break;
