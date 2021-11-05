@@ -71,6 +71,11 @@
 #define USB3_HCSPARAMS1		(0x4)
 #define USB3_PORTSC		(0x420)
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+#define DWC3_DCTL	0xc704 
+#define DWC3_DCTL_RUN_STOP	BIT(31)
+#endif
+
 /**
  *  USB QSCRATCH Hardware registers
  *
@@ -2880,9 +2885,12 @@ static int dwc3_msm_suspend(struct dwc3_msm *mdwc, bool force_power_collapse,
 	dbg_event(0xFF, "Ctl Sus", atomic_read(&dwc->in_lpm));
 
 	/* kick_sm if it is waiting for lpm sequence to finish */
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	test_and_clear_bit(WAIT_FOR_LPM, &mdwc->inputs);
+#else
 	if (test_and_clear_bit(WAIT_FOR_LPM, &mdwc->inputs))
 		queue_delayed_work(mdwc->sm_usb_wq, &mdwc->sm_work, 0);
-
+#endif
 	mutex_unlock(&mdwc->suspend_resume_mutex);
 
 	return 0;
@@ -5008,6 +5016,16 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 				atomic_read(&mdwc->dev->power.usage_count));
 			dwc3_otg_start_peripheral(mdwc, 1);
 			mdwc->drd_state = DRD_STATE_PERIPHERAL;
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+			if (!dwc->softconnect && get_psy_type(mdwc) == POWER_SUPPLY_TYPE_USB_CDP) { 
+				u32 reg; 
+				dbg_event(0xFF, "cdp pullup dp", 0); 
+				reg = dwc3_readl(dwc->regs, DWC3_DCTL); 
+				reg |= DWC3_DCTL_RUN_STOP; 
+				dwc3_writel(dwc->regs, DWC3_DCTL, reg); 
+				break; 
+			}
+#endif
 			work = 1;
 		} else {
 			dwc3_msm_gadget_vbus_draw(mdwc, 0);
