@@ -33,6 +33,11 @@
 #include <dt-bindings/sound/audio-codec-port-types.h>
 #include "../msm-cdc-supply.h"
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+#define LOG_NDEBUG 0
+#define VERY_VERY_VERBOSE_LOGGING
+#endif
+
 #define WCD9370_VARIANT 0
 #define WCD9375_VARIANT 5
 #define WCD937X_VARIANT_ENTRY_SIZE 32
@@ -127,7 +132,11 @@ static int wcd937x_init_reg(struct snd_soc_codec *codec)
 	snd_soc_update_bits(codec, WCD937X_ANA_BIAS, 0x40, 0x40);
 	usleep_range(10000, 10010);
 	snd_soc_update_bits(codec, WCD937X_ANA_BIAS, 0x40, 0x00);
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	snd_soc_update_bits(codec, WCD937X_HPH_OCP_CTL, 0xFF, 0x7A);
+#else
 	snd_soc_update_bits(codec, WCD937X_HPH_OCP_CTL, 0xFF, 0x3A);
+#endif
 	snd_soc_update_bits(codec, WCD937X_RX_OCP_CTL, 0x0F, 0x02);
 	snd_soc_update_bits(codec, WCD937X_HPH_SURGE_HPHLR_SURGE_EN, 0xFF,
 			    0xD9);
@@ -1505,6 +1514,11 @@ static int __wcd937x_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		wcd937x_micbias_control(codec, micb_num, MICB_ENABLE, true);
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+		usleep_range(10000, 11000); /* add 10ms delay */
+		dev_dbg(codec->dev, "%s: wname: %s, event: %d add 10ms delay\n",
+			__func__, w->name, event);
+#endif
 		break;
 	case SND_SOC_DAPM_POST_PMU:
 		usleep_range(1000, 1100);
@@ -2259,6 +2273,9 @@ static int wcd937x_soc_codec_probe(struct snd_soc_codec *codec)
 
 	wcd937x->codec = codec;
 	variant = (snd_soc_read(codec, WCD937X_DIGITAL_EFUSE_REG_0) & 0x1E) >> 1;
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	pr_err("%s: lct wcd_id variant=%d\n", __func__, variant);
+#endif
 	wcd937x->variant = variant;
 
 	wcd937x->fw_data = devm_kzalloc(codec->dev,

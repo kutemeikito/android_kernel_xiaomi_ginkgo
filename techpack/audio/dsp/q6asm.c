@@ -26,6 +26,9 @@
 #include <linux/time.h>
 #include <linux/atomic.h>
 #include <linux/mm.h>
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+#include <soc/qcom/subsystem_restart.h>
+#endif
 
 #include <asm/ioctls.h>
 
@@ -3532,6 +3535,12 @@ static int __q6asm_open_write(struct audio_client *ac, uint32_t format,
 		pr_err("%s: DSP returned error[%s]\n",
 				__func__, adsp_err_get_err_str(
 				atomic_read(&ac->cmd_state)));
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+		if (atomic_read(&ac->cmd_state) == ADSP_ENEEDMORE) {
+		    pr_err("%s: subsystem adsp restart\n", __func__);
+		    subsystem_restart("adsp");
+		}
+#endif
 		rc = adsp_err_get_lnx_err_code(
 				atomic_read(&ac->cmd_state));
 		goto fail_cmd;
