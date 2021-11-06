@@ -2490,7 +2490,7 @@ int smblib_set_prop_system_temp_level(struct smb_charger *chg,
 		return -EINVAL;
 
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
-	pr_info("%s val=%d, chg->system_temp_level=%d, LctThermal=%d, lct_backlight_off= %d, IsInCall=%d \n " ,
+	pr_debug("%s val=%d, chg->system_temp_level=%d, LctThermal=%d, lct_backlight_off= %d, IsInCall=%d \n " ,
 		    __FUNCTION__,val->intval,chg->system_temp_level, LctThermal, lct_backlight_off, LctIsInCall);
 
 	if (LctThermal == 0) { /* from therml-engine always store lvl_sel */
@@ -2514,7 +2514,7 @@ int smblib_set_prop_system_temp_level(struct smb_charger *chg,
 #endif
 	chg->system_temp_level = val->intval;
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
-	pr_info("%s intval:%d system temp level:%d thermal_levels:%d",
+	pr_debug("%s intval:%d system temp level:%d thermal_levels:%d",
 		__FUNCTION__,val->intval,chg->system_temp_level,chg->thermal_levels);
 #endif
 

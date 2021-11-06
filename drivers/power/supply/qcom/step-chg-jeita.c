@@ -748,14 +748,14 @@ static int handle_jeita(struct step_chg_info *chip)
 
 set_jeita_fv:
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
-	pr_info(" jeita vote fv_uv:%d last_vol:%d",fv_uv,chip->last_vol);
+	pr_debug(" jeita vote fv_uv:%d last_vol:%d",fv_uv,chip->last_vol);
 #endif
 	vote(chip->fv_votable, JEITA_VOTER, fv_uv ? true : false, fv_uv);
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
 	if (fv_uv == JEITA_GOOD_VOL &&chip->last_vol == JEITA_WARM_VOL) {
 		rc = power_supply_set_property(chip->batt_psy,
 				POWER_SUPPLY_PROP_FORCE_RECHARGE, &pval);
-		if(rc < 0)
+		if (rc < 0)
 			pr_err("Can't force recharge from batt warm to good ,rc=%d\n", rc);
 	}
 chip->last_vol = fv_uv;
