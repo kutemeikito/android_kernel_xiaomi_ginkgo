@@ -71,6 +71,9 @@ enum {
 	HW_PLATFORM_HDK = 31,
 	HW_PLATFORM_IOT = 32,
 	HW_PLATFORM_IDP = 34,
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	HW_PLATFORM_C3J = 37,
+#endif
 	HW_PLATFORM_INVALID
 };
 
@@ -95,6 +98,9 @@ const char *hw_platform[] = {
 	[HW_PLATFORM_TTP] = "TTP",
 	[HW_PLATFORM_HDK] = "HDK",
 	[HW_PLATFORM_IOT] = "IOT",
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	[HW_PLATFORM_C3J] = "GINKGO",
+#endif
 	[HW_PLATFORM_IDP] = "IDP"
 };
 
