@@ -47,3 +47,11 @@
 &sdhc_2 {
 	cd-gpios = <&tlmm 98 0>;
 };
+
+&pm8008_8 {
+	status = "disabled";
+};
+
+&pm8008_9 {
+	status = "disabled";
+};
