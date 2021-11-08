@@ -1170,7 +1170,7 @@ static inline int start_streaming(struct msm_vidc_inst *inst)
 		!inst->operating_rate_set && !is_realtime_session(inst)) {
 		inst->clk_data.turbo_mode = true;
 		dprintk(VIDC_INFO,
-			"inst(%pK) setting turbo mode ");
+			"inst %pK setting turbo mode\n", inst);
 	}
 
 	/* Assign Core and LP mode for current session */
