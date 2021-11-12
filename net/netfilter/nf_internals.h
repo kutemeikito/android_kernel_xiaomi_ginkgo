@@ -13,6 +13,10 @@ int nf_queue(struct sk_buff *skb, struct nf_hook_state *state,
 unsigned int nf_queue_nf_hook_drop(struct net *net);
 
 /* nf_log.c */
+#ifdef CONFIG_NETFILTER_XT_TARGET_TRACE
 int __init netfilter_log_init(void);
+#else
+static inline int __init netfilter_log_init(void) { return 0; }
+#endif
 
 #endif
