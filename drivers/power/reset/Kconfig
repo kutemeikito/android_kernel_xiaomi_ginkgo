@@ -249,5 +249,10 @@ config SYSCON_REBOOT_MODE
 	  register, then the bootloader can read it to take different
 	  action according to the mode.
 
-endif
+config DISABLE_DOWNLOAD
+	default n
+	bool "Disable download mode"
+	help
+	  Disable download mode.
 
+endif
