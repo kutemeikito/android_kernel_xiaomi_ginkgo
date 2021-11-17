@@ -213,6 +213,10 @@ static int get_bucket_cycle_count(struct cycle_counter *counter)
 	return count;
 }
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+static int cycle_count_a = 0;
+#endif
+
 /**
  * get_cycle_count -
  * @counter: Cycle counter object
@@ -240,9 +244,25 @@ int get_cycle_count(struct cycle_counter *counter, int *count)
 	 * the overall charge cycle count.
 	 */
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	if (!cycle_count_a)
+		*count = temp / BUCKET_COUNT;
+	else
+		*count = cycle_count_a;
+#else
 	*count = temp / BUCKET_COUNT;
+#endif
 	return 0;
 }
+
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+int set_cycle_count(struct cycle_counter *counter, int count)
+{
+	cycle_count_a = count;
+
+	return 0;
+}
+#endif
 
 /**
  * get_cycle_counts -

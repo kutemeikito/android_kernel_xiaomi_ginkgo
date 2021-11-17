@@ -42,6 +42,10 @@
 #include "qg-battery-profile.h"
 #include "qg-defs.h"
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+u8 set_cycle_flag = 0;
+#endif
+
 static int qg_debug_mask;
 module_param_named(
 	debug_mask, qg_debug_mask, int, 0600
@@ -2047,6 +2051,11 @@ static int qg_psy_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_FG_RESET:
 		qg_reset(chip);
 		break;
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	case POWER_SUPPLY_PROP_CYCLE_COUNT:
+		rc = set_cycle_count(chip->counter, pval->intval);
+		break;
+#endif
 	case POWER_SUPPLY_PROP_BATT_AGE_LEVEL:
 		rc = qg_setprop_batt_age_level(chip, pval->intval);
 		break;
@@ -2305,7 +2314,12 @@ static int qg_charge_full_update(struct qpnp_qg *chip)
 				chip->msoc, health, chip->charge_full,
 				chip->charge_done);
 	if (chip->charge_done && !chip->charge_full) {
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+		if (chip->msoc >= 99 && (health == POWER_SUPPLY_HEALTH_GOOD ||
+		    health == POWER_SUPPLY_HEALTH_WARM || health == POWER_SUPPLY_HEALTH_COOL)) {
+#else
 		if (chip->msoc >= 99 && health == POWER_SUPPLY_HEALTH_GOOD) {
+#endif
 			chip->charge_full = true;
 			qg_dbg(chip, QG_DEBUG_STATUS, "Setting charge_full (0->1) @ msoc=%d\n",
 					chip->msoc);
