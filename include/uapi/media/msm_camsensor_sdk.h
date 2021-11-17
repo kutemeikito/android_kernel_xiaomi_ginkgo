@@ -61,6 +61,9 @@ enum msm_sensor_camera_id_t {
 	CAMERA_1,
 	CAMERA_2,
 	CAMERA_3,
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	CAMERA_4,
+#endif
 	MAX_CAMERAS,
 };
 
@@ -75,7 +78,14 @@ enum i2c_freq_mode_t {
 enum camb_position_t {
 	BACK_CAMERA_B,
 	FRONT_CAMERA_B,
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	AUX_CAMERA_G_B = 0x110, /* for wide camera */
+	AUX_CAMERA_W_B = 0x120, /* for micro camera */
+#endif
 	AUX_CAMERA_B = 0x100,
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	AUX_CAMERA_FRONT_B = 0x101, /* for front aux camera */
+#endif
 	INVALID_CAMERA_B,
 };
 
@@ -316,6 +326,23 @@ struct msm_sensor_id_info_t {
 	struct msm_camera_i2c_reg_setting setting;
 };
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+enum msm_cci_i2c_master_t {
+	MSM_MASTER_0,
+	MSM_MASTER_1,
+	MSM_MASTER_MAX,
+};
+
+struct msm_vendor_id_info_t {
+	unsigned short eeprom_slave_addr;
+	unsigned short vendor_id_addr;
+	enum msm_camera_i2c_reg_addr_type addr_type;
+	unsigned short vendor_id;
+	enum msm_camera_i2c_data_type data_type;
+	enum msm_cci_i2c_master_t cci_i2c_master;
+};
+#endif
+
 struct msm_camera_sensor_slave_info {
 	char sensor_name[32];
 	char eeprom_name[32];
@@ -327,6 +354,9 @@ struct msm_camera_sensor_slave_info {
 	enum i2c_freq_mode_t i2c_freq_mode;
 	enum msm_camera_i2c_reg_addr_type addr_type;
 	struct msm_sensor_id_info_t sensor_id_info;
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	struct msm_vendor_id_info_t vendor_id_info;
+#endif
 	struct msm_sensor_power_setting_array power_setting_array;
 	unsigned char  is_init_params_valid;
 	struct msm_sensor_init_params sensor_init_params;
