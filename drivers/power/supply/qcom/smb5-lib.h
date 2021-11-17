@@ -27,6 +27,10 @@
 #include "storm-watch.h"
 #include "battery.h"
 
+#ifdef CONFIG_MACH_XIAOMI_C3J
+#define NS_QC3_CHG_WA
+#endif
+
 enum print_reason {
 	PR_INTERRUPT	= BIT(0),
 	PR_REGISTER	= BIT(1),
@@ -99,9 +103,22 @@ enum print_reason {
 #define ITERM_LIMITS_PM8150B_MA		10000
 #define ADC_CHG_ITERM_MASK		32767
 
+#ifdef CONFIG_MACH_XIAOMI_C3J
+#define SDP_100_MA			500000
+#else
 #define SDP_100_MA			100000
+#endif
 #define SDP_CURRENT_UA			500000
 #define CDP_CURRENT_UA			1500000
+
+#ifdef CONFIG_MACH_XIAOMI_C3J
+#define FLOAT_CURRENT_UA		1000000
+#define DCP_CURRENT_UA			2000000
+#define HVDCP_CURRENT_UA		3000000
+#define HVDCP2_CURRENT_UA		1500000
+#define TYPEC_HIGH_CURRENT_UA		3000000
+#else
+
 #define DCP_CURRENT_UA			1500000
 #define HVDCP_CURRENT_UA		3000000
 #define TYPEC_DEFAULT_CURRENT_UA	900000
@@ -412,6 +429,9 @@ struct smb_charger {
 	struct power_supply		*dc_psy;
 	struct power_supply		*bms_psy;
 	struct power_supply		*usb_main_psy;
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	struct power_supply_desc	usb_psy_desc;
+#endif
 	struct power_supply		*usb_port_psy;
 	struct power_supply		*wls_psy;
 	struct power_supply		*cp_psy;
@@ -588,6 +608,12 @@ struct smb_charger {
 	enum qc2_non_comp_voltage qc2_unsupported_voltage;
 	bool			dbc_usbov;
 
+#ifdef NS_QC3_CHG_WA
+	unsigned long		recent_collapse_time;
+	bool			hvdcp_disabled;
+	bool			collapsed;
+#endif
+
 	/* extcon for VBUS / ID notification to USB for uUSB */
 	struct extcon_dev	*extcon;
 
@@ -623,6 +649,11 @@ struct smb_charger {
 	int			micro_usb_pre_state;
 	bool			dcin_uusb_over_gpio_en;
 	bool			aicl_disable;
+
+#ifdef CONFIG_MACH_XIAOMI_C3J
+	struct			notifier_block notifier;
+	struct			work_struct fb_notify_work;
+#endif
 };
 
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val);
@@ -836,4 +867,10 @@ int smblib_get_qc3_main_icl_offset(struct smb_charger *chg, int *offset_ua);
 
 int smblib_init(struct smb_charger *chg);
 int smblib_deinit(struct smb_charger *chg);
+#ifdef CONFIG_MACH_XIAOMI_C3J
+int smblib_set_prop_battery_charging_enabled(struct smb_charger *chg,
+                const union power_supply_propval *val);
+int smblib_get_prop_battery_charging_enabled(struct smb_charger *chg,
+                union power_supply_propval *val);
+#endif
 #endif /* __SMB5_CHARGER_H */
