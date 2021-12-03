@@ -126,20 +126,10 @@ struct fuse_conn;
 
 /**
  * Reference to lower filesystem file for read/write operations handled in
-<<<<<<< HEAD
- * passthrough mode.
- * This struct also tracks the credentials to be used for handling read/write
- * operations.
- */
-struct fuse_passthrough {
-	struct file *filp;
-	struct cred *cred;
-=======
  * passthrough mode
  */
 struct fuse_passthrough {
 	struct file *filp;
->>>>>>> e392621f3498 (FROMLIST: fuse: Definitions and ioctl for passthrough)
 };
 
 /** FUSE specific file data */
@@ -1047,11 +1037,8 @@ int fuse_passthrough_open(struct fuse_dev *fud,
 int fuse_passthrough_setup(struct fuse_conn *fc, struct fuse_file *ff,
 			   struct fuse_open_out *openarg);
 void fuse_passthrough_release(struct fuse_passthrough *passthrough);
-<<<<<<< HEAD
 ssize_t fuse_passthrough_read_iter(struct kiocb *iocb, struct iov_iter *to);
 ssize_t fuse_passthrough_write_iter(struct kiocb *iocb, struct iov_iter *from);
 ssize_t fuse_passthrough_mmap(struct file *file, struct vm_area_struct *vma);
-=======
->>>>>>> e392621f3498 (FROMLIST: fuse: Definitions and ioctl for passthrough)
 
 #endif /* _FS_FUSE_I_H */
