@@ -142,6 +142,8 @@ static unsigned int android_version = 11;
 static int __init set_android_version(char *val)
 {
 	get_option(&val, &android_version);
+	pr_err("kernel: Detected Android version %d\n", android_version);
+
 	return 0;
 }
 __setup("androidboot.version=", set_android_version);
