@@ -403,9 +403,9 @@ void flush_delayed_fput_wait(void)
 	flush_delayed_work(&delayed_fput_work);
 }
 
-void fput(struct file *file)
+void fput_many(struct file *file, unsigned int refs)
 {
-	if (atomic_long_dec_and_test(&file->f_count)) {
+	if (atomic_long_sub_and_test(refs, &file->f_count)) {
 		struct task_struct *task = current;
 
 		if (likely(!in_interrupt() && !(task->flags & PF_KTHREAD))) {
@@ -423,6 +423,12 @@ void fput(struct file *file)
 			schedule_delayed_work(&delayed_fput_work, 1);
 	}
 }
+
+void fput(struct file *file)
+{
+	fput_many(file, 1);
+}
+
 
 /*
  * synchronous analog of fput(); for kernel threads that might be needed
