@@ -36,8 +36,8 @@
 		vdd_io-supply   = <&pm6125_l9>;
 		vdd_ana-supply  = <&pm6125_l9>;
 		pinctrl-names = "fpc1020_reset_reset",
-			"fpc1020_reset_active",
-			"fpc1020_irq_active";
+				"fpc1020_reset_active",
+				"fpc1020_irq_active";
 		pinctrl-0 = <&msm_gpio_93>;
 		pinctrl-1 = <&msm_gpio_93_output_high>;
 		pinctrl-2 = <&msm_gpio_92>;

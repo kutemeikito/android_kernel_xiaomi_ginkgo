@@ -51,8 +51,8 @@
 
 &pm6125_adc_tm_iio {
 	io-channels = <&pm6125_vadc ADC_GPIO1_PU2>,
-			<&pm6125_vadc ADC_GPIO3_PU2>,
-			<&pm6125_vadc ADC_GPIO4_PU2>;
+		      <&pm6125_vadc ADC_GPIO3_PU2>,
+		      <&pm6125_vadc ADC_GPIO4_PU2>;
 
 	backlight_therm {
 		reg = <ADC_GPIO4_PU2>;

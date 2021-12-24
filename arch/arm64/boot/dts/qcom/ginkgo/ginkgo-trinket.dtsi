@@ -57,7 +57,7 @@
 };
 
 &soc {
-    restart@440b000 {
-        qcom,force-warm-reboot;
-    };
+	restart@440b000 {
+		qcom,force-warm-reboot;
+	};
 };

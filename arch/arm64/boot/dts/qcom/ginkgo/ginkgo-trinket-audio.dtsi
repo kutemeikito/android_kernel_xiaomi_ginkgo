@@ -100,9 +100,9 @@
 		compatible = "qcom,msm-cdc-pinctrl";
 		pinctrl-names = "aud_active", "aud_sleep";
 		pinctrl-0 = <&pri_i2s_sck_active &pri_i2s_ws_active
-			   &pri_i2s_data0_active &pri_i2s_data1_active>;
+			     &pri_i2s_data0_active &pri_i2s_data1_active>;
 		pinctrl-1 = <&pri_i2s_sck_sleep &pri_i2s_ws_sleep
-			   &pri_i2s_data0_sleep &pri_i2s_data1_sleep>;
+			     &pri_i2s_data0_sleep &pri_i2s_data1_sleep>;
 	};
 };
 

@@ -12,13 +12,13 @@
  * GNU General Public License for more details.
  */
 
- &rpm_bus {
-    rpm-regulator-ldoa14 {
-        status = "okay";
+&rpm_bus {
+	rpm-regulator-ldoa14 {
+		status = "okay";
 
-        regulator-l14 {
-            status = "okay";
-            regulator-always-on;
-        };
-    };
+		regulator-l14 {
+			status = "okay";
+			regulator-always-on;
+		};
+	};
 };
