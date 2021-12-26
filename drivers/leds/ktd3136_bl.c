@@ -27,11 +27,10 @@
 
 #define SGM_NAME "ktd3136"
 
-int g_backlight_ic = 0; /* 1 -->ktd3137, 2 -->lm3697 */
+static int g_backlight_ic = 0; /* 1 -->ktd3137, 2 -->lm3697 */
 
-struct ktd3137_chip *bkl_chip;
-int i2c_flag = 0;
-int i2c_sgm_write(struct i2c_client *client, uint8_t command, uint8_t data);
+static struct ktd3137_chip *bkl_chip;
+static int i2c_flag = 0;
 
 #define HBM_MODE_DEFAULT 0
 #define HBM_MODE_LEVEL1 1
@@ -85,7 +84,7 @@ static int ktd3137_masked_write(struct i2c_client *client,
 	return rc;
 }
 
-int i2c_sgm_write(struct i2c_client *client, uint8_t command, uint8_t data)
+static int i2c_sgm_write(struct i2c_client *client, uint8_t command, uint8_t data)
 {
 	int retry; /* loop_i */
 	uint8_t buf[1 + 1];
@@ -146,7 +145,7 @@ static int sgm_init_registers(void)
 	return ret;
 }
 
-int lm3697_brightness_set(uint16_t brightness)
+static int lm3697_brightness_set(uint16_t brightness)
 {
 	int err;
 
@@ -165,7 +164,7 @@ int lm3697_brightness_set(uint16_t brightness)
 	return err;
 }
 
-void ktd3137_brightness_set_workfunc(struct ktd3137_chip *chip, int brightness)
+static void ktd3137_brightness_set_workfunc(struct ktd3137_chip *chip, int brightness)
 {
 	struct ktd3137_bl_pdata *pdata = chip->pdata;
 
@@ -212,7 +211,7 @@ int sgm_brightness_set(uint16_t brightness)
 }
 EXPORT_SYMBOL_GPL(sgm_brightness_set);
 
-int ktd_hbm_set(int hbm_mode)
+static int ktd_hbm_set(int hbm_mode)
 {
 	switch (hbm_mode) {
 	case HBM_MODE_DEFAULT:
@@ -243,7 +242,7 @@ int ktd_hbm_set(int hbm_mode)
 	return 0;
 }
 
-int lm_hbm_set(int hbm_mode)
+static int lm_hbm_set(int hbm_mode)
 {
 	switch (hbm_mode) {
 	case HBM_MODE_DEFAULT:
