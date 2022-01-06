@@ -21,6 +21,7 @@
 #include "ginkgo-trinket-ir.dtsi"
 #include "ginkgo-trinket-led.dtsi"
 #include "ginkgo-trinket-memory.dtsi"
+#include "ginkgo-trinket-nfc.dtsi"
 #include "ginkgo-trinket-pinctrl.dtsi"
 #include "ginkgo-trinket-pm6125.dtsi"
 #include "ginkgo-trinket-regulator.dtsi"
