@@ -30,6 +30,10 @@
 #endif
 #include <linux/jiffies.h>
 
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+extern char *saved_command_line;
+#endif
+
 struct nqx_platform_data {
 	unsigned int irq_gpio;
 	unsigned int en_gpio;
@@ -1620,6 +1624,13 @@ static int nfcc_reboot(struct notifier_block *notifier, unsigned long val,
  */
 static int __init nqx_dev_init(void)
 {
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
+	if (strstr(saved_command_line, "androidboot.product.hardware.sku=ginkgo")) {
+		pr_err("%s: Installed on ginkgo device, no need to initialize NFC NQ\n", __func__);
+		return -1;
+	}
+#endif
+
 	return i2c_add_driver(&nqx);
 }
 module_init(nqx_dev_init);
