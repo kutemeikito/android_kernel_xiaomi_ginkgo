@@ -1629,13 +1629,18 @@ static int nfcc_reboot(struct notifier_block *notifier, unsigned long val,
 static int __init nqx_dev_init(void)
 {
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
-	if (strstr(saved_command_line, "androidboot.product.hardware.sku=ginkgo")) {
-		pr_err("%s: Installed on ginkgo device, no need to initialize NFC NQ\n", __func__);
+	if ((strstr(saved_command_line, "androidboot.hwversion=18.31.0")) || 
+	    (strstr(saved_command_line, "androidboot.hwversion=18.39.0")) || 
+	    (strstr(saved_command_line, "androidboot.hwversion=19.39.0"))) {
+		pr_err("%s: Installed on the willow device, initialization starts\n", __func__);
+		return i2c_add_driver(&nqx);
+	} else {
+		pr_err("%s: Installed on the ginkgo device, no need to initialize NFC NQ\n", __func__);
 		return -1;
 	}
-#endif
-
+#else
 	return i2c_add_driver(&nqx);
+#endif
 }
 module_init(nqx_dev_init);
 
