@@ -4131,7 +4131,6 @@ retry_cpuset:
 		wake_all_kswapds(order, gfp_mask, ac);
 		if (!used_vmpressure)
 			used_vmpressure = vmpressure_inc_users(order);
-		wake_all_kswapds(order, ac);
 	}
 
 	/*
