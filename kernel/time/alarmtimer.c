@@ -330,11 +330,7 @@ static int alarmtimer_suspend(struct device *dev)
 	/* Set alarm, if in the past reject suspend briefly to handle */
 	ret = rtc_timer_start(rtc, &rtctimer, now, 0);
 	if (ret < 0)
-<<<<<<< HEAD
-		__pm_wakeup_event(ws, MSEC_PER_SEC);
-=======
 		pm_wakeup_event(dev, MSEC_PER_SEC);
->>>>>>> 311e42bc30ea... alarmtimer: Use wakeup source from alarmtimer platform device
 	return ret;
 }
 
