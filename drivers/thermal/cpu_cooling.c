@@ -338,34 +338,6 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-/* add for thermal begin */
-void cpu_limits_set_level(unsigned int cpu, unsigned int max_freq)
-{
-	struct cpufreq_cooling_device *cpufreq_cdev;
-	struct thermal_cooling_device *cdev;
-	unsigned int level;
-
-	list_for_each_entry(cpufreq_cdev, &cpufreq_cdev_list, node) {
-		if (cpufreq_cdev->id == cpu) {
-			for (level = 0; level < cpufreq_cdev->max_level; level++) {
-				int target_freq = cpufreq_cdev->freq_table[level].frequency;
-				if (max_freq >= target_freq) {
-					cdev = cpufreq_cdev->cdev;
-					if (cdev)
-						cdev->ops->set_cur_state(cdev, level);
-
-					break;
-				}
-			}
-
-			break;
-		}
-	}
-}
-/* add for thermal end */
-#endif
-
 /**
  * update_freq_table() - Update the freq table with power numbers
  * @cpufreq_cdev:	the cpufreq cooling device in which to update the table
@@ -762,6 +734,28 @@ update_frequency:
 
 	return 0;
 }
+
+#ifdef CONFIG_MACH_XIAOMI_MOJITO
+void cpu_limits_set_level(unsigned int cpu, unsigned int requested)
+{
+	struct cpufreq_cooling_device *cpufreq_cdev;
+	int i, target;
+
+	list_for_each_entry(cpufreq_cdev, &cpufreq_cdev_list, node) {
+		if (cpufreq_cdev->id == cpu) {
+			for (i = 0; i < cpufreq_cdev->max_level; i++) {
+				target = cpufreq_cdev->freq_table[i].frequency;
+				if (requested >= target && cpufreq_cdev->cdev) {
+					cpufreq_set_cur_state(cpufreq_cdev->cdev, i);
+					break;
+				}
+			}
+
+			break;
+		}
+	}
+}
+#endif
 
 /**
  * cpufreq_get_requested_power() - get the current power
