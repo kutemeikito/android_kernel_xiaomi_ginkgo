@@ -1797,7 +1797,10 @@ static void ipa3_wq_handle_rx(struct work_struct *work)
 			IPA_ACTIVE_CLIENTS_INC_SPECIAL("NAPI");
 		else
 			ipa_pm_activate_sync(sys->pm_hdl);
+
+		local_bh_disable();
 		napi_schedule(sys->napi_obj);
+		local_bh_enable();
 		IPA_STATS_INC_CNT(sys->napi_sch_cnt);
 	} else
 		ipa3_handle_rx(sys);
