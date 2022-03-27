@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2018-2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -27,6 +27,9 @@
 #include <reg_services_public_struct.h>
 #include <wmi_unified_param.h>
 #include <sir_api.h>
+
+#define OWE_TRANSITION_OUI_TYPE "\x50\x6f\x9a\x1c"
+#define OWE_TRANSITION_OUI_SIZE 4
 
 #define CFG_PMKID_MODES_OKC                        (0x1)
 #define CFG_PMKID_MODES_PMKSA_CACHING              (0x2)
@@ -1856,6 +1859,7 @@ struct wlan_mlme_wmm_params {
  * @pcl_weightage: PCL weightage
  * @channel_congestion_weightage: channel congestion weightage
  * @oce_wan_weightage: OCE WAN metrics weightage
+ * @sae_pk_ap_weightage: SAE-PK AP weigtage
  */
 struct  wlan_mlme_weight_config {
 	uint8_t rssi_weightage;
@@ -1869,6 +1873,7 @@ struct  wlan_mlme_weight_config {
 	uint8_t pcl_weightage;
 	uint8_t channel_congestion_weightage;
 	uint8_t oce_wan_weightage;
+	uint8_t sae_pk_ap_weightage;
 };
 
 /**
@@ -2183,6 +2188,7 @@ struct wlan_mlme_btm {
  */
 struct wlan_mlme_fe_wlm {
 	bool latency_enable;
+	bool latency_reset;
 	uint8_t latency_level;
 	uint32_t latency_flags[MLME_NUM_WLM_LATENCY_LEVEL];
 };
@@ -2221,10 +2227,22 @@ struct wlan_mlme_mwc {
 #endif
 
 /**
+ * enum mlme_reg_srd_master_modes  - Bitmap of SRD master modes supported
+ * @MLME_SRD_MASTER_MODE_SAP: SRD master mode for SAP
+ * @MLME_SRD_MASTER_MODE_P2P_GO: SRD master mode for P2P-GO
+ * @MLME_SRD_MASTER_MODE_NAN: SRD master mode for NAN
+ */
+enum mlme_reg_srd_master_modes {
+	MLME_SRD_MASTER_MODE_SAP = 1,
+	MLME_SRD_MASTER_MODE_P2P_GO = 2,
+	MLME_SRD_MASTER_MODE_NAN = 4,
+};
+
+/**
  * struct wlan_mlme_reg - REG related configs
  * @self_gen_frm_pwr: self-generated frame power in tx chain mask
  * for CCK rates
- * @etsi13_srd_chan_in_master_mode: etsi13 srd chan in master mode
+ * @etsi_srd_chan_in_master_mode: etsi srd chan in master mode
  * @restart_beaconing_on_ch_avoid: restart beaconing on ch avoid
  * @indoor_channel_support: indoor channel support
  * @scan_11d_interval: scan 11d interval
@@ -2240,10 +2258,11 @@ struct wlan_mlme_mwc {
  * @enable_pending_chan_list_req: enables/disables scan channel
  * list command to FW till the current scan is complete.
  * @retain_nol_across_regdmn_update: Retain the NOL list across the regdomain.
+ * @enable_nan_on_indoor_channels: Enable nan on Indoor channels
  */
 struct wlan_mlme_reg {
 	uint32_t self_gen_frm_pwr;
-	bool etsi13_srd_chan_in_master_mode;
+	uint8_t etsi_srd_chan_in_master_mode;
 	enum restart_beaconing_on_ch_avoid_rule
 		restart_beaconing_on_ch_avoid;
 	bool indoor_channel_support;
@@ -2260,6 +2279,7 @@ struct wlan_mlme_reg {
 	bool ignore_fw_reg_offload_ind;
 	bool enable_pending_chan_list_req;
 	bool retain_nol_across_regdmn_update;
+	bool enable_nan_on_indoor_channels;
 };
 
 /**
