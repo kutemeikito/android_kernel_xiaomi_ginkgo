@@ -165,15 +165,6 @@ int ion_hyp_assign_sg(struct sg_table *sgt, int *dest_vm_list,
 		if (dest_vm_list[i] == VMID_CP_SEC_DISPLAY ||
 		    dest_vm_list[i] == VMID_CP_DSP_EXT)
 			dest_perms[i] = PERM_READ;
-		else if (dest_vm_list[i] == VMID_CP_CDSP)
-			dest_perms[i] = PERM_READ | PERM_WRITE | PERM_EXEC;
-		else if (dest_vm_list[i] == VMID_CP_CAMERA_ENCODE) {
-			j = i;
-			dest_perms[i] = PERM_READ | PERM_WRITE;
-		} else if (dest_vm_list[i] == VMID_CP_CAMERA) {
-			k = i;
-			dest_perms[i] = PERM_READ | PERM_WRITE;
-		}
 		else
 			dest_perms[i] = PERM_READ | PERM_WRITE;
 	}
