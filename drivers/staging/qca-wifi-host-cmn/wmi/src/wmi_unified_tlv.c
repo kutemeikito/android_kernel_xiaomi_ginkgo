@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2020 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2016-2021 The Linux Foundation. All rights reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software for
  * any purpose with or without fee is hereby granted, provided that the
@@ -3304,6 +3304,10 @@ static QDF_STATUS send_scan_chan_list_cmd_tlv(wmi_unified_t wmi_handle,
 			if (tchan_info->psc_channel)
 				WMI_SET_CHANNEL_FLAG(chan_info,
 						     WMI_CHAN_FLAG_PSC);
+
+			if (tchan_info->nan_disabled)
+				WMI_SET_CHANNEL_FLAG(chan_info,
+					     WMI_CHAN_FLAG_NAN_DISABLED);
 
 			/* also fill in power information */
 			WMI_SET_CHANNEL_MIN_POWER(chan_info,
@@ -6661,6 +6665,19 @@ static void wmi_copy_twt_resource_config(wmi_resource_config *resource_cfg,
 }
 #endif
 
+#ifdef WLAN_FEATURE_NAN
+static void wmi_set_nan_channel_support(wmi_resource_config *resource_cfg)
+{
+	WMI_RSRC_CFG_HOST_SERVICE_FLAG_NAN_CHANNEL_SUPPORT_SET(
+		resource_cfg->host_service_flags, 1);
+}
+#else
+static inline
+void wmi_set_nan_channel_support(wmi_resource_config *resource_cfg)
+{
+}
+#endif
+
 static
 void wmi_copy_resource_config(wmi_resource_config *resource_cfg,
 				target_resource_config *tgt_res_cfg)
@@ -6868,6 +6885,7 @@ void wmi_copy_resource_config(wmi_resource_config *resource_cfg,
 		resource_cfg->host_service_flags,
 		tgt_res_cfg->nan_separate_iface_support);
 
+	wmi_set_nan_channel_support(resource_cfg);
 }
 
 /* copy_hw_mode_id_in_init_cmd() - Helper routine to copy hw_mode in init cmd
@@ -9008,6 +9026,11 @@ static QDF_STATUS extract_mgmt_rx_params_tlv(wmi_unified_t wmi_handle,
 		return QDF_STATUS_E_INVAL;
 	}
 
+	if (ev_hdr->buf_len > param_tlvs->num_bufp) {
+		WMI_LOGE("Rx mgmt frame length mismatch, discard it");
+		return QDF_STATUS_E_INVAL;
+	}
+
 	hdr->pdev_id = wmi_handle->ops->convert_pdev_id_target_to_host(
 							wmi_handle,
 							ev_hdr->pdev_id);
@@ -10872,6 +10895,9 @@ static QDF_STATUS extract_fips_event_data_tlv(wmi_unified_t wmi_handle,
 
 	param_buf = (WMI_PDEV_FIPS_EVENTID_param_tlvs *) evt_buf;
 	event = (wmi_pdev_fips_event_fixed_param *) param_buf->fixed_param;
+
+	if (event->data_len > param_buf->num_data)
+		return QDF_STATUS_E_FAILURE;
 
 	if (fips_conv_data_be(event->data_len, param_buf->data) !=
 							QDF_STATUS_SUCCESS)
@@ -13268,6 +13294,50 @@ extract_time_sync_ftm_offset_event_tlv(wmi_unified_t wmi, void *buf,
 }
 #endif /* FEATURE_WLAN_TIME_SYNC_FTM */
 
+/**
+ * extract_install_key_comp_event_tlv() - extract install key complete event tlv
+ * @wmi_handle: wmi handle
+ * @evt_buf: pointer to event buffer
+ * @len: length of the event buffer
+ * @param: Pointer to hold install key complete event param
+ *
+ * Return: QDF_STATUS_SUCCESS for success or error code
+ */
+static QDF_STATUS
+extract_install_key_comp_event_tlv(wmi_unified_t wmi_handle,
+				   void *evt_buf, uint32_t len,
+				   struct wmi_install_key_comp_event *param)
+{
+	WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *param_buf;
+	wmi_vdev_install_key_complete_event_fixed_param *key_fp;
+
+	if (len < sizeof(*param_buf)) {
+		wmi_err("invalid event buf len %d", len);
+		return QDF_STATUS_E_INVAL;
+	}
+
+	param_buf = (WMI_VDEV_INSTALL_KEY_COMPLETE_EVENTID_param_tlvs *)evt_buf;
+	if (!param_buf) {
+		wmi_err("received null buf from target");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	key_fp = param_buf->fixed_param;
+	if (!key_fp) {
+		wmi_err("received null event data from target");
+		return QDF_STATUS_E_INVAL;
+	}
+
+	param->vdev_id = key_fp->vdev_id;
+	param->key_ix = key_fp->key_ix;
+	param->key_flags = key_fp->key_flags;
+	param->status = key_fp->status;
+	WMI_MAC_ADDR_TO_CHAR_ARRAY(&key_fp->peer_macaddr,
+				   param->peer_macaddr);
+
+	return QDF_STATUS_SUCCESS;
+}
+
 struct wmi_ops tlv_ops =  {
 	.send_vdev_create_cmd = send_vdev_create_cmd_tlv,
 	.send_vdev_delete_cmd = send_vdev_delete_cmd_tlv,
@@ -13593,6 +13663,7 @@ struct wmi_ops tlv_ops =  {
 					extract_time_sync_ftm_offset_event_tlv,
 #endif /* FEATURE_WLAN_TIME_SYNC_FTM */
 	.send_roam_scan_ch_list_req_cmd = send_roam_scan_ch_list_req_cmd_tlv,
+	.extract_install_key_comp_event = extract_install_key_comp_event_tlv,
 };
 
 /**
@@ -14310,6 +14381,7 @@ void wmi_tlv_attach(wmi_unified_t wmi_handle)
 	wmi_fwol_attach_tlv(wmi_handle);
 	wmi_vdev_attach_tlv(wmi_handle);
 	wmi_cfr_attach_tlv(wmi_handle);
+	wmi_gpio_attach_tlv(wmi_handle);
 }
 qdf_export_symbol(wmi_tlv_attach);
 
