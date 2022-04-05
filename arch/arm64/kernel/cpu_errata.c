@@ -741,6 +741,13 @@ const struct arm64_cpu_capabilities arm64_errata[] = {
 				  15, 14,
 				  15, 15),
 	},
+	{
+		.desc = "Spectre-BHB",
+		.capability = ARM64_SPECTRE_BHB,
+		.type = ARM64_CPUCAP_LOCAL_CPU_ERRATUM,
+		.matches = is_spectre_bhb_affected,
+		.cpu_enable = spectre_bhb_enable_mitigation,
+	},
 #endif
 	{
 	}

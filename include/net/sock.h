@@ -2461,7 +2461,6 @@ static inline void sk_pacing_shift_update(struct sock *sk, int val)
 
 int sockev_register_notify(struct notifier_block *nb);
 int sockev_unregister_notify(struct notifier_block *nb);
-
 /* On 32bit arches, an skb frag is limited to 2^15 */
 #define SKB_FRAG_PAGE_ORDER	get_order(32768)
 
