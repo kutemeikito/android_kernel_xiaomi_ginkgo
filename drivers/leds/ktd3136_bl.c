@@ -211,27 +211,43 @@ int sgm_brightness_set(uint16_t brightness)
 }
 EXPORT_SYMBOL_GPL(sgm_brightness_set);
 
-static int ktd_hbm_set(int hbm_mode)
+int backlight_hbm_set(int hbm_mode)
 {
 	switch (hbm_mode) {
 	case HBM_MODE_DEFAULT:
-		ktd3137_write_reg(bkl_chip->client, REG_MODE, 0x81);
-		i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		if (g_backlight_ic == 1) {
+			ktd3137_write_reg(bkl_chip->client, REG_MODE, 0x81);
+			i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		} else {
+			i2c_sgm_write(bkl_chip->client, 0x18, 0x10);
+		}
 		pr_err("Turn off hbm mode \n");
 		break;
 	case HBM_MODE_LEVEL1:
-		ktd3137_write_reg(bkl_chip->client, REG_MODE, 0x99);
-		i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		if (g_backlight_ic == 1) {
+			ktd3137_write_reg(bkl_chip->client, REG_MODE, 0x99);
+			i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		} else {
+			i2c_sgm_write(bkl_chip->client, 0x18, 0x13);
+		}
 		pr_err("This is hbm mode 1\n");
 		break;
 	case HBM_MODE_LEVEL2:
-		ktd3137_write_reg(bkl_chip->client, REG_MODE, 0xB1);
-		i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		if (g_backlight_ic == 1) {
+			ktd3137_write_reg(bkl_chip->client, REG_MODE, 0xB1);
+			i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		} else {
+			i2c_sgm_write(bkl_chip->client, 0x18, 0x16);
+		}
 		pr_err("This is hbm mode 2\n");
 		break;
 	case HBM_MODE_LEVEL3:
-		ktd3137_write_reg(bkl_chip->client, REG_MODE, 0xC9);
-		i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		if (g_backlight_ic == 1) {
+			ktd3137_write_reg(bkl_chip->client, REG_MODE, 0xC9);
+			i2c_sgm_write(bkl_chip->client, 0x8, 0x3);
+		} else {
+			i2c_sgm_write(bkl_chip->client, 0x18, 0x19);
+		}
 		pr_err("This is hbm mode 3\n");
 		break;
 	default:
@@ -239,43 +255,7 @@ static int ktd_hbm_set(int hbm_mode)
 		break;
 	}
 
-	return 0;
-}
-
-static int lm_hbm_set(int hbm_mode)
-{
-	switch (hbm_mode) {
-	case HBM_MODE_DEFAULT:
-		i2c_sgm_write(bkl_chip->client, 0x18, 0x10);
-		pr_info("Turn off hbm mode \n");
-		break;
-	case HBM_MODE_LEVEL1:
-		i2c_sgm_write(bkl_chip->client, 0x18, 0x13);
-		pr_info("This is hbm mode 1\n");
-		break;
-	case HBM_MODE_LEVEL2:
-		i2c_sgm_write(bkl_chip->client, 0x18, 0x16);
-		pr_info("This is hbm mode 2\n");
-		break;
-	case HBM_MODE_LEVEL3:
-		i2c_sgm_write(bkl_chip->client, 0x18, 0x19);
-		pr_info("This is hbm mode 3\n");
-		break;
-	default:
-		pr_info("This isn't hbm mode\n");
-		break;
-	}
-
-	return  0;
-}
-
-int backlight_hbm_set(int hbm_mode)
-{
 	pr_info("%s hbm mode = %d\n", __func__, hbm_mode);
-	if (g_backlight_ic == 1)
-		ktd_hbm_set(hbm_mode);
-	else
-		lm_hbm_set(hbm_mode);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(backlight_hbm_set);
