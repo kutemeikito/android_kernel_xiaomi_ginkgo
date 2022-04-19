@@ -33,7 +33,6 @@
 #include <linux/sched/topology.h>
 #include <linux/sched/sysctl.h>
 #include <linux/battery_saver.h>
-#include <linux/binfmts.h>
 
 #include <trace/events/power.h>
 
@@ -728,12 +727,12 @@ static ssize_t store_##file_name					\
 	int ret, temp;							\
 	struct cpufreq_policy new_policy;				\
 									\
-	if (task_is_booster(current) &&					\
-		&policy->object == &policy->min)			\
+	if (IS_ENABLED(CONFIG_CPU_INPUT_BOOST) && 			\
+	    &policy->object == &policy->min)				\
 		return count;						\
 									\
-	if (task_is_booster(current) &&					\
-		&policy->object == &policy->max)			\
+	if (IS_ENABLED(CONFIG_CPU_INPUT_BOOST) && 			\
+	    &policy->object == &policy->max)				\
 		return count;						\
 									\
 	memcpy(&new_policy, policy, sizeof(*policy));			\
