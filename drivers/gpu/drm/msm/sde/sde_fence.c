@@ -93,9 +93,6 @@ uint32_t sde_sync_get_name_prefix(void *fence)
 struct sde_fence {
 	struct dma_fence base;
 	struct sde_fence_context *ctx;
-#ifdef CONFIG_FENCE_DEBUG
-	char name[SDE_FENCE_NAME_SIZE];
-#endif
 	struct list_head	fence_list;
 	int fd;
 };
@@ -120,13 +117,7 @@ static inline struct sde_fence *to_sde_fence(struct dma_fence *fence)
 
 static const char *sde_fence_get_driver_name(struct dma_fence *fence)
 {
-#ifdef CONFIG_FENCE_DEBUG
-	struct sde_fence *f = to_sde_fence(fence);
-
-	return f->name;
-#else
 	return "sde_fence";
-#endif
 }
 
 static const char *sde_fence_get_timeline_name(struct dma_fence *fence)
@@ -221,10 +212,6 @@ static int _sde_fence_create_fd(void *fence_ctx, uint32_t val)
 		return -ENOMEM;
 
 	sde_fence->ctx = fence_ctx;
-#ifdef CONFIG_FENCE_DEBUG
-	snprintf(sde_fence->name, SDE_FENCE_NAME_SIZE, "sde_fence:%s:%u",
-						sde_fence->ctx->name, val);
-#endif
 	dma_fence_init(&sde_fence->base, &sde_fence_ops, &ctx->lock,
 		ctx->context, val);
 	kref_get(&ctx->kref);
@@ -232,10 +219,8 @@ static int _sde_fence_create_fd(void *fence_ctx, uint32_t val)
 	/* create fd */
 	fd = get_unused_fd_flags(0);
 	if (fd < 0) {
-#ifdef CONFIG_FENCE_DEBUG
-		SDE_ERROR("failed to get_unused_fd_flags(), %s\n",
-							sde_fence->name);
-#endif
+		SDE_ERROR("failed to get_unused_fd_flags(), sde_fence:%s:%u\n",
+			  sde_fence->ctx->name, val);
 		dma_fence_put(&sde_fence->base);
 		goto exit;
 	}
@@ -245,9 +230,8 @@ static int _sde_fence_create_fd(void *fence_ctx, uint32_t val)
 	if (sync_file == NULL) {
 		put_unused_fd(fd);
 		fd = -EINVAL;
-#ifdef CONFIG_FENCE_DEBUG
-		SDE_ERROR("couldn't create fence, %s\n", sde_fence->name);
-#endif
+		SDE_ERROR("couldn't create fence, sde_fence:%s:%u\n",
+			  sde_fence->ctx->name, val);
 		dma_fence_put(&sde_fence->base);
 		goto exit;
 	}
