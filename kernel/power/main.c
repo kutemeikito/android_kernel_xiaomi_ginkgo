@@ -15,6 +15,8 @@
 #include <linux/workqueue.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
+#include <linux/android_version.h>
+#include <linux/binfmts.h>
 
 #include "power.h"
 
@@ -127,8 +129,10 @@ static ssize_t mem_sleep_store(struct kobject *kobj, struct kobj_attribute *attr
 	suspend_state_t state;
 	int error;
 
-	/* Don't allow userspace to select s2idle */
-	return n;
+	/* Don't allow userspace to select s2idle if using Android < 12 */
+	if ((get_android_version() < 12) && (task_is_booster(current)))
+		return n;
+
 	error = pm_autosleep_lock();
 	if (error)
 		return error;
