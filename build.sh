@@ -28,14 +28,14 @@ done
 CONFIG=vendor/ginkgo-perf_defconfig
 KERNEL_DIR=$(pwd)
 PARENT_DIR="$(dirname "$KERNEL_DIR")"
-KERN_IMG="/home/Ryuzen/out-memer/arch/arm64/boot/Image.gz-dtb"
-DTBO_IMG="/home/Ryuzen/out-memer/arch/arm64/boot/dtbo.img"
+KERN_IMG="/home/Ryuzenn/out-memer/arch/arm64/boot/Image.gz-dtb"
+DTBO_IMG="/home/Ryuzenn/out-memer/arch/arm64/boot/dtbo.img"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="RastaMod69"
-export PATH="/home/Ryuzen/toolchain/rastamod-clang/bin:$PATH"
-export LD_LIBRARY_PATH="/home/ryuzRyuzenenn/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
-export KBUILD_COMPILER_STRING="$(/home/Ryuzen/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
-export out=/home/Ryuzen/out-memer
+export PATH="/home/Ryuzenn/toolchain/rastamod-clang/bin:$PATH"
+export LD_LIBRARY_PATH="/home/Ryuzenn/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
+export KBUILD_COMPILER_STRING="$(/home/Ryuzenn/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
+export out=/home/Ryuzenn/out-memer
 
 # Functions
 clang_build () {
