@@ -68,7 +68,7 @@
 static int enable_lmk = 1;
 module_param_named(enable_lmk, enable_lmk, int, 0644);
 
-static u32 lowmem_debug_level = 1;
+static u32 lowmem_debug_level = 0;
 static short lowmem_adj[6] = {
 	0,
 	1,
@@ -120,7 +120,6 @@ enum {
 
 /* User knob to enable/disable adaptive lmk feature */
 static int enable_adaptive_lmk = ADAPTIVE_LMK_DISABLED;
-module_param_named(enable_adaptive_lmk, enable_adaptive_lmk, int, 0644);
 
 /*
  * This parameter controls the behaviour of LMK when vmpressure is in
@@ -446,7 +445,12 @@ static int get_minfree_scalefactor(gfp_t gfp_mask)
 	struct zoneref *z;
 	struct zone *zone;
 	unsigned long nr_usable = 0;
+	unsigned long nr_pages = totalram_pages();
 
+	for_each_zone_zonelist(zone, z, zonelist, gfp_zone(gfp_mask))
+		nr_usable += zone_managed_pages(zone);
+
+	return max_t(int, 1, mult_frac(100, nr_usable, nr_pages));
 }
 
 static void mark_lmk_victim(struct task_struct *tsk)
@@ -814,4 +818,3 @@ module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
 module_param_named(lmk_fast_run, lmk_fast_run, int, S_IRUGO | S_IWUSR);
-
