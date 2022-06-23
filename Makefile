@@ -429,8 +429,6 @@ ifeq ($(CONFIG_EARLY_INIT),true)
 KBUILD_CFLAGS    += -DCONFIG_EARLY_SERVICES
 endif
 
-KBUILD_CFLAGS    += -Werror=vla
-
 KBUILD_CPPFLAGS := -D__KERNEL__
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -703,6 +701,7 @@ KBUILD_CFLAGS	+= -mllvm -polly \
 		   
 ifeq ($(cc-name),gcc)
 KBUILD_CFLAGS += -mtune=cortex-a73.cortex-a53 -march=armv8-a
+endif
 endif
 
 KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
