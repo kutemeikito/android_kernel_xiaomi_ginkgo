@@ -1223,6 +1223,13 @@ static inline int adreno_is_##_name(struct adreno_device *adreno_dev) \
 	return (ADRENO_GPUREV(adreno_dev) == (_id)); \
 }
 
+#define ADRENO_TARGET_DISABLED(_name, _id) \
+static inline int adreno_is_##_name(struct adreno_device *adreno_dev) \
+{ \
+	return 0; \
+}
+
+#if 0
 static inline int adreno_is_a3xx(struct adreno_device *adreno_dev)
 {
 	return ((ADRENO_GPUREV(adreno_dev) >= 300) &&
@@ -1326,14 +1333,6 @@ static inline int adreno_is_a540v2(struct adreno_device *adreno_dev)
 		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 1);
 }
 
-static inline int adreno_is_a6xx(struct adreno_device *adreno_dev)
-{
-	return ADRENO_GPUREV(adreno_dev) >= 600 &&
-			ADRENO_GPUREV(adreno_dev) < 700;
-}
-
-ADRENO_TARGET(a610, ADRENO_REV_A610)
-ADRENO_TARGET(a612, ADRENO_REV_A612)
 ADRENO_TARGET(a618, ADRENO_REV_A618)
 ADRENO_TARGET(a630, ADRENO_REV_A630)
 ADRENO_TARGET(a640, ADRENO_REV_A640)
@@ -1386,6 +1385,147 @@ static inline int adreno_is_a680v2(struct adreno_device *adreno_dev)
 	return (ADRENO_GPUREV(adreno_dev) == ADRENO_REV_A680) &&
 		(ADRENO_CHIPID_PATCH(adreno_dev->chipid) == 1);
 }
+#else
+static inline int adreno_is_a3xx(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+ADRENO_TARGET_DISABLED(a304, ADRENO_REV_A304)
+ADRENO_TARGET_DISABLED(a305, ADRENO_REV_A305)
+ADRENO_TARGET_DISABLED(a305b, ADRENO_REV_A305B)
+ADRENO_TARGET_DISABLED(a305c, ADRENO_REV_A305C)
+ADRENO_TARGET_DISABLED(a306, ADRENO_REV_A306)
+ADRENO_TARGET_DISABLED(a306a, ADRENO_REV_A306A)
+ADRENO_TARGET_DISABLED(a310, ADRENO_REV_A310)
+ADRENO_TARGET_DISABLED(a320, ADRENO_REV_A320)
+ADRENO_TARGET_DISABLED(a330, ADRENO_REV_A330)
+
+static inline int adreno_is_a330v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a330v21(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a4xx(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+ADRENO_TARGET_DISABLED(a405, ADRENO_REV_A405);
+
+static inline int adreno_is_a405v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+ADRENO_TARGET_DISABLED(a418, ADRENO_REV_A418)
+ADRENO_TARGET_DISABLED(a420, ADRENO_REV_A420)
+ADRENO_TARGET_DISABLED(a430, ADRENO_REV_A430)
+
+static inline int adreno_is_a430v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a5xx(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+ADRENO_TARGET_DISABLED(a504, ADRENO_REV_A504)
+ADRENO_TARGET_DISABLED(a505, ADRENO_REV_A505)
+ADRENO_TARGET_DISABLED(a506, ADRENO_REV_A506)
+ADRENO_TARGET_DISABLED(a508, ADRENO_REV_A508)
+ADRENO_TARGET_DISABLED(a510, ADRENO_REV_A510)
+ADRENO_TARGET_DISABLED(a512, ADRENO_REV_A512)
+ADRENO_TARGET_DISABLED(a530, ADRENO_REV_A530)
+ADRENO_TARGET_DISABLED(a540, ADRENO_REV_A540)
+
+static inline int adreno_is_a530v1(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a530v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a530v3(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a504_to_a506(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a540v1(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a540v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+ADRENO_TARGET_DISABLED(a618, ADRENO_REV_A618)
+ADRENO_TARGET_DISABLED(a630, ADRENO_REV_A630)
+ADRENO_TARGET_DISABLED(a640, ADRENO_REV_A640)
+ADRENO_TARGET_DISABLED(a680, ADRENO_REV_A680)
+
+static inline int adreno_is_a615_family(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a630v1(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a630v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a640v1(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a640v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a680v1(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+static inline int adreno_is_a680v2(struct adreno_device *adreno_dev)
+{
+	return 0;
+}
+
+#endif
+
+static inline int adreno_is_a6xx(struct adreno_device *adreno_dev)
+{
+	return ADRENO_GPUREV(adreno_dev) >= 600 &&
+			ADRENO_GPUREV(adreno_dev) < 700;
+}
+
+ADRENO_TARGET(a612, ADRENO_REV_A612)
+ADRENO_TARGET(a610, ADRENO_REV_A610)
 
 /*
  * adreno_checkreg_off() - Checks the validity of a register enum
