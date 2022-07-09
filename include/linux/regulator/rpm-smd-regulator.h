@@ -106,7 +106,7 @@ int rpm_regulator_set_voltage(struct rpm_regulator *regulator, int min_uV,
 int rpm_regulator_set_mode(struct rpm_regulator *regulator,
 				enum rpm_regulator_mode mode);
 
-int __init rpm_smd_regulator_driver_init(void);
+int rpm_smd_regulator_driver_init(void);
 
 #else
 
