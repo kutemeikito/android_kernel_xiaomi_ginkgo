@@ -2176,7 +2176,7 @@ static int dsi_panel_parse_misc_features(struct dsi_panel *panel)
 {
 	struct dsi_parser_utils *utils = &panel->utils;
 
-#ifdef CONFIG_MACH_XIAOMI_MOJITO
+#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	panel->ulps_feature_enabled = true;
 	panel->ulps_suspend_enabled = true;
 #else
