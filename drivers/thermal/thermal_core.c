@@ -1983,7 +1983,7 @@ error:
 
 static void thermal_exit(void)
 {
-#if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_MOJITO)
+#if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_GINKGO)
 	msm_drm_unregister_client(&sm.thermal_notifier);
 #endif
 	unregister_pm_notifier(&thermal_pm_nb);
