@@ -1269,16 +1269,15 @@ static int generic_ci_d_compare(const struct dentry *dentry, unsigned int len,
 	if (len <= DNAME_INLINE_LEN - 1) {
 		memcpy(strbuf, str, len);
 		strbuf[len] = 0;
-		entry.name = strbuf;
+		qstr.name = strbuf;
 		/* prevent compiler from optimizing out the temporary buffer */
 		barrier();
 	}
-
-	ret = utf8_strncasecmp(um, name, &entry);
+	ret = utf8_strncasecmp(um, name, &qstr);
 	if (ret >= 0)
 		return ret;
 
-	if (sb_has_enc_strict_mode(sb))
+	if (sb_has_strict_encoding(sb))
 		return -EINVAL;
 fallback:
 	if (len != name->len)
