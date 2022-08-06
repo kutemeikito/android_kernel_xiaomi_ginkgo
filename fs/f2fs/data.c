@@ -269,7 +269,8 @@ static void f2fs_post_read_work(struct work_struct *work)
 
 static void f2fs_read_end_io(struct bio *bio)
 {
-	struct f2fs_sb_info *sbi = F2FS_P_SB(bio->bi_io_vec->bv_page);
+	struct page *first_page = bio->bi_io_vec[0].bv_page;
+	struct f2fs_sb_info *sbi = F2FS_P_SB(first_page);
 	struct bio_post_read_ctx *ctx;
 
 	iostat_update_and_unbind_ctx(bio, 0);
@@ -283,6 +284,13 @@ static void f2fs_read_end_io(struct bio *bio)
 	if (bio->bi_status) {
 		f2fs_finish_read_bio(bio);
 		return;
+	}
+
+	if (first_page != NULL &&
+		__read_io_type(first_page) == F2FS_RD_DATA) {
+		trace_android_fs_dataread_end(first_page->mapping->host,
+						page_offset(first_page),
+						bio->bi_iter.bi_size);
 	}
 
 	if (ctx && (ctx->enabled_steps & (STEP_DECRYPT | STEP_DECOMPRESS))) {
@@ -941,8 +949,7 @@ alloc_new:
 		f2fs_set_bio_crypt_ctx(bio, fio->page->mapping->host,
 				       fio->page->index, fio,
 				       GFP_NOIO);
-		__attach_io_flag(fio);
-		bio_set_op_attrs(bio, fio->op, fio->op_flags);
+
 		add_bio_entry(fio->sbi, bio, page, fio->temp);
 	} else {
 		if (add_ipu_page(fio, &bio, page))
@@ -1058,10 +1065,13 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 	bio_set_op_attrs(bio, REQ_OP_READ, op_flag);
 	if (!bio)
 		return ERR_PTR(-ENOMEM);
+
+	f2fs_set_bio_crypt_ctx(bio, inode, first_idx, NULL, GFP_NOFS);
+
 	bio->bi_iter.bi_sector = sector;
 	bio->bi_end_io = f2fs_read_end_io;
 
-	if (f2fs_encrypted_file(inode))
+	if (fscrypt_inode_uses_fs_layer_crypto(inode))
 		post_read_steps |= STEP_DECRYPT;
 
 	if (f2fs_need_verity(inode, first_idx))
@@ -2331,14 +2341,6 @@ skip_reading_dnode:
 			continue;
 		}
 
-		f2fs_wait_on_block_writeback(inode, blkaddr);
-
-		if (f2fs_load_compressed_page(sbi, page, blkaddr)) {
-			if (atomic_dec_and_test(&dic->remaining_pages))
-				f2fs_decompress_cluster(dic);
-			continue;
-		}
-
 		if (bio && (!page_is_mergeable(sbi, bio,
 					*last_block_in_bio, blkaddr) ||
 		    !f2fs_crypt_mergeable_bio(bio, inode, page->index, NULL))) {
@@ -2536,7 +2538,7 @@ next_page:
 	}
 	BUG_ON(pages && !list_empty(pages));
 	if (bio)
-		__submit_bio(F2FS_I_SB(inode), bio, DATA);
+		__f2fs_submit_read_bio(F2FS_I_SB(inode), bio, DATA);
 
 	if (pages && is_readahead && !drop_ra)
 		WRITE_ONCE(F2FS_I(inode)->ra_offset, -1);
@@ -3866,6 +3868,29 @@ static ssize_t f2fs_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	do_opu = rw == WRITE && f2fs_lfs_mode(sbi);
 
 	trace_f2fs_direct_IO_enter(inode, offset, count, rw);
+
+	if (trace_android_fs_dataread_start_enabled() &&
+	    (rw == READ)) {
+		char *path, pathbuf[MAX_TRACE_PATHBUF_LEN];
+
+		path = android_fstrace_get_pathname(pathbuf,
+						    MAX_TRACE_PATHBUF_LEN,
+						    inode);
+		trace_android_fs_dataread_start(inode, offset,
+						count, current->pid, path,
+						current->comm);
+	}
+	if (trace_android_fs_datawrite_start_enabled() &&
+	    (rw == WRITE)) {
+		char *path, pathbuf[MAX_TRACE_PATHBUF_LEN];
+
+		path = android_fstrace_get_pathname(pathbuf,
+						    MAX_TRACE_PATHBUF_LEN,
+						    inode);
+		trace_android_fs_datawrite_start(inode, offset, count,
+						 current->pid, path,
+						 current->comm);
+	}
 
 	if (iocb->ki_flags & IOCB_NOWAIT) {
 		if (!f2fs_down_read_trylock(&fi->i_gc_rwsem[rw])) {

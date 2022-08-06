@@ -153,10 +153,6 @@ do_gc:
 		gc_control.no_bg_gc = foreground;
 		gc_control.nr_free_secs = foreground ? 1 : 0;
 
-		/* foreground GC was been triggered via f2fs_balance_fs() */
-		if (foreground)
-			sync_mode = false;
-
 		/* if return value is not zero, no victim was selected */
 		if (f2fs_gc(sbi, &gc_control))
 			wait_ms = gc_th->no_gc_sleep_time;
@@ -178,7 +174,6 @@ next:
 
 int f2fs_start_gc_thread(struct f2fs_sb_info *sbi)
 {
-	const struct sched_param param = { .sched_priority = 0 };
 	struct f2fs_gc_kthread *gc_th;
 	dev_t dev = sbi->sb->s_bdev->bd_dev;
 	int err = 0;
@@ -206,9 +201,6 @@ int f2fs_start_gc_thread(struct f2fs_sb_info *sbi)
 		kfree(gc_th);
 		sbi->gc_thread = NULL;
 	}
-	sched_setscheduler(sbi->gc_thread->f2fs_gc_task, SCHED_IDLE, &param);
-	set_task_ioprio(sbi->gc_thread->f2fs_gc_task,
-			IOPRIO_PRIO_VALUE(IOPRIO_CLASS_IDLE, 0));
 out:
 	return err;
 }
@@ -1875,9 +1867,6 @@ stop:
 
 	if (gc_type == FG_GC)
 		f2fs_unpin_all_sections(sbi, true);
-
-	if (gc_type == FG_GC && pinned_section_exists(DIRTY_I(sbi)))
-		unpin_all_sections(sbi);
 
 	trace_f2fs_gc_end(sbi->sb, ret, total_freed, sec_freed,
 				get_pages(sbi, F2FS_DIRTY_NODES),
