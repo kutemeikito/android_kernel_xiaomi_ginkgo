@@ -272,6 +272,7 @@ static void f2fs_read_end_io(struct bio *bio)
 {
 	struct f2fs_sb_info *sbi = F2FS_P_SB(bio->bi_io_vec[0].bv_page);
 	struct bio_post_read_ctx *ctx;
+	bool intask = in_task();
 
 	iostat_update_and_unbind_ctx(bio, 0);
 	ctx = bio->bi_private;
@@ -286,14 +287,25 @@ static void f2fs_read_end_io(struct bio *bio)
 		return;
 	}
 
-	if (first_page != NULL &&
-		__read_io_type(first_page) == F2FS_RD_DATA) {
-		trace_android_fs_dataread_end(first_page->mapping->host,
-						page_offset(first_page),
-						bio->bi_iter.bi_size);
+	if (ctx) {
+		unsigned int enabled_steps = ctx->enabled_steps &
+					(STEP_DECRYPT | STEP_DECOMPRESS);
+
+		/*
+		 * If we have only decompression step between decompression and
+		 * decrypt, we don't need post processing for this.
+		 */
+		if (enabled_steps == STEP_DECOMPRESS &&
+				!f2fs_low_mem_mode(sbi)) {
+			f2fs_handle_step_decompress(ctx, intask);
+		} else if (enabled_steps) {
+			INIT_WORK(&ctx->work, f2fs_post_read_work);
+			queue_work(ctx->sbi->post_read_wq, &ctx->work);
+			return;
+		}
 	}
 
-	__f2fs_read_end_io(bio, false, false);
+	f2fs_verify_and_finish_bio(bio, intask);
 }
 
 static void f2fs_write_end_io(struct bio *bio)
@@ -915,8 +927,7 @@ alloc_new:
 		f2fs_set_bio_crypt_ctx(bio, fio->page->mapping->host,
 				       fio->page->index, fio,
 				       GFP_NOIO);
-		__attach_io_flag(fio);
-		bio_set_op_attrs(bio, fio->op, fio->op_flags);
+
 		add_bio_entry(fio->sbi, bio, page, fio->temp);
 	} else {
 		if (add_ipu_page(fio, &bio, page))
@@ -1032,10 +1043,13 @@ static struct bio *f2fs_grab_read_bio(struct inode *inode, block_t blkaddr,
 	bio_set_op_attrs(bio, REQ_OP_READ, op_flag);
 	if (!bio)
 		return ERR_PTR(-ENOMEM);
+
+	f2fs_set_bio_crypt_ctx(bio, inode, first_idx, NULL, GFP_NOFS);
+
 	bio->bi_iter.bi_sector = sector;
 	bio->bi_end_io = f2fs_read_end_io;
 
-	if (f2fs_encrypted_file(inode))
+	if (fscrypt_inode_uses_fs_layer_crypto(inode))
 		post_read_steps |= STEP_DECRYPT;
 
 	if (f2fs_need_verity(inode, first_idx))
@@ -3823,9 +3837,6 @@ static ssize_t f2fs_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 	do_opu = rw == WRITE && f2fs_lfs_mode(sbi);
 
 	trace_f2fs_direct_IO_enter(inode, offset, count, rw);
-
-	if (rw == WRITE && whint_mode == WHINT_MODE_OFF)
-		iocb->ki_hint = WRITE_LIFE_NOT_SET;
 
 	if (iocb->ki_flags & IOCB_NOWAIT) {
 		if (!f2fs_down_read_trylock(&fi->i_gc_rwsem[rw])) {
