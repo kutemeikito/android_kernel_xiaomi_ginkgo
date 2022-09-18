@@ -404,7 +404,7 @@ void flush_delayed_fput_wait(void)
 	flush_delayed_work(&delayed_fput_work);
 }
 
-void fput(struct file *file)
+void fput_many(struct file *file, unsigned int refs)
 {
 	if (atomic_long_sub_and_test(refs, &file->f_count)) {
 		struct task_struct *task = current;
