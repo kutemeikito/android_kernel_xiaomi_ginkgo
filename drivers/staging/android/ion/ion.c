@@ -217,6 +217,9 @@ static void *ion_buffer_kmap_get(struct ion_buffer *buffer)
 	void *vaddr;
 
 	if (buffer->kmap_cnt) {
+		if (buffer->kmap_cnt == INT_MAX)
+			return ERR_PTR(-EOVERFLOW);
+
 		buffer->kmap_cnt++;
 		return buffer->vaddr;
 	}
@@ -515,6 +518,8 @@ static void ion_dma_buf_release(struct dma_buf *dmabuf)
 
 static void *ion_dma_buf_vmap(struct dma_buf *dmabuf)
 {
+	struct ion_buffer *buffer = container_of(dmabuf->priv, typeof(*buffer),
+						iommu_data);
 	struct ion_buffer *buffer = dmabuf->priv;
 	void *vaddr = ERR_PTR(-EINVAL);
 

@@ -405,7 +405,7 @@ void flush_delayed_fput_wait(void)
 
 void fput(struct file *file)
 {
-	if (atomic_long_dec_and_test(&file->f_count)) {
+	if (atomic_long_sub_and_test(refs, &file->f_count)) {
 		struct task_struct *task = current;
 
 		if (likely(!in_interrupt() && !(task->flags & PF_KTHREAD))) {
@@ -422,6 +422,11 @@ void fput(struct file *file)
 		if (llist_add(&file->f_u.fu_llist, &delayed_fput_list))
 			schedule_delayed_work(&delayed_fput_work, 1);
 	}
+}
+
+void fput(struct file *file)
+{
+	fput_many(file, 1);
 }
 
 /*
