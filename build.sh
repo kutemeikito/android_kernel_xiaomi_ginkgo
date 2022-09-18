@@ -28,14 +28,14 @@ done
 CONFIG=vendor/ginkgo-perf_defconfig
 KERNEL_DIR=$(pwd)
 PARENT_DIR="$(dirname "$KERNEL_DIR")"
-KERN_IMG="/home/ubuntu/out-memer/arch/arm64/boot/Image.gz-dtb"
-DTBO_IMG="/home/ubuntu/out-memer/arch/arm64/boot/dtbo.img"
+KERN_IMG="/workspace/out-memet/arch/arm64/boot/Image.gz-dtb"
+DTBO_IMG="/workspace/out-memet/arch/arm64/boot/dtbo.img"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="RastaMod69"
-export PATH="/home/ubuntu/toolchain/rastamod-clang/bin:$PATH"
-export LD_LIBRARY_PATH="/home/ubuntu/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
-export KBUILD_COMPILER_STRING="$(/home/ubuntu/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
-export out=/home/ubuntu/out-memer
+export PATH="/workspace/toolchain/rastamod-clang/bin:$PATH"
+export LD_LIBRARY_PATH="/workspace/toolchain/rastamod-clang/lib:$LD_LIBRARY_PATH"
+export KBUILD_COMPILER_STRING="$(/workspace/toolchain/rastamod-clang/bin/clang --version | head -n 1 | perl -pe 's/\((?:http|git).*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' -e 's/^.*clang/clang/')"
+export out=/workspace/out-memet
 
 # Functions
 clang_build () {
