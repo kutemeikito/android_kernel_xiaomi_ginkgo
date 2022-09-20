@@ -15492,10 +15492,8 @@ static ssize_t wlan_hdd_state_ctrl_param_write(struct file *filp,
 	 */
 	if (hdd_ctx)
 		hdd_psoc_idle_timer_stop(hdd_ctx);
+		
 exit:
-	if (turning_on)
-		hdd_inform_wifi_on();
-
 	return count;
 }
 
