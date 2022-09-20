@@ -20,6 +20,7 @@ choice
 	prompt "Choose kernel unwinder"
 	default UNWINDER_ARM if AEABI && !FUNCTION_GRAPH_TRACER
 	default UNWINDER_FRAME_POINTER if !AEABI || FUNCTION_GRAPH_TRACER
+<<<<<<< HEAD
 	help
 	  This determines which method will be used for unwinding kernel stack
 	  traces for panics, oopses, bugs, warnings, perf, /proc/<pid>/stack,
@@ -31,6 +32,19 @@ config UNWINDER_FRAME_POINTER
 	select ARCH_WANT_FRAME_POINTERS
 	select FRAME_POINTER
 	help
+=======
+	help
+	  This determines which method will be used for unwinding kernel stack
+	  traces for panics, oopses, bugs, warnings, perf, /proc/<pid>/stack,
+	  livepatch, lockdep, and more.
+
+config UNWINDER_FRAME_POINTER
+	bool "Frame pointer unwinder"
+	depends on !THUMB2_KERNEL && !CC_IS_CLANG
+	select ARCH_WANT_FRAME_POINTERS
+	select FRAME_POINTER
+	help
+>>>>>>> b3b0b55ac64c4bbcc07fad8188b3803327a37322
 	  This option enables the frame pointer unwinder for unwinding
 	  kernel stack traces.
 

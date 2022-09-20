@@ -1266,8 +1266,6 @@ static int ip6_setup_cork(struct sock *sk, struct inet_cork_full *cork,
 		if (np->frag_size)
 			mtu = np->frag_size;
 	}
-	if (mtu < IPV6_MIN_MTU)
-		return -EINVAL;
 	cork->base.fragsize = mtu;
 	cork->base.gso_size = sk->sk_type == SOCK_DGRAM &&
 			      sk->sk_protocol == IPPROTO_UDP ? ipc6->gso_size : 0;

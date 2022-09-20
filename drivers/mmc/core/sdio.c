@@ -713,6 +713,8 @@ try_again:
 
 	card->ocr = ocr_card;
 
+	card->ocr = ocr_card;
+
 	/*
 	 * If the host and card support UHS-I mode request the card
 	 * to switch to 1.8V signaling level.  No 1.8v signalling if
