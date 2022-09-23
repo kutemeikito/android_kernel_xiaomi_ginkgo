@@ -42,6 +42,7 @@
 //#define IRQ_TYPE_EDGE_FALLING 2
 #define INT_TRIGGER_TYPE IRQ_TYPE_EDGE_RISING
 
+#define NVT_DEBUG 0
 
 //---SPI driver info.---
 #define NVT_SPI_NAME "NVT-ts"
