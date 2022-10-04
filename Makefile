@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0
 VERSION = 4
 PATCHLEVEL = 14
-SUBLEVEL = 294
+SUBLEVEL = 295
 EXTRAVERSION =
 NAME = Petit Gorille
 
@@ -1388,8 +1388,8 @@ endef
 
 define filechk_version.h
 	(echo \#define LINUX_VERSION_CODE $(shell                         \
-	expr $(VERSION) \* 16777216 + 0$(PATCHLEVEL) \* 65536 + 0$(SUBLEVEL)); \
-	echo '#define KERNEL_VERSION(a,b,c) (((a) << 24) + ((b) << 16) + (c))';)
+	expr $(VERSION) \* 65536 + 0$(PATCHLEVEL) \* 256 + 255); \
+	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))';)
 endef
 
 $(version_h): $(srctree)/Makefile FORCE
