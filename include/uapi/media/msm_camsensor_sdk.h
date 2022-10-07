@@ -61,9 +61,8 @@ enum msm_sensor_camera_id_t {
 	CAMERA_1,
 	CAMERA_2,
 	CAMERA_3,
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	CAMERA_4,
-#endif
+	CAMERA_5,
 	MAX_CAMERAS,
 };
 
