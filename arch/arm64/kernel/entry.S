@@ -162,6 +162,7 @@
 alternative_cb	arm64_update_smccc_conduit
 	nop					// Patched to SMC/HVC #0
 alternative_cb_end
+	smc	#0
 #endif
 	.endm
 
