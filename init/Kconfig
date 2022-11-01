@@ -681,7 +681,7 @@ config HAVE_UNSTABLE_SCHED_CLOCK
 config GENERIC_SCHED_CLOCK
 	bool
 
-menu "FAIR Scheuler tunables"
+menu "FAIR Scheduler tunables"
 
 choice
 	prompt "Utilization's PELT half-Life"
@@ -710,6 +710,12 @@ config PELT_UTIL_HALFLIFE_12
 	help
 	  Use 12ms as PELT half-life value. This will increase the ramp-up and
 	  decay of utlization, and load faster than using 16ms.
+	  
+config PELT_UTIL_HALFLIFE_14
+	bool "14 ms, slightly faster"
+	help
+	  Use 14ms as PELT half-life value. This will increase the ramp-up and
+	  decay of utlization and load slightly faster than using 16ms.
 
 config PELT_UTIL_HALFLIFE_8
 	bool "8 ms, very fast"
