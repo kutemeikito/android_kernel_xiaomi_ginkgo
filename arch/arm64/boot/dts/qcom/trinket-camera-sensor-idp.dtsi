@@ -31,6 +31,35 @@
 	};
 };
 
+&tlmm {
+	cam_sensor_tof_active: cam_sensor_tof_active {
+		mux {
+			pins = "gpio48", "gpio94";
+			function = "gpio";
+		};
+
+		config {
+			pins = "gpio48", "gpio94";
+			bias-disable;
+			drive-strength = <8>;
+		};
+	};
+
+	cam_sensor_tof_suspend: cam_sensor_tof_suspend {
+		mux {
+			pins = "gpio48", "gpio94";
+			function = "gpio";
+		};
+
+		config {
+			pins = "gpio48", "gpio94";
+			bias-pull-down;
+			drive-strength = <8>;
+			output-low;
+		};
+	};
+};
+
 &cci {
 	actuator0: qcom,actuator@0 {
 		cell-index = <0>;
