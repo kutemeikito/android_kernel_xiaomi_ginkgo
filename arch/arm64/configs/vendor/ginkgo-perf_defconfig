@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.292 Kernel Configuration
+# Linux/arm64 4.14.300 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -1357,6 +1357,7 @@ CONFIG_RFKILL_LEDS=y
 # CONFIG_CEPH_LIB is not set
 # CONFIG_NFC is not set
 CONFIG_NFC_NQ=y
+CONFIG_NFC_MAX32560=y
 # CONFIG_NTAG_NQ is not set
 # CONFIG_PSAMPLE is not set
 # CONFIG_NET_IFE is not set
