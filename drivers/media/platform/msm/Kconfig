@@ -53,6 +53,12 @@ config MSMB_CAMERA_DEBUG
     ---help---
       Enable printk() debug for msm camera 2.0
 
+config MSM_CAMERA_BOOTCLOCK_TIMESTAMP
+    bool "Uses the timestamp of the boot clock"
+    depends on MSM_CAMERA && MACH_XIAOMI_GINKGO
+    ---help---
+      Say Y if to enable the timestamp of the boot clock.
+
 if MSMB_CAMERA
 source "drivers/media/platform/msm/camera_v2/Kconfig"
 endif # MSMB_CAMERA
