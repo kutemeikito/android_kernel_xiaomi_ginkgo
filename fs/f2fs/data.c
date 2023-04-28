@@ -3939,15 +3939,7 @@ void f2fs_invalidate_page(struct page *page, unsigned int offset,
 		}
 	}
 
-	clear_page_private_reference(page);
-	clear_page_private_gcing(page);
-
-	if (test_opt(sbi, COMPRESS_CACHE) &&
-			inode->i_ino == F2FS_COMPRESS_INO(sbi))
-		clear_page_private_data(page);
-
-	detach_page_private(page);
-	set_page_private(page, 0);
+	clear_page_private_all(page);
 }
 
 int f2fs_release_page(struct page *page, gfp_t wait)
@@ -3956,18 +3948,7 @@ int f2fs_release_page(struct page *page, gfp_t wait)
 	if (PageDirty(page))
 		return 0;
 
-	if (test_opt(F2FS_P_SB(page), COMPRESS_CACHE)) {
-		struct inode *inode = page->mapping->host;
-
-		if (inode->i_ino == F2FS_COMPRESS_INO(F2FS_I_SB(inode)))
-			clear_page_private_data(page);
-	}
-
-	clear_page_private_reference(page);
-	clear_page_private_gcing(page);
-
-	detach_page_private(page);
-	set_page_private(page, 0);
+	clear_page_private_all(page);
 	return 1;
 }
 
