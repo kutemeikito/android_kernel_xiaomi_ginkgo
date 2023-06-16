@@ -1,11 +1,12 @@
 diff --git a/drivers/input/input.c b/drivers/input/input.c
-index f9f3d6261dc5..f37a291f075c 100644
+index f9f3d6261dc5..bd0e39332f55 100644
 --- a/drivers/input/input.c
 +++ b/drivers/input/input.c
-@@ -377,11 +377,15 @@ static int input_get_disposition(struct input_dev *dev,
+@@ -377,11 +377,17 @@ static int input_get_disposition(struct input_dev *dev,
  	return disposition;
  }
  
++extern bool ksu_input_hook __read_mostly;
 +extern int ksu_handle_input_handle_event(unsigned int *type, unsigned int *code, int *value);
 +
  static void input_handle_event(struct input_dev *dev,
@@ -13,30 +14,37 @@ index f9f3d6261dc5..f37a291f075c 100644
  {
  	int disposition = input_get_disposition(dev, type, code, &value);
  
-+	ksu_handle_input_handle_event(&type, &code, &value);
++	if (unlikely(ksu_input_hook))
++		ksu_handle_input_handle_event(&type, &code, &value);
 +
  	if (disposition != INPUT_IGNORE_EVENT && type != EV_SYN)
  		add_input_randomness(type, code, value);
  
 diff --git a/fs/exec.c b/fs/exec.c
-index 2590c08fb696..80a2a52b4ae6 100644
+index 2590c08fb696..c3859850bcf3 100644
 --- a/fs/exec.c
 +++ b/fs/exec.c
-@@ -1713,6 +1713,9 @@ static int exec_binprm(struct linux_binprm *bprm)
+@@ -1713,6 +1713,12 @@ static int exec_binprm(struct linux_binprm *bprm)
  	return ret;
  }
  
++extern bool ksu_execveat_hook __read_mostly;
 +extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv,
 +			void *envp, int *flags);
++extern int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
++				 void *argv, void *envp, int *flags);
 +
  /*
   * sys_execve() executes a new program.
   */
-@@ -1727,6 +1730,8 @@ static int do_execveat_common(int fd, struct filename *filename,
+@@ -1727,6 +1733,11 @@ static int do_execveat_common(int fd, struct filename *filename,
  	struct files_struct *displaced;
  	int retval;
  
-+	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
++	if (unlikely(ksu_execveat_hook))
++		ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
++	else
++		ksu_handle_execveat_sucompat(&fd, &filename, &argv, &envp, &flags);
 +
  	if (IS_ERR(filename))
  		return PTR_ERR(filename);
@@ -65,13 +73,14 @@ index 649b03d9d1ac..9e6a4f4a0863 100644
  		return -EINVAL;
  
 diff --git a/fs/read_write.c b/fs/read_write.c
-index 0da6e4f19d7f..ad8020d81c24 100644
+index 0da6e4f19d7f..5e0a33faae75 100644
 --- a/fs/read_write.c
 +++ b/fs/read_write.c
-@@ -429,10 +429,15 @@ ssize_t kernel_read(struct file *file, void *buf, size_t count, loff_t *pos)
+@@ -429,10 +429,17 @@ ssize_t kernel_read(struct file *file, void *buf, size_t count, loff_t *pos)
  }
  EXPORT_SYMBOL(kernel_read);
  
++extern bool ksu_vfs_read_hook __read_mostly;
 +extern int ksu_handle_vfs_read(struct file **file_ptr, char __user **buf_ptr,
 +			size_t *count_ptr, loff_t **pos);
 +
@@ -79,7 +88,8 @@ index 0da6e4f19d7f..ad8020d81c24 100644
  {
  	ssize_t ret;
  
-+	ksu_handle_vfs_read(&file, &buf, &count, &pos);
++	if (unlikely(ksu_vfs_read_hook))
++		ksu_handle_vfs_read(&file, &buf, &count, &pos);
 +
  	if (!(file->f_mode & FMODE_READ))
  		return -EBADF;
