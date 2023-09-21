@@ -136,3 +136,7 @@ clang/
 gcc64/
 gcc32/
 out/
+
+# Ignore KernelSU folders
+KernelSU/
+drivers/kernelsu
