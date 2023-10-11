@@ -11,7 +11,7 @@
 # Use this script on root of kernel directory
 
 SECONDS=0 # builtin bash timer
-ZIPNAME="RyzenKernel-AOSP-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
+ZIPNAME="RyzenKernel-AOSP-Ginkgo-KSU-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
 TC_DIR="/workspace/toolchain/linux-x86"
 CLANG_DIR="/workspace/toolchain/linux-x86/clang-r498229b"
 GCC_64_DIR="/workspace/toolchain/aarch64-linux-android-4.9"
@@ -46,6 +46,15 @@ if ! git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_pr
 echo "Cloning failed! Aborting..."
 exit 1
 fi
+fi
+
+# Setup and apply patch KernelSU in root dir
+if ! [ -d "$KERNEL_DIR"/KernelSU ]; then
+	curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+	git apply KernelSU-hook.patch
+else
+		echo -e "Setup KernelSU failed, stopped build now..."
+		exit 1
 fi
 
 if [[ $1 = "-r" || $1 = "--regen" ]]; then
