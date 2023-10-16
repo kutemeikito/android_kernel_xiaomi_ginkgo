@@ -3215,7 +3215,7 @@ void exit_mmap(struct mm_struct *mm)
 	vma = mm->mmap;
 	if (!vma) {
 		/* Can happen if dup_mmap() received an OOM */
-		up_write(&mm->mmap_sem);;
+		up_write(&mm->mmap_sem);
 		return;
 	}
 
