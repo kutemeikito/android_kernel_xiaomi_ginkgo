@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.14.325 Kernel Configuration
+# Linux/arm64 4.14.327 Kernel Configuration
 #
 CONFIG_ARM64=y
 CONFIG_64BIT=y
@@ -2831,6 +2831,7 @@ CONFIG_CPU_THERMAL=y
 # CONFIG_CLOCK_THERMAL is not set
 CONFIG_DEVFREQ_THERMAL=y
 # CONFIG_THERMAL_EMULATION is not set
+CONFIG_THERMAL_SWITCH=y
 # CONFIG_QORIQ_THERMAL is not set
 
 #
