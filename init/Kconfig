@@ -1135,15 +1135,6 @@ config SCHED_TUNE
 
 	  If unsure, say N.
 
-config STUNE_ASSIST
-	bool "SchedTune configuration helper"
-	depends on SCHED_TUNE
-	depends on ANDROID
-	help
-	  This option enables in-kernel overrides for SchedTune values.
-
-	  If unsure, say N.
-
 config CPUSETS_ASSIST
 	bool "Cpuset configuration helper"
 	depends on CPUSETS
