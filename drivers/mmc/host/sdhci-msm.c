@@ -4372,9 +4372,8 @@ void sdhci_msm_pm_qos_cpu_init(struct sdhci_host *host,
 		INIT_DELAYED_WORK(&group->unvote_work,
 			sdhci_msm_pm_qos_cpu_unvote_work);
 		atomic_set(&group->counter, 0);
-		group->req.type = PM_QOS_REQ_AFFINE_CORES;
-		group->req.cpus_affine =
-			*cpumask_bits(&msm_host->pdata->pm_qos_data.cpu_group_map.mask[i]);
+		group->req.type = PM_QOS_REQ_AFFINE_IRQ;
+		group->req.irq = host->irq;
 		/* We set default latency here for all pm_qos cpu groups. */
 		group->latency = PM_QOS_DEFAULT_VALUE;
 		pm_qos_add_request(&group->req, PM_QOS_CPU_DMA_LATENCY,
