@@ -2268,7 +2268,7 @@
 		/* PM QoS */
 		qcom,pm-qos-irq-type = "affine_irq";
 		qcom,pm-qos-irq-latency = <40 40>;
-		qcom,pm-qos-cpu-groups = <0x0f 0xf0>;
+		qcom,pm-qos-cpu-groups = <0x7f 0x80>;
 		qcom,pm-qos-legacy-latency-us = <40 40>, <40 40>;
 
 		clocks = <&clock_gcc GCC_SDCC2_AHB_CLK>,
