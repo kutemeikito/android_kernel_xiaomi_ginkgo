@@ -32,6 +32,17 @@
 
 #include "nt36xxx_mem_map.h"
 
+#ifdef CONFIG_MTK_SPI
+/* Please copy mt_spi.h file under mtk spi driver folder */
+#include "mt_spi.h"
+#endif
+
+#ifdef CONFIG_SPI_MT65XX
+#include <linux/platform_data/spi-mt65xx.h>
+#endif
+
+#define NVT_DEBUG 0
+
 //---GPIO number---
 #define NVTTOUCH_RST_PIN 87
 #define NVTTOUCH_INT_PIN 88
@@ -42,7 +53,6 @@
 //#define IRQ_TYPE_EDGE_FALLING 2
 #define INT_TRIGGER_TYPE IRQ_TYPE_EDGE_RISING
 
-#define NVT_DEBUG 0
 
 //---SPI driver info.---
 #define NVT_SPI_NAME "NVT-ts"
@@ -74,6 +84,8 @@ extern const uint16_t touch_key_array[TOUCH_KEY_NUM];
 //---Customerized func.---
 #define NVT_TOUCH_PROC 1
 #define NVT_TOUCH_EXT_PROC 1
+#define NVT_TOUCH_MP 1
+#define MT_PROTOCOL_B 1
 #define WAKEUP_GESTURE 1
 #if WAKEUP_GESTURE
 extern const uint16_t gesture_key_array[];
@@ -157,6 +169,12 @@ struct nvt_ts_data {
 	struct regulator *pwr_vdd; /* IOVCC 1.8V */
 	struct regulator *pwr_lab; /* VSP +5V */
 	struct regulator *pwr_ibb; /* VSN -5V */
+#endif
+#ifdef CONFIG_MTK_SPI
+	struct mt_chip_conf spi_ctrl;
+#endif
+#ifdef CONFIG_SPI_MT65XX
+    struct mtk_chip_config spi_ctrl;
 #endif
 };
 

@@ -54,7 +54,6 @@ extern char *saved_command_line;
 #endif
 #ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
 extern char g_lcd_id[128];
-extern char *saved_command_line;
 #endif
 
 DEFINE_MUTEX(dsi_display_clk_mutex);

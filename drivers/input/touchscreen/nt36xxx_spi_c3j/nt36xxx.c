@@ -38,7 +38,6 @@
 #endif
 
 #include "nt36xxx.h"
-#include <linux/spi/spi-geni-qcom.h>
 #if NVT_TOUCH_ESD_PROTECT
 #include <linux/jiffies.h>
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
@@ -69,8 +68,14 @@ extern int32_t nvt_extra_proc_init(void);
 extern void nvt_extra_proc_deinit(void);
 #endif
 
+#if NVT_TOUCH_MP
+extern int32_t nvt_mp_proc_init(void);
+extern void nvt_mp_proc_deinit(void);
+#endif
+
 struct nvt_ts_data *ts;
-static struct device *spi_geni_master_dev;
+static bool driver_ready = false;
+
 #if BOOT_UPDATE_FIRMWARE
 static struct workqueue_struct *nvt_fwu_wq;
 extern void Boot_Update_Firmware(struct work_struct *work);
@@ -120,6 +125,37 @@ const uint16_t gesture_key_array[] = {
 	KEY_WAKEUP,  //GESTURE_SLIDE_DOWN
 	KEY_WAKEUP,  //GESTURE_SLIDE_LEFT
 	KEY_WAKEUP,  //GESTURE_SLIDE_RIGHT
+};
+#endif
+
+#ifdef CONFIG_MTK_SPI
+const struct mt_chip_conf spi_ctrdata = {
+	.setuptime = 25,
+	.holdtime = 25,
+	.high_time = 5,	/* 10MHz (SPI_SPEED=100M / (high_time+low_time(10ns)))*/
+	.low_time = 5,
+	.cs_idletime = 2,
+	.ulthgh_thrsh = 0,
+	.cpol = 0,
+	.cpha = 0,
+	.rx_mlsb = 1,
+	.tx_mlsb = 1,
+	.tx_endian = 0,
+	.rx_endian = 0,
+	.com_mod = DMA_TRANSFER,
+	.pause = 0,
+	.finish_intr = 1,
+	.deassert = 0,
+	.ulthigh = 0,
+	.tckdly = 0,
+};
+#endif
+
+#ifdef CONFIG_SPI_MT65XX
+const struct mtk_chip_config spi_ctrdata = {
+    .rx_mlsb = 1,
+    .tx_mlsb = 1,
+    .cs_pol = 0,
 };
 #endif
 
@@ -1251,7 +1287,9 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	uint32_t input_w = 0;
 	uint32_t input_p = 0;
 	uint8_t input_id = 0;
+#if MT_PROTOCOL_B
 	uint8_t press_id[TOUCH_MAX_FINGER_NUM] = {0};
+#endif /* MT_PROTOCOL_B */
 	int32_t i = 0;
 	int32_t finger_cnt = 0;
 
@@ -1341,17 +1379,30 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			}
 			if (input_p == 0)
 				input_p = 1;
+
+#if MT_PROTOCOL_B
 			press_id[input_id - 1] = 1;
 			input_mt_slot(ts->input_dev, input_id - 1);
 			input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, true);
+#else /* MT_PROTOCOL_B */
+			input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, input_id - 1);
+			input_report_key(ts->input_dev, BTN_TOUCH, 1);
+#endif /* MT_PROTOCOL_B */
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, input_p);
+
+#if MT_PROTOCOL_B
+#else /* MT_PROTOCOL_B */
+			input_mt_sync(ts->input_dev);
+#endif /* MT_PROTOCOL_B */
+
 			finger_cnt++;
 		}
 	}
 
+#if MT_PROTOCOL_B
 	for (i = 0; i < ts->max_touch_num; i++) {
 		if (press_id[i] != 1) {
 			input_mt_slot(ts->input_dev, i);
@@ -1362,6 +1413,12 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 
 	input_report_key(ts->input_dev, BTN_TOUCH, (finger_cnt > 0));
+#else /* MT_PROTOCOL_B */
+	if (finger_cnt == 0) {
+		input_report_key(ts->input_dev, BTN_TOUCH, 0);
+		input_mt_sync(ts->input_dev);
+	}
+#endif /* MT_PROTOCOL_B */
 
 #if TOUCH_KEY_NUM > 0
 	if (point_data[61] == 0xF8) {
@@ -1612,8 +1669,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	NVT_LOG("start\n");
 
-	spi_geni_master_dev = NULL;	
-
 	ts = kzalloc(sizeof(struct nvt_ts_data), GFP_KERNEL);
 	if (IS_ERR_OR_NULL(ts)) {
 		NVT_ERR("failed to allocated memory for nvt ts data\n");
@@ -1666,6 +1721,18 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		NVT_ERR("Failed to perform SPI setup\n");
 		goto err_spi_setup;
 	}
+
+#ifdef CONFIG_MTK_SPI
+    /* old usage of MTK spi API */
+    memcpy(&ts->spi_ctrl, &spi_ctrdata, sizeof(struct mt_chip_conf));
+    ts->client->controller_data = (void *)&ts->spi_ctrl;
+#endif
+
+#ifdef CONFIG_SPI_MT65XX
+    /* new usage of MTK spi API */
+    memcpy(&ts->spi_ctrl, &spi_ctrdata, sizeof(struct mtk_chip_config));
+    ts->client->controller_data = (void *)&ts->spi_ctrl;
+#endif
 
 	NVT_LOG("mode=%d, max_speed_hz=%d\n", ts->client->mode, ts->client->max_speed_hz);
 
@@ -1744,7 +1811,10 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 	ts->input_dev->propbit[0] = BIT(INPUT_PROP_DIRECT);
 
+#if MT_PROTOCOL_B
 	input_mt_init_slots(ts->input_dev, ts->max_touch_num, 0);
+#endif
+
 	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
 
 #if TOUCH_MAX_FINGER_NUM > 1
@@ -1752,6 +1822,11 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max - 1, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max - 1, 0, 0);
+#if MT_PROTOCOL_B
+	// no need to set ABS_MT_TRACKING_ID, input_mt_init_slots() already set it
+#else
+	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, ts->max_touch_num, 0, 0);
+#endif //MT_PROTOCOL_B
 #endif //TOUCH_MAX_FINGER_NUM > 1
 
 #if TOUCH_KEY_NUM > 0
@@ -1849,6 +1924,14 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 #endif
 
+#if NVT_TOUCH_MP
+	ret = nvt_mp_proc_init();
+	if (ret != 0) {
+		NVT_ERR("nvt mp proc init failed. ret=%d\n", ret);
+		goto err_mp_proc_init_failed;
+	}
+#endif
+
 #if WAKEUP_GESTURE
 	//[IC NT36672A] LCD_RESET always keep high
 	//In the Xiaomi C3J project, IOVCC will not be powered off when the screen is off.
@@ -1867,7 +1950,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #ifdef _MSM_DRM_NOTIFY_H_
 	ts->drm_notif.notifier_call = nvt_drm_notifier_callback;
 	ret = msm_drm_register_client(&ts->drm_notif);
-	if (ret) {
+	if(ret) {
 		NVT_ERR("register drm_notifier failed. ret=%d\n", ret);
 		goto err_register_drm_notif_failed;
 	}
@@ -1904,6 +1987,8 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	set_touchpanel_recovery_callback(nvt_ts_recovery_callback);
 
+	driver_ready = true;
+
 	return 0;
 
 #if defined(CONFIG_FB)
@@ -1922,6 +2007,10 @@ err_register_fb_notif_failed:
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	unregister_early_suspend(&ts->early_suspend);
 err_register_early_suspend_failed:
+#endif
+#if NVT_TOUCH_MP
+nvt_mp_proc_deinit();
+err_mp_proc_init_failed:
 #endif
 #if NVT_TOUCH_EXT_PROC
 nvt_extra_proc_deinit();
@@ -2012,6 +2101,9 @@ static int32_t nvt_ts_remove(struct spi_device *client)
 #elif defined(CONFIG_HAS_EARLYSUSPEND)
 	unregister_early_suspend(&ts->early_suspend);
 #endif
+#if NVT_TOUCH_MP
+	nvt_mp_proc_deinit();
+#endif
 #if NVT_TOUCH_EXT_PROC
 	nvt_extra_proc_deinit();
 #endif
@@ -2096,6 +2188,9 @@ static void nvt_ts_shutdown(struct spi_device *client)
 	unregister_early_suspend(&ts->early_suspend);
 #endif
 
+#if NVT_TOUCH_MP
+	nvt_mp_proc_deinit();
+#endif
 #if NVT_TOUCH_EXT_PROC
 	nvt_extra_proc_deinit();
 #endif
@@ -2135,7 +2230,9 @@ return:
 static int32_t nvt_ts_suspend(struct device *dev)
 {
 	uint8_t buf[4] = {0};
+#if MT_PROTOCOL_B
 	uint32_t i = 0;
+#endif
 
 	if (!bTouchIsAwake) {
 		NVT_LOG("Touch is already suspend\n");
@@ -2148,14 +2245,8 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	//Pulling LCD_RESET high causes the IC to go into deep sleep(when screen off).
 	set_lcd_reset_gpio_keep_high(true);//(Only xiaomi C3J project && Only NT36672A)
 
-	if (!ts->is_gesture_mode) {
+	if (!ts->is_gesture_mode)
 		nvt_irq_enable(false);
-			//spi bus pm_runtime_get
-		if (spi_geni_master_dev) {
-			if (pm_runtime_put(spi_geni_master_dev))
-				NVT_ERR("pm_runtime_put fail!\n");
-		}
-	}
 #else
 	nvt_irq_enable(false);
 #endif
@@ -2196,13 +2287,18 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	mutex_unlock(&ts->lock);
 
 	/* release all touches */
+#if MT_PROTOCOL_B
 	for (i = 0; i < ts->max_touch_num; i++) {
 		input_mt_slot(ts->input_dev, i);
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
 		input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, 0);
 	}
+#endif
 	input_report_key(ts->input_dev, BTN_TOUCH, 0);
+#if !MT_PROTOCOL_B
+	input_mt_sync(ts->input_dev);
+#endif
 	input_sync(ts->input_dev);
 
 	msleep(50);
@@ -2241,14 +2337,8 @@ static int32_t nvt_ts_resume(struct device *dev)
 	}
 
 #if WAKEUP_GESTURE
-	if (!ts->is_gesture_mode) {
+	if (!ts->is_gesture_mode)
 		nvt_irq_enable(true);
-			//spi bus pm_runtime_get
-		if (spi_geni_master_dev) {
-			if (pm_runtime_get(spi_geni_master_dev))
-				NVT_ERR("pm_runtime_get fail!\n");
-		}
-	}
 #else
 	nvt_irq_enable(true);
 #endif
@@ -2306,6 +2396,7 @@ static int nvt_drm_notifier_callback(struct notifier_block *self, unsigned long 
 			}
 		}
 	}
+
 	return 0;
 }
 #else
