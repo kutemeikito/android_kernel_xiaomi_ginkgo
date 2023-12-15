@@ -10,7 +10,9 @@
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/buffer_head.h>
+#include <linux/blk_types.h>
 
+#include "exfat_raw.h"
 #include "exfat_fs.h"
 
 /*
@@ -38,33 +40,26 @@ void __exfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
 	if (opts->errors == EXFAT_ERRORS_PANIC) {
 		panic("exFAT-fs (%s): fs panic from previous error\n",
 			sb->s_id);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
 	} else if (opts->errors == EXFAT_ERRORS_RO && !sb_rdonly(sb)) {
 		sb->s_flags |= SB_RDONLY;
+#else
+	} else if (opts->errors == EXFAT_ERRORS_RO &&
+			!(sb->s_flags & MS_RDONLY)) {
+		sb->s_flags |= MS_RDONLY;
+#endif
 		exfat_err(sb, "Filesystem has been set read-only");
 	}
-}
-
-/*
- * exfat_msg() - print preformated EXFAT specific messages.
- * All logs except what uses exfat_fs_error() should be written by exfat_msg()
- */
-void exfat_msg(struct super_block *sb, const char *level, const char *fmt, ...)
-{
-	struct va_format vaf;
-	va_list args;
-
-	va_start(args, fmt);
-	vaf.fmt = fmt;
-	vaf.va = &args;
-	/* level means KERN_ pacility level */
-	printk("%sexFAT-fs (%s): %pV\n", level, sb->s_id, &vaf);
-	va_end(args);
 }
 
 #define SECS_PER_MIN    (60)
 #define TIMEZONE_SEC(x)	((x) * 15 * SECS_PER_MIN)
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 static void exfat_adjust_tz(struct timespec64 *ts, u8 tz_off)
+#else
+static void exfat_adjust_tz(struct timespec *ts, u8 tz_off)
+#endif
 {
 	if (tz_off <= 0x3F)
 		ts->tv_sec -= TIMEZONE_SEC(tz_off);
@@ -72,9 +67,21 @@ static void exfat_adjust_tz(struct timespec64 *ts, u8 tz_off)
 		ts->tv_sec += TIMEZONE_SEC(0x80 - tz_off);
 }
 
+static inline int exfat_tz_offset(struct exfat_sb_info *sbi)
+{
+	if (sbi->options.sys_tz)
+		return -sys_tz.tz_minuteswest;
+	return sbi->options.time_offset;
+}
+
 /* Convert a EXFAT time/date pair to a UNIX date (seconds since 1 1 70). */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 void exfat_get_entry_time(struct exfat_sb_info *sbi, struct timespec64 *ts,
 		u8 tz, __le16 time, __le16 date, u8 time_cs)
+#else
+void exfat_get_entry_time(struct exfat_sb_info *sbi, struct timespec *ts,
+		u8 tz, __le16 time, __le16 date, u8 time_cs)
+#endif
 {
 	u16 t = le16_to_cpu(time);
 	u16 d = le16_to_cpu(date);
@@ -94,18 +101,39 @@ void exfat_get_entry_time(struct exfat_sb_info *sbi, struct timespec64 *ts,
 		/* Adjust timezone to UTC0. */
 		exfat_adjust_tz(ts, tz & ~EXFAT_TZ_VALID);
 	else
-		/* Convert from local time to UTC using time_offset. */
-		ts->tv_sec -= sbi->options.time_offset * SECS_PER_MIN;
+		ts->tv_sec -= exfat_tz_offset(sbi) * SECS_PER_MIN;
 }
 
 /* Convert linear UNIX date to a EXFAT time/date pair. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 void exfat_set_entry_time(struct exfat_sb_info *sbi, struct timespec64 *ts,
 		u8 *tz, __le16 *time, __le16 *date, u8 *time_cs)
+#else
+#undef EXFAT_MAX_TIMESTAMP_SECS
+#define EXFAT_MAX_TIMESTAMP_SECS 0xffffffff
+void exfat_set_entry_time(struct exfat_sb_info *sbi, struct timespec *ts,
+		u8 *tz, __le16 *time, __le16 *date, u8 *time_cs)
+#endif
 {
 	struct tm tm;
 	u16 t, d;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0)
+	if (ts->tv_sec < EXFAT_MIN_TIMESTAMP_SECS) {
+		ts->tv_sec = EXFAT_MIN_TIMESTAMP_SECS;
+		ts->tv_nsec = 0;
+	}
+	else if (ts->tv_sec > EXFAT_MAX_TIMESTAMP_SECS) {
+		ts->tv_sec = EXFAT_MAX_TIMESTAMP_SECS;
+		ts->tv_nsec = 0;
+	}
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
 	time64_to_tm(ts->tv_sec, 0, &tm);
+#else
+	time_to_tm(ts->tv_sec, 0, &tm);
+#endif
 	t = (tm.tm_hour << 11) | (tm.tm_min << 5) | (tm.tm_sec >> 1);
 	d = ((tm.tm_year - 80) <<  9) | ((tm.tm_mon + 1) << 5) | tm.tm_mday;
 
@@ -124,16 +152,26 @@ void exfat_set_entry_time(struct exfat_sb_info *sbi, struct timespec64 *ts,
 	*tz = EXFAT_TZ_VALID;
 }
 
-/*
- * The timestamp for access_time has double seconds granularity.
- * (There is no 10msIncrement field for access_time unlike create/modify_time)
- * atime also has only a 2-second resolution.
- */
+/* atime has only a 2-second resolution */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
 void exfat_truncate_atime(struct timespec64 *ts)
+#else
+void exfat_truncate_atime(struct timespec *ts)
+#endif
 {
 	ts->tv_sec = round_down(ts->tv_sec, 2);
 	ts->tv_nsec = 0;
 }
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+void exfat_truncate_inode_atime(struct inode *inode)
+{
+	struct timespec64 atime = inode_get_atime(inode);
+
+	exfat_truncate_atime(&atime);
+	inode_set_atime_to_ts(inode, atime);
+}
+#endif
 
 u16 exfat_calc_chksum16(void *data, int len, u16 chksum, int type)
 {
@@ -162,14 +200,36 @@ u32 exfat_calc_chksum32(void *data, int len, u32 chksum, int type)
 	return chksum;
 }
 
-void exfat_update_bh(struct super_block *sb, struct buffer_head *bh, int sync)
+void exfat_update_bh(struct buffer_head *bh, int sync)
 {
-	set_bit(EXFAT_SB_DIRTY, &EXFAT_SB(sb)->s_state);
 	set_buffer_uptodate(bh);
 	mark_buffer_dirty(bh);
 
 	if (sync)
 		sync_dirty_buffer(bh);
+}
+
+int exfat_update_bhs(struct buffer_head **bhs, int nr_bhs, int sync)
+{
+	int i, err = 0;
+
+	for (i = 0; i < nr_bhs; i++) {
+		set_buffer_uptodate(bhs[i]);
+		mark_buffer_dirty(bhs[i]);
+		if (sync)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 8, 0)
+			write_dirty_buffer(bhs[i], REQ_SYNC);
+#else
+			write_dirty_buffer(bhs[i], WRITE_SYNC);
+#endif
+	}
+
+	for (i = 0; i < nr_bhs && sync; i++) {
+		wait_on_buffer(bhs[i]);
+		if (!err && !buffer_uptodate(bhs[i]))
+			err = -EIO;
+	}
+	return err;
 }
 
 void exfat_chain_set(struct exfat_chain *ec, unsigned int dir,
