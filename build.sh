@@ -12,20 +12,21 @@
 
 SECONDS=0 # builtin bash timer
 ZIPNAME="RyzenKernel-AOSP-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
-TC_DIR="/workspace/toolchain/r498229b"
+TC_DIR="/workspace/toolchain/linux-x86"
+CLANG_DIR="/workspace/toolchain/linux-x86/clang-r510928"
 GCC_64_DIR="/workspace/toolchain/aarch64-linux-android-4.9"
 GCC_32_DIR="/workspace/toolchain/arm-linux-androideabi-4.9"
 AK3_DIR="/workspace/android/AnyKernel3"
 DEFCONFIG="vendor/ginkgo-perf_defconfig"
 
-export PATH="$TC_DIR/bin:$PATH"
+export PATH="$CLANG_DIR/bin:$PATH"
 export KBUILD_BUILD_USER="EdwiinKJ"
 export KBUILD_BUILD_HOST="RastaMod69"
 export KBUILD_BUILD_VERSION="1"
 
-if ! [ -d "${TC_DIR}" ]; then
+if ! [ -d "${CLANG_DIR}" ]; then
 echo "Clang not found! Cloning to ${TC_DIR}..."
-if ! git clone --depth=1 https://gitlab.com/prebuilts_clang_host_linux-x86/clang-r498229b.git ${TC_DIR}; then
+if ! git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 ${TC_DIR}; then
 echo "Cloning failed! Aborting..."
 exit 1
 fi
