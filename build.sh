@@ -13,7 +13,7 @@
 SECONDS=0 # builtin bash timer
 ZIPNAME="RyzenKernel-AOSP-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
 TC_DIR="/workspace/toolchain/linux-x86"
-CLANG_DIR="/workspace/toolchain/linux-x86/clang-r510928"
+CLANG_DIR="/workspace/toolchain/linux-x86/clang-r498229b"
 GCC_64_DIR="/workspace/toolchain/aarch64-linux-android-4.9"
 GCC_32_DIR="/workspace/toolchain/arm-linux-androideabi-4.9"
 AK3_DIR="/workspace/android/AnyKernel3"
