@@ -3382,6 +3382,10 @@ typedef struct {
     A_UINT32 be_bsr_trigger_partial_resp;
     /** 11BE EHT MU BAR Trigger frame completed with partial user response */
     A_UINT32 be_mu_bar_trigger_partial_resp;
+    /** 11BE EHT MU RTS Trigger frame blocked due to partner link TX/RX(eMLSR) */
+    A_UINT32 be_mu_rts_trigger_blocked;
+    /** 11BE EHT MU BSR Trigger frame blocked due to partner link TX/RX(eMLSR) */
+    A_UINT32 be_bsr_trigger_blocked;
 } htt_stats_tx_selfgen_be_err_stats_tlv;
 /* preserve old name alias for new name consistent with the tag name */
 typedef htt_stats_tx_selfgen_be_err_stats_tlv htt_tx_selfgen_be_err_stats_tlv;
@@ -5398,6 +5402,8 @@ typedef struct {
     A_UINT32 trigger_type_11be[HTT_TX_PDEV_STATS_NUM_11BE_TRIGGER_TYPES];
     /** Stats for Extra EHT LTF */
     A_UINT32 extra_eht_ltf;
+    /** Counter for Extra EHT LTFs in OFDMA sequences */
+    A_UINT32 extra_eht_ltf_ofdma;
 } htt_stats_tx_pdev_rate_stats_tlv;
 /* preserve old name alias for new name consistent with the tag name */
 typedef htt_stats_tx_pdev_rate_stats_tlv htt_tx_pdev_rate_stats_tlv;
@@ -10561,7 +10567,9 @@ typedef struct {
     A_UINT32 pref_link_num_pref_link_timeout;
     A_UINT32 pref_link_num_pref_link_sch_delay_ipc;
     A_UINT32 pref_link_num_pref_link_timeout_ipc;
-} htt_mlo_sched_stats_tlv;
+} htt_stats_mlo_sched_stats_tlv;
+/* preserve old name alias for new name consistent with the tag name */
+typedef htt_stats_mlo_sched_stats_tlv htt_mlo_sched_stats_tlv;
 
 /* STATS_TYPE : HTT_DBG_MLO_SCHED_STATS
  * TLV_TAGS:
@@ -10572,7 +10580,7 @@ typedef struct {
  * Instead, use the constituent TLV structures to fill/parse.
  */
 typedef struct _htt_mlo_sched_stats {
-    htt_mlo_sched_stats_tlv  preferred_link_stats;
+    htt_stats_mlo_sched_stats_tlv  preferred_link_stats;
 } htt_mlo_sched_stats_t;
 
 #define HTT_STATS_HWMLO_MAX_LINKS 6
@@ -10581,7 +10589,9 @@ typedef struct _htt_mlo_sched_stats {
 typedef struct {
     htt_tlv_hdr_t tlv_hdr;
     A_UINT32 mlo_ipc_ring_full_cnt[HTT_STATS_HWMLO_MAX_LINKS][HTT_STATS_MLO_MAX_IPC_RINGS];
-} htt_pdev_mlo_ipc_stats_tlv;
+} htt_stats_pdev_mlo_ipc_stats_tlv;
+/* preserve old name alias for new name consistent with the tag name */
+typedef htt_stats_pdev_mlo_ipc_stats_tlv htt_pdev_mlo_ipc_stats_tlv;
 
 /* STATS_TYPE : HTT_DBG_MLO_IPC_STATS
  * TLV_TAGS:
@@ -10592,7 +10602,7 @@ typedef struct {
  * Instead, use the constituent TLV structures to fill/parse.
  */
 typedef struct _htt_mlo_ipc_stats {
-    htt_pdev_mlo_ipc_stats_tlv  mlo_ipc_stats;
+    htt_stats_pdev_mlo_ipc_stats_tlv mlo_ipc_stats;
 } htt_pdev_mlo_ipc_stats_t;
 
 /*===================== end MLO stats ======================*/
