@@ -1700,94 +1700,10 @@ int thermal_message_device_register(void)
 	thermal_msg->device.class = &thermal_class;
 	dev_set_name(&thermal_msg->device, "thermal_message");
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static ssize_t
-thermal_sconfig_show(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, "%d\n", atomic_read(&switch_mode));
-}
-
-
-static ssize_t
-thermal_sconfig_store(struct device *dev,
-			struct device_attribute *attr, const char *buf, size_t len)
-{
-	int ret, val = -1;
-
-	ret = kstrtoint(buf, 10, &val);
-
-	atomic_set(&switch_mode, val);
-
-	if (ret)
-		return ret;
-	return len;
-}
-
-static DEVICE_ATTR(sconfig, 0664,
-		   thermal_sconfig_show, thermal_sconfig_store);
-
-static ssize_t
-thermal_boost_show(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, boost_buf);
-}
-
-static ssize_t
-thermal_boost_store(struct device *dev,
-			struct device_attribute *attr, const char *buf, size_t len)
-{
-	int ret;
-	ret = snprintf(boost_buf, sizeof(boost_buf), buf);
-	return len;
-}
-
-static DEVICE_ATTR(boost, 0644,
-		   thermal_boost_show, thermal_boost_store);
-
-static ssize_t
-thermal_temp_state_show(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	return snprintf(buf, PAGE_SIZE, "%d\n", atomic_read(&temp_state));
-}
-
-static ssize_t
-thermal_temp_state_store(struct device *dev,
-			struct device_attribute *attr, const char *buf, size_t len)
-{
-	int ret, val = -1;
-
-	ret = kstrtoint(buf, 10, &val);
-
-	atomic_set(&temp_state, val);
-
-	if (ret)
-		return ret;
-	return len;
-}
-
-static DEVICE_ATTR(temp_state, 0664,
-		   thermal_temp_state_show, thermal_temp_state_store);
-
-static ssize_t
-cpu_limits_show(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	return 0;
-}
-
-static ssize_t
-cpu_limits_store(struct device *dev,
-			struct device_attribute *attr, const char *buf, size_t len)
-{
-	unsigned int cpu;
-	unsigned int max;
-
-	if (sscanf(buf, "cpu%u %u", &cpu, &max) != CPU_LIMITS_PARAM_NUM) {
-		pr_err("input param error, can not prase param\n");
-		return -EINVAL;
+	result = device_register(&thermal_msg->device);
+	if (result) {
+		kfree(thermal_msg);
+		return result;
 	}
 
 	result = device_create_file(&thermal_msg->device,&dev_attr_sconfig);
@@ -1825,7 +1741,7 @@ static ssize_t
 thermal_board_sensor_temp_store(struct device *dev,
 				struct device_attribute *attr, const char *buf, size_t len)
 {
-       snprintf(board_sensor_temp, sizeof(board_sensor_temp), buf);
+       snprintf(board_sensor_temp, PAGE_SIZE, buf);
 
        return len;
 }
