@@ -735,7 +735,7 @@ update_frequency:
 	return 0;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+#ifdef CONFIG_MACH_XIAOMI_MOJITO
 void cpu_limits_set_level(unsigned int cpu, unsigned int requested)
 {
 	struct cpufreq_cooling_device *cpufreq_cdev;

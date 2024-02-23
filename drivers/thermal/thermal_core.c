@@ -26,10 +26,6 @@
 #include <net/genetlink.h>
 #include <linux/suspend.h>
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-#include <linux/cpu_cooling.h>
-#include <linux/msm_drm_notify.h>
-#endif
 #define CREATE_TRACE_POINTS
 #include <trace/events/thermal.h>
 
@@ -41,9 +37,6 @@ MODULE_DESCRIPTION("Generic thermal management sysfs support");
 MODULE_LICENSE("GPL v2");
 
 #define THERMAL_MAX_ACTIVE	16
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-#define CPU_LIMITS_PARAM_NUM    2 /* add for thermal-k7 */
-#endif
 
 static DEFINE_IDA(thermal_tz_ida);
 static DEFINE_IDA(thermal_cdev_ida);
@@ -55,25 +48,6 @@ static LIST_HEAD(thermal_governor_list);
 static DEFINE_MUTEX(thermal_list_lock);
 static DEFINE_MUTEX(thermal_governor_lock);
 static DEFINE_MUTEX(poweroff_lock);
-
-#if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_GINKGO)
-/* add for thermal begin */
-struct screen_monitor {
-	struct notifier_block thermal_notifier;
-	int screen_state;
-};
-
-struct screen_monitor sm;
-#endif
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static atomic_t switch_mode = ATOMIC_INIT(10);
-static atomic_t temp_state = ATOMIC_INIT(0);
-static char boost_buf[128];
-const char *board_sensor;
-static char board_sensor_temp[128];
-/* add for thermal end */
-#endif
 
 static atomic_t in_suspend;
 static bool power_off_triggered;
@@ -587,6 +561,63 @@ static void thermal_zone_device_check(struct work_struct *work)
 	thermal_zone_device_update(tz, THERMAL_EVENT_UNSPECIFIED);
 }
 
+#ifdef CONFIG_THERMAL_SWITCH
+#define to_thermal_msg_device(_dev)	\
+	container_of(_dev, struct thermal_message_device, device)
+
+static ssize_t
+sconfig_show(struct device *dev, struct device_attribute *devattr,
+		       char *buf)
+{
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	return sprintf(buf,"%d\n",thermal_msg->sconfig);
+}
+
+static ssize_t
+sconfig_store(struct device *dev, struct device_attribute *devattr,
+		const char *buf, size_t count)
+{
+	int sconfig;
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	if (kstrtoint(buf,10,&sconfig))
+		return -EINVAL;
+
+	thermal_msg->sconfig = sconfig;
+
+	return count;
+}
+static DEVICE_ATTR(sconfig, 0644, sconfig_show, sconfig_store);
+
+/* Add 3C state node */
+static ssize_t
+temp_state_show(struct device *dev, struct device_attribute *devattr,
+		       char *buf)
+{
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	return sprintf(buf,"%d\n",thermal_msg->temp_state);
+}
+
+static ssize_t
+temp_state_store(struct device *dev, struct device_attribute *devattr,
+		const char *buf, size_t count)
+{
+	int temp_state;
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	if (kstrtoint(buf, 10, &temp_state))
+		return -EINVAL;
+
+	thermal_msg->temp_state = temp_state;
+
+	return count;
+}
+
+static DEVICE_ATTR(temp_state, 0644, temp_state_show, temp_state_store);
+#endif /* CONFIG_THERMAL_SWITCH */
+
 /*
  * Power actor section: interface to power actors to estimate power
  *
@@ -971,10 +1002,6 @@ static struct class thermal_class = {
 	.name = "thermal",
 	.dev_release = thermal_release,
 };
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static struct device thermal_message_dev; /* add for thermal-k7 */
-#endif
 
 static inline
 void print_bind_err_msg(struct thermal_zone_device *tz,
@@ -1663,18 +1690,15 @@ static struct notifier_block thermal_pm_nb = {
 	.notifier_call = thermal_pm_notify,
 };
 
-#if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_GINKGO)
-/* add for thermal begin */
-static ssize_t
-thermal_screen_state_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+#ifdef CONFIG_THERMAL_SWITCH
+int thermal_message_device_register(void)
 {
-	return snprintf(buf, PAGE_SIZE, "%d\n", sm.screen_state);
-}
+	struct thermal_message_device *thermal_msg;
+	int result = 0;
 
-static DEVICE_ATTR(screen_state, 0664,
-		thermal_screen_state_show, NULL);
-#endif
+	thermal_msg = kzalloc(sizeof(struct thermal_message_device),GFP_KERNEL);
+	thermal_msg->device.class = &thermal_class;
+	dev_set_name(&thermal_msg->device, "thermal_message");
 
 #ifdef CONFIG_MACH_XIAOMI_GINKGO
 static ssize_t
@@ -1766,24 +1790,25 @@ cpu_limits_store(struct device *dev,
 		return -EINVAL;
 	}
 
-	cpu_limits_set_level(cpu, max);
+	result = device_create_file(&thermal_msg->device,&dev_attr_sconfig);
+	if (result)
+		goto unregister;
 
-	return len;
+	result = device_create_file(&thermal_msg->device,&dev_attr_temp_state);
+	if (result)
+		goto unregister;
+
+	return result;
+
+unregister:
+	device_unregister(&thermal_msg->device);
+	return result;
 }
 
-static DEVICE_ATTR(cpu_limits, 0664,
-		   cpu_limits_show, cpu_limits_store);
 
-static ssize_t
-thermal_board_sensor_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+void thermal_message_device_unregister(void)
 {
-	if (!board_sensor) {
-		board_sensor = "invalid";
-		printk("thermal_board_sensor invalid.\n");
-	}
-
-	return snprintf(buf, PAGE_SIZE, "%s", board_sensor);
+	/* Do nothing */
 }
 
 static DEVICE_ATTR(board_sensor, 0664,
@@ -1947,25 +1972,10 @@ static int __init thermal_init(void)
 		pr_warn("Thermal: Can not register suspend notifier, return %d\n",
 			result);
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	/* add for thermal begin */
-	result = create_thermal_message_node();
-	if (result)
-		pr_warn("Thermal: create thermal message node failed, return %d\n",
-			result);
+#ifdef CONFIG_THERMAL_SWITCH
+	result = thermal_message_device_register();
+#endif /* CONFIG_THERMAL_SWITCH */
 
-	result = of_parse_thermal_message();
-	if (result)
-		pr_warn("Thermal: Can not parse thermal message node, return %d\n",
-			result);
-#endif
-#if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_GINKGO)
-	sm.thermal_notifier.notifier_call = screen_state_for_thermal_callback;
-	if (msm_drm_register_client(&sm.thermal_notifier) < 0) {
-		pr_warn("Thermal: register screen state callback failed\n");
-	}
-	/* add for thermal end */
-#endif
 	return 0;
 
 exit_zone_parse:
@@ -1985,16 +1995,13 @@ error:
 
 static void thermal_exit(void)
 {
-#if defined(CONFIG_DRM) && defined(CONFIG_MACH_XIAOMI_GINKGO)
-	msm_drm_unregister_client(&sm.thermal_notifier);
-#endif
+#ifdef CONFIG_THERMAL_SWITCH
+	thermal_message_device_unregister();
+#endif /* CONFIG_THERMAL_SWITCH */
 	unregister_pm_notifier(&thermal_pm_nb);
 	of_thermal_destroy_zones();
 	destroy_workqueue(thermal_passive_wq);
 	genetlink_exit();
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	destroy_thermal_message_node();
-#endif
 	class_unregister(&thermal_class);
 	thermal_unregister_governors();
 	ida_destroy(&thermal_tz_ida);
