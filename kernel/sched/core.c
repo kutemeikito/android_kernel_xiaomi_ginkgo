@@ -2439,7 +2439,9 @@ static inline bool task_is_inheritable(struct task_struct *p) {
 }
 
 static inline bool child_burst_cache_expired(struct task_struct *p, u64 now) {
-	return (p->se.child_burst_last_cached + sched_burst_cache_lifetime < now);
+	u64 expiration_time =
+		p->se.child_burst_last_cached + sched_burst_cache_lifetime;
+	return ((s64)(expiration_time - now) < 0);
 }
 
 static void __update_child_burst_cache(
@@ -6754,7 +6756,7 @@ void __init sched_init(void)
 	
 #ifdef CONFIG_SCHED_BORE
 	sched_init_bore();
-	printk(KERN_INFO "BORE (Burst-Oriented Response Enhancer) CPU Scheduler modification 4.2.3 by Masahito Suzuki");
+	printk(KERN_INFO "BORE (Burst-Oriented Response Enhancer) CPU Scheduler modification 4.2.4 by Masahito Suzuki");
 #endif // CONFIG_SCHED_BORE
 
 	wait_bit_init();
