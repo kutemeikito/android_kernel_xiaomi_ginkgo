@@ -199,12 +199,12 @@ struct spi_geni_master {
  * *spi_master: struct spi_device ->master
  * *return: spi_geni_master->dev
  ******************************************************************************/
-int geni_spi_get_master_irq(struct spi_device *spi_slv)
+struct device *lct_get_spi_geni_master_dev(struct spi_master *spi)
 {
-	struct spi_geni_master *mas = spi_master_get_devdata(spi_slv->master);
-
-	return mas->irq;
+	struct spi_geni_master *geni_mas = spi_master_get_devdata(spi);
+	return geni_mas->dev;
 }
+EXPORT_SYMBOL(lct_get_spi_geni_master_dev);
 #endif
 
 static void spi_slv_setup(struct spi_geni_master *mas);

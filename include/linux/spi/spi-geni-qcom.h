@@ -26,8 +26,7 @@ struct spi_geni_qcom_ctrl_data {
  * *spi_master: struct spi_device ->master
  * *return: spi_geni_master->dev
  ******************************************************************************/
-struct spi_device;
-int geni_spi_get_master_irq(struct spi_device *spi_slv);
+struct device *lct_get_spi_geni_master_dev(struct spi_master *spi);
 #endif
 
 #endif /*__SPI_GENI_QCOM_HEADER___*/
