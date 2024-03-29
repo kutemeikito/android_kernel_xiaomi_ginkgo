@@ -276,10 +276,32 @@ const char * __init __weak arch_read_machine_name(void)
 	return of_flat_dt_get_machine_name();
 }
 
+#ifdef CONFIG_SDCARD_FS
+    bool sdcardfs_enabled = true;
+#else
+    bool sdcardfs_enabled = false;
+#endif
+
+bool is_dynamic_partitions(void)
+{
+    if (sdcardfs_enabled) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 static int __init plain_partitions_param(char *__unused)
 {
-	plain_partitions = true;
-	return 1;
+    if (!is_dynamic_partitions()) {
+        pr_info("Not in dynamic partitions ROM or SDCardFS enabled. Initializing SDCardFS\n");
+        plain_partitions = true;
+        return 1;
+    } else {
+        pr_info("Dynamic partitions ROM detected and SDCardFS disabled. Skipping SDCardFS\n");
+        plain_partitions = false;
+        return 0;
+    }
 }
 
 __setup("plain_partitions", plain_partitions_param);
