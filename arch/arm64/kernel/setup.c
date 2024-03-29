@@ -284,7 +284,7 @@ const char * __init __weak arch_read_machine_name(void)
 
 bool is_dynamic_partitions(void)
 {
-    if (sdcardfs_enabled) {
+    if (sdcardfs_enabled && !plain_partitions) {
         return false;
     } else {
         return true;

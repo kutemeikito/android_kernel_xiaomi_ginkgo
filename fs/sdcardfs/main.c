@@ -470,12 +470,21 @@ static struct file_system_type sdcardfs_fs_type = {
 MODULE_ALIAS_FS(SDCARDFS_NAME);
 
 extern bool plain_partitions;
+extern bool sdcardfs_enabled;
+
 static int __init init_sdcardfs_fs(void)
 {
 	int err;
 
-	if (!plain_partitions) {
-		pr_info("Dynamic partitions ROM detected! Killing SDCardFS\n");
+    if (sdcardfs_enabled) {
+		if (!is_dynamic_partitions()) {
+			pr_info("SDCardFS enabled on ROM without dynamic partitions\n");
+		} else {
+			pr_info("SDCardFS enabled on ROM with dynamic partitions, skipping init\n");
+			return 0;
+		}
+	} else {
+		pr_info("SDCardFS not enabled on ROM, skipping init\n");
 		return 0;
 	}
 
