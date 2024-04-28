@@ -32,9 +32,9 @@ static struct sde_hw_kcal kcal_lut_data = {
 
 	.hsic = (typeof(kcal_lut_data.hsic)) {
 		.hue		= SDE_HW_KCAL_INIT_HUE,
-		.saturation	= SDE_HW_KCAL_INIT_ADJ,
+		.saturation	= 286,
 		.value		= SDE_HW_KCAL_INIT_ADJ,
-		.contrast	= SDE_HW_KCAL_INIT_ADJ,
+		.contrast	= 257,
 	},
 };
 
