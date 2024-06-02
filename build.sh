@@ -50,7 +50,7 @@ fi
 
 # Setup and apply patch KernelSU in root dir
 if ! [ -d "$KERNEL_DIR"/KernelSU ]; then
-	curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
+	curl -LSs "https://raw.githubusercontent.com/kutemeikito/KernelSU/main/kernel/setup.sh" | bash -s main
 	git apply KernelSU-hook.patch
 else
 		echo -e "Setup KernelSU failed, stopped build now..."
