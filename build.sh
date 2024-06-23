@@ -65,14 +65,10 @@ fi
 curl -kLSs "https://raw.githubusercontent.com/kutemeikito/KernelSU/main/kernel/setup.sh" | bash -s main
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 echo -e "\nKSU Support, let's Make it On\n"
-sed -i 's/CONFIG_KSU=y/CONFIG_LOCALVERSION="-RyzenKernel-KSU"/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
 else
 echo -e "\nKSU not Support, let's Make it off\n"
-sed -i 's/# CONFIG_KSU=is not set/CONFIG_LOCALVERSION="-RyzenKernel"/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
-fi
-
-if [[ $1 = "-c" || $1 = "--clean" ]]; then
-rm -rf out
+sed -i 's/CONFIG_KSU=y/CONFIG_KSU=n/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
+sed -i 's/CONFIG_LOCALVERSION="-RyzenKernel-KSU"/CONFIG_LOCALVERSION="-RyzenKernel"/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
 fi
 
 mkdir -p out
@@ -113,3 +109,5 @@ else
 echo -e "\nCompilation failed!"
 exit 1
 fi
+echo "Move Zip into Home Directory"
+mv *.zip /workspace
