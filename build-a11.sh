@@ -50,10 +50,6 @@ exit 1
 fi
 fi
 
-if [[ $1 = "-c" || $1 = "--clean" ]]; then
-rm -rf out
-fi
-
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 	echo -e "\nCleanup KernelSU first on local build\n"
 	rm -rf KernelSU drivers/kernelsu
