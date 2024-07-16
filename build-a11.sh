@@ -11,13 +11,14 @@
 # Use this script on root of kernel directory
 
 SECONDS=0 # builtin bash timer
+LOCAL_DIR=/home/ryuzenn/
 ZIPNAME="RyzenKernel-AOSP-A11-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
 ZIPNAME_KSU="RyzenKernel-AOSP-A11-Ginkgo-KSU-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
-TC_DIR="/workspace/toolchain/linux-x86"
-CLANG_DIR="/workspace/toolchain/linux-x86/clang-r498229b"
-GCC_64_DIR="/workspace/toolchain/aarch64-linux-android-4.9"
-GCC_32_DIR="/workspace/toolchain/arm-linux-androideabi-4.9"
-AK3_DIR="/workspace/android/AnyKernel3"
+TC_DIR="${LOCAL_DIR}toolchain/linux-x86"
+CLANG_DIR="${TC_DIR}/clang-r498229b"
+GCC_64_DIR="${LOCAL_DIR}toolchain/aarch64-linux-android-4.9"
+GCC_32_DIR="${LOCAL_DIR}toolchain/arm-linux-androideabi-4.9"
+AK3_DIR="${LOCAL_DIR}AnyKernel3"
 DEFCONFIG="vendor/ginkgo-perf_defconfig"
 
 export PATH="$CLANG_DIR/bin:$PATH"
@@ -88,7 +89,7 @@ cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3
 cp out/arch/arm64/boot/dtbo.img AnyKernel3
 rm -f *zip
 cd AnyKernel3
-git checkout master &> /dev/null
+git checkout main &> /dev/null
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 zip -r9 "../$ZIPNAME_KSU" * -x '*.git*' README.md *placeholder
 else
@@ -97,7 +98,16 @@ fi
 cd ..
 rm -rf AnyKernel3
 rm -rf out/arch/arm64/boot
-echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
+echo -e "======================================="
+echo -e "░█▀▀█ █──█ ▀▀█ █▀▀ █▀▀▄ "
+echo -e "░█▄▄▀ █▄▄█ ▄▀─ █▀▀ █──█ "
+echo -e "░█─░█ ▄▄▄█ ▀▀▀ ▀▀▀ ▀──▀ "
+echo -e " "
+echo -e "░█─▄▀ █▀▀ █▀▀█ █▀▀▄ █▀▀ █── "
+echo -e "░█▀▄─ █▀▀ █▄▄▀ █──█ █▀▀ █── "
+echo -e "░█─░█ ▀▀▀ ▀─▀▀ ▀──▀ ▀▀▀ ▀▀▀ "
+echo -e "======================================="
+echo -e "Completed in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 echo "Zip: $ZIPNAME_KSU"
 else
@@ -108,4 +118,5 @@ echo -e "\nCompilation failed!"
 exit 1
 fi
 echo "Move Zip into Home Directory"
-mv *.zip /workspace
+mv *.zip ${LOCAL_DIR}
+echo -e "======================================="
