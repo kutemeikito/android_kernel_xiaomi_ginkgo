@@ -20,15 +20,6 @@ struct spi_geni_qcom_ctrl_data {
 	u32 spi_inter_words_delay;
 };
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-/******************************************************************************
- * *This functionis for get spi_geni_master->dev
- * *spi_master: struct spi_device ->master
- * *return: spi_geni_master->dev
- ******************************************************************************/
-struct device *lct_get_spi_geni_master_dev(struct spi_master *spi);
-#endif
-
 struct spi_device;
 int geni_spi_get_master_irq(struct spi_device *spi_slv);
 

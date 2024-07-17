@@ -90,11 +90,7 @@ struct spidev_data {
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 static unsigned bufsiz = 4096 * 10;
-#else
-static unsigned bufsiz = 4096;
-#endif
 module_param(bufsiz, uint, S_IRUGO);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
@@ -127,13 +123,9 @@ spidev_sync_write(struct spidev_data *spidev, size_t len)
 	struct spi_transfer	t = {
 			.tx_buf		= spidev->tx_buffer,
 			.len		= len,
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-			.speed_hz   = 960000,
 			.delay_usecs = 0,
 			.cs_change   = 0,
-#else
-			.speed_hz	= spidev->speed_hz,
-#endif
+			.speed_hz   = 960000,
 
 		};
 	struct spi_message	m;
@@ -174,7 +166,7 @@ spidev_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 	spidev = filp->private_data;
 
 	mutex_lock(&spidev->buf_lock);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+
 	if (!spidev->rx_buffer) {
 		spidev->rx_buffer = kmalloc(bufsiz, GFP_KERNEL);
 		if (!spidev->rx_buffer) {
@@ -183,7 +175,7 @@ spidev_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 			goto read_unlock;
 		}
 	}
-#endif	
+
 	status = spidev_sync_read(spidev, count);
 	if (status > 0) {
 		unsigned long	missing;
@@ -194,12 +186,12 @@ spidev_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 		else
 			status = status - missing;
 	}
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+
 	kfree(spidev->rx_buffer);
 	spidev->rx_buffer = NULL;
 
 read_unlock:
-#endif
+
 	mutex_unlock(&spidev->buf_lock);
 
 	return status;
@@ -214,16 +206,12 @@ spidev_write(struct file *filp, const char __user *buf,
 	ssize_t			status = 0;
 	unsigned long		missing;
 
-#ifndef CONFIG_MACH_XIAOMI_GINKGO
 	/* chipselect only toggles at start or end of operation */
-	if (count > bufsiz)
-		return -EMSGSIZE;
-#endif
 
 	spidev = filp->private_data;
 
 	mutex_lock(&spidev->buf_lock);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+
 	if (!spidev->tx_buffer) {
 		spidev->tx_buffer = kmalloc(count, GFP_KERNEL);
 		if (!spidev->tx_buffer) {
@@ -232,18 +220,18 @@ spidev_write(struct file *filp, const char __user *buf,
 			goto write_unlock;
 		}
 	}
-#endif
+
 	missing = copy_from_user(spidev->tx_buffer, buf, count);
 	if (missing == 0)
 		status = spidev_sync_write(spidev, count);
 	else
 		status = -EFAULT;
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+
 	kfree(spidev->tx_buffer);
 	spidev->tx_buffer = NULL;
 
 write_unlock:
-#endif
+
 	mutex_unlock(&spidev->buf_lock);
 
 	return status;
@@ -269,7 +257,7 @@ static int spidev_message(struct spidev_data *spidev,
 	 * We walk the array of user-provided transfers, using each one
 	 * to initialize a kernel version of the same transfer.
 	 */
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+
 	if (!spidev->rx_buffer) {
 		spidev->rx_buffer = kmalloc(bufsiz, GFP_KERNEL);
 		if (!spidev->rx_buffer) {
@@ -287,7 +275,7 @@ static int spidev_message(struct spidev_data *spidev,
 			goto txbuffer_err;
 		}
 	}
-#endif
+
 	tx_buf = spidev->tx_buffer;
 	rx_buf = spidev->rx_buffer;
 	total = 0;
@@ -381,14 +369,14 @@ static int spidev_message(struct spidev_data *spidev,
 	status = total;
 
 done:
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
+
 	kfree(spidev->tx_buffer);
 	spidev->tx_buffer = NULL;
 txbuffer_err:
 	kfree(spidev->rx_buffer);
 	spidev->rx_buffer = NULL;
 rxbuffer_err:
-#endif
+
 	kfree(k_xfers);
 	return status;
 }
@@ -648,26 +636,6 @@ static int spidev_open(struct inode *inode, struct file *filp)
 		goto err_find_dev;
 	}
 
-#ifndef CONFIG_MACH_XIAOMI_GINKGO
-	if (!spidev->tx_buffer) {
-		spidev->tx_buffer = kmalloc(bufsiz, GFP_KERNEL);
-		if (!spidev->tx_buffer) {
-			dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
-			status = -ENOMEM;
-			goto err_find_dev;
-		}
-	}
-
-	if (!spidev->rx_buffer) {
-		spidev->rx_buffer = kmalloc(bufsiz, GFP_KERNEL);
-		if (!spidev->rx_buffer) {
-			dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
-			status = -ENOMEM;
-			goto err_alloc_rx_buf;
-		}
-	}
-#endif
-
 	spidev->users++;
 	filp->private_data = spidev;
 	nonseekable_open(inode, filp);
@@ -675,11 +643,6 @@ static int spidev_open(struct inode *inode, struct file *filp)
 	mutex_unlock(&device_list_lock);
 	return 0;
 
-#ifndef CONFIG_MACH_XIAOMI_GINKGO
-err_alloc_rx_buf:
-	kfree(spidev->tx_buffer);
-	spidev->tx_buffer = NULL;
-#endif
 err_find_dev:
 	mutex_unlock(&device_list_lock);
 	return status;
@@ -702,14 +665,6 @@ static int spidev_release(struct inode *inode, struct file *filp)
 	/* last close? */
 	spidev->users--;
 	if (!spidev->users) {
-
-#ifndef CONFIG_MACH_XIAOMI_GINKGO
-		kfree(spidev->tx_buffer);
-		spidev->tx_buffer = NULL;
-
-		kfree(spidev->rx_buffer);
-		spidev->rx_buffer = NULL;
-#endif
 
 		if (dofree)
 			kfree(spidev);
