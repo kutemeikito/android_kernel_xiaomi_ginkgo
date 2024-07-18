@@ -15,7 +15,7 @@ LOCAL_DIR=/home/ryuzenn/
 ZIPNAME="RyzenKernel-AOSP-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
 ZIPNAME_KSU="RyzenKernel-AOSP-Ginkgo-KSU-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
 TC_DIR="${LOCAL_DIR}toolchain/linux-x86"
-CLANG_DIR="${TC_DIR}/clang-r498229b"
+CLANG_DIR="${TC_DIR}/clang-r530567"
 GCC_64_DIR="${LOCAL_DIR}toolchain/aarch64-linux-android-4.9"
 GCC_32_DIR="${LOCAL_DIR}toolchain/arm-linux-androideabi-4.9"
 AK3_DIR="${LOCAL_DIR}AnyKernel3"
