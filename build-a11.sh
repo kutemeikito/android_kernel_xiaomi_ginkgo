@@ -62,7 +62,7 @@ fi
 curl -kLSs "https://raw.githubusercontent.com/kutemeikito/KernelSU/main/kernel/setup.sh" | bash -s main
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 echo -e "\nKSU Support, let's Make it On\n"
-sed -i 's/CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=y/CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP= is not set/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
+sed -i 's/CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=y/#CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=is not set/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
 else
 echo -e "\nKSU not Support, let's Make it off\n"
 sed -i 's/CONFIG_KSU=y/CONFIG_KSU=n/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
