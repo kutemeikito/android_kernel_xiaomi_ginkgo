@@ -1213,7 +1213,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 	if (!strncmp(current->comm, "netbpfload", 10) &&
 	    current->pid != netbpfload_pid) {
 		netbpfload_pid = current->pid;
-		strcpy(tmp.release, "5.4.0");
+		strcpy(tmp.release, "6.6.40");
 		pr_debug("fake uname: %s/%d release=%s\n",
 			 current->comm, current->pid, tmp.release);
 	}
