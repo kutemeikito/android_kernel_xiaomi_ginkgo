@@ -16,11 +16,8 @@
 #define pr_fmt(fmt)	"dsi-drm:[%s] " fmt, __func__
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_atomic.h>
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-#include <linux/msm_drm_notify.h>
 #include <drm/drm_bridge.h>
 #include <linux/pm_wakeup.h>
-#endif
 
 #include "msm_kms.h"
 #include "sde_connector.h"
@@ -43,18 +40,12 @@ static struct dsi_display_mode_priv_info default_priv_info = {
 	.dsc_enabled = false,
 };
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 #define WAIT_RESUME_TIMEOUT 200
 
 struct dsi_bridge *gbridge;
 static struct delayed_work prim_panel_work;
 static atomic_t prim_panel_is_on;
 static struct wakeup_source prim_panel_wakelock;
-
-bool panel_init_judge;
-
-extern char *saved_command_line;
-#endif
 
 static void convert_to_dsi_mode(const struct drm_display_mode *drm_mode,
 				struct dsi_display_mode *dsi_mode)
@@ -188,22 +179,6 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 {
 	int rc = 0;
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	struct drm_device *dev = bridge->dev;
-	struct msm_drm_notifier g_notify_data;
-	int event = 0;
-
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL)) {
-		if (dev->doze_state == MSM_DRM_BLANK_POWERDOWN) {
-			dev->doze_state = MSM_DRM_BLANK_UNBLANK;
-			pr_err("%s power on from power off\n", __func__);
-		}
-
-		event = dev->doze_state;
-		g_notify_data.data = &event;
-	}
-#endif
 
 	if (!bridge) {
 		pr_err("Invalid params\n");
@@ -217,17 +192,11 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 
 	atomic_set(&c_bridge->display->panel->esd_recovery_pending, 0);
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	if (c_bridge->display->is_prim_display && atomic_read(&prim_panel_is_on)) {
 		cancel_delayed_work_sync(&prim_panel_work);
 		__pm_relax(&prim_panel_wakelock);
 		return;
 	}
-
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
-#endif
 
 	/* By this point mode should have been validated through mode_fixup */
 	rc = dsi_display_set_mode(c_bridge->display,
@@ -262,24 +231,16 @@ static void dsi_bridge_pre_enable(struct drm_bridge *bridge)
 				c_bridge->id, rc);
 		(void)dsi_display_unprepare(c_bridge->display);
 	}
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
-#endif
 	SDE_ATRACE_END("dsi_display_enable");
 
 	rc = dsi_display_splash_res_cleanup(c_bridge->display);
 	if (rc)
 		pr_err("Continuous splash pipeline cleanup failed, rc=%d\n",
 									rc);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	if (c_bridge->display->is_prim_display)
 		atomic_set(&prim_panel_is_on, true);
-#endif
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 /**
  *  dsi_bridge_interface_enable - Panel light on interface for fingerprint
  *  In order to improve panel light on performance when unlock device by
@@ -294,12 +255,12 @@ int dsi_bridge_interface_enable(int timeout)
 {
 	int ret = 0;
 
-	pr_debug("%s: start\n", __func__);
+	pr_info("%s: start\n", __func__);
 	ret = wait_event_timeout(resume_wait_q,
 		!atomic_read(&resume_pending),
 		msecs_to_jiffies(WAIT_RESUME_TIMEOUT));
 	if (!ret) {
-		pr_info("Primary fb resume timeout\n");
+		pr_err("Primary fb resume timeout\n");
 		return -ETIMEDOUT;
 	}
 
@@ -322,7 +283,6 @@ int dsi_bridge_interface_enable(int timeout)
 	return ret;
 }
 EXPORT_SYMBOL(dsi_bridge_interface_enable);
-#endif
 
 static void dsi_bridge_enable(struct drm_bridge *bridge)
 {
@@ -378,9 +338,6 @@ static void dsi_bridge_disable(struct drm_bridge *bridge)
 		sde_connector_helper_bridge_disable(display->drm_conn);
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	panel_init_judge = false;
-#endif
 	rc = dsi_display_pre_disable(c_bridge->display);
 	if (rc) {
 		pr_err("[%d] DSI display pre disable failed, rc=%d\n",
@@ -392,32 +349,11 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 {
 	int rc = 0;
 	struct dsi_bridge *c_bridge = to_dsi_bridge(bridge);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	struct drm_device *dev = bridge->dev;
-	struct msm_drm_notifier g_notify_data;
-	int event = 0;
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL)) {
-		if (dev->doze_state == MSM_DRM_BLANK_UNBLANK) {
-			dev->doze_state = MSM_DRM_BLANK_POWERDOWN;
-			pr_err("%s wrong doze state\n", __func__);
-		}
-
-		event = dev->doze_state;
-		g_notify_data.data = &event;
-	}
-#endif
 
 	if (!bridge) {
 		pr_err("Invalid params\n");
 		return;
 	}
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
-#endif
 
 	SDE_ATRACE_BEGIN("dsi_bridge_post_disable");
 	SDE_ATRACE_BEGIN("dsi_display_disable");
@@ -439,17 +375,11 @@ static void dsi_bridge_post_disable(struct drm_bridge *bridge)
 	}
 	SDE_ATRACE_END("dsi_bridge_post_disable");
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
-
 	if (c_bridge->display->is_prim_display)
 		atomic_set(&prim_panel_is_on, false);
-#endif
 }
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J)
 typedef int(*touchpanel_recovery_cb_p_t)(void);
 static touchpanel_recovery_cb_p_t touchpanel_recovery_cb_p = NULL;
 int set_touchpanel_recovery_callback(touchpanel_recovery_cb_p_t cb)
@@ -462,12 +392,11 @@ int set_touchpanel_recovery_callback(touchpanel_recovery_cb_p_t cb)
 EXPORT_SYMBOL(set_touchpanel_recovery_callback);
 #endif
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 static void prim_panel_off_delayed_work(struct work_struct *work)
 {
 	mutex_lock(&gbridge->base.lock);
 	if (atomic_read(&prim_panel_is_on)) {
-#if defined(CONFIG_TOUCHSCREEN_XIAOMI_C3J)
+#if (defined CONFIG_TOUCHSCREEN_XIAOMI_C3J)
 		if (!IS_ERR_OR_NULL(touchpanel_recovery_cb_p))
 			touchpanel_recovery_cb_p();
 #endif
@@ -478,7 +407,6 @@ static void prim_panel_off_delayed_work(struct work_struct *work)
 	}
 	mutex_unlock(&gbridge->base.lock);
 }
-#endif
 
 static void dsi_bridge_mode_set(struct drm_bridge *bridge,
 				struct drm_display_mode *mode,
@@ -1213,7 +1141,6 @@ struct dsi_bridge *dsi_drm_bridge_init(struct dsi_display *display,
 	}
 
 	encoder->bridge = &bridge->base;
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	encoder->bridge->is_dsi_drm_bridge = true;
 	mutex_init(&encoder->bridge->lock);
 
@@ -1224,8 +1151,7 @@ struct dsi_bridge *dsi_drm_bridge_init(struct dsi_display *display,
 		atomic_set(&prim_panel_is_on, false);
 		init_waitqueue_head(&resume_wait_q);
 		INIT_DELAYED_WORK(&prim_panel_work, prim_panel_off_delayed_work);
-	}
-#endif
+ 	}
 
 	return bridge;
 error_free_bridge:
@@ -1239,13 +1165,11 @@ void dsi_drm_bridge_cleanup(struct dsi_bridge *bridge)
 	if (bridge && bridge->base.encoder)
 		bridge->base.encoder->bridge = NULL;
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	if (bridge == gbridge) {
 		atomic_set(&prim_panel_is_on, false);
 		cancel_delayed_work_sync(&prim_panel_work);
 		wakeup_source_trash(&prim_panel_wakelock);
 	}
-#endif
 
 	kfree(bridge);
 }

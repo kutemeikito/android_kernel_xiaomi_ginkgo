@@ -177,7 +177,7 @@ struct drm_bridge_funcs {
 	 * or &drm_encoder_helper_funcs.dpms hook.
 	 *
 	 * The bridge must assume that the display pipe (i.e. clocks and timing
-	 * signals) feeding it is no longer running when this callback is
+	 * singals) feeding it is no longer running when this callback is
 	 * called.
 	 *
 	 * The post_disable callback is optional.
@@ -259,10 +259,8 @@ struct drm_bridge {
 
 	const struct drm_bridge_funcs *funcs;
 	void *driver_private;
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	struct mutex lock;
 	bool is_dsi_drm_bridge;
-#endif
 };
 
 int drm_bridge_add(struct drm_bridge *bridge);
@@ -283,9 +281,7 @@ void drm_bridge_mode_set(struct drm_bridge *bridge,
 			struct drm_display_mode *adjusted_mode);
 void drm_bridge_pre_enable(struct drm_bridge *bridge);
 void drm_bridge_enable(struct drm_bridge *bridge);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 int dsi_bridge_interface_enable(int timeout);
-#endif
 int drm_bridge_connector_init(struct drm_bridge *bridge,
 	struct drm_connector *connector);
 

@@ -18,9 +18,6 @@
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/err.h>
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-#include <linux/msm_drm_notify.h>
-#endif
 
 #include "msm_drv.h"
 #include "sde_connector.h"
@@ -47,14 +44,6 @@
 
 #define DSI_CLOCK_BITRATE_RADIX 10
 #define MAX_TE_SOURCE_ID  2
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static struct dsi_display *whitep_display;
-extern char *saved_command_line;
-#endif
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
-extern char g_lcd_id[128];
-#endif
 
 DEFINE_MUTEX(dsi_display_clk_mutex);
 
@@ -629,101 +618,6 @@ static void dsi_display_parse_te_data(struct dsi_display *display)
 	display->te_source = val;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static char dcs_cmd[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
-static struct dsi_cmd_desc dcs_read_cmd = {
-       {0, 6, MIPI_DSI_MSG_REQ_ACK, 0, 5, sizeof(dcs_cmd), dcs_cmd, 0, 0},
-       1,
-       5,
-};
-
-static int dsi_display_read_reg(struct dsi_display_ctrl *ctrl, char cmd0,
-		char cmd1, char *rbuf, int len)
-{
-	int rc = 0;
-	struct dsi_cmd_desc *cmds;
-	u32 flags = 0;
-
-	if (!ctrl || !ctrl->ctrl)
-		return -EINVAL;
-
-	/*
-	 * When DSI controller is not in initialized state, we do not want to
-	 * report a false failure and hence we defer until next read
-	 * happen.
-	 */
-	if (!dsi_ctrl_validate_host_state(ctrl->ctrl))
-		return 1;
-
-	dcs_cmd[0] = cmd0;
-	dcs_cmd[1] = cmd1;
-
-	cmds = &dcs_read_cmd;
-	flags |= (DSI_CTRL_CMD_FETCH_MEMORY | DSI_CTRL_CMD_READ);
-
-	memset(rbuf, 0x0, SZ_4K);
-	if (cmds->last_command) {
-		cmds->msg.flags |= MIPI_DSI_MSG_LASTCOMMAND;
-		flags |= DSI_CTRL_CMD_LAST_COMMAND;
-	}
-	cmds->msg.rx_buf = rbuf;
-	cmds->msg.rx_len = len;
-	rc = dsi_ctrl_cmd_transfer(ctrl->ctrl, &cmds->msg, flags);
-	if (rc <= 0) {
-		pr_err("rx cmd transfer failed rc=%d\n", rc);
-		return rc;
-	}
-	printk("xinj: rbuf[0]= %x,rbuf[1]= %x, rbuf[2] = %x, rbuf[3] =%x,rbuf[4]=%x,rbuf[5]=%x,rbuf[6]=%x,rbuf[7]=%x\n",
-			rbuf[0] ,rbuf[1], rbuf[2], rbuf[3], rbuf[4], rbuf[5], rbuf[6], rbuf[7]);
- 
-	return rc;
-}
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
-static char dcs_cmd_page[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
-static struct dsi_cmd_desc dcs_read_cmd_page = {
-       {0, 0x15, MIPI_DSI_MSG_REQ_ACK, 0, 5, sizeof(dcs_cmd_page), dcs_cmd_page, 0, 0},
-       1,
-       5,
-};
-
-static int dsi_display_write_reg_page(struct dsi_display_ctrl *ctrl, char cmd0,
-		char cmd1, char *rbuf, int len)
-{
-	int rc = 0;
-	struct dsi_cmd_desc *cmds;
-	u32 flags = 0;
-
-	if (!ctrl || !ctrl->ctrl)
-		return -EINVAL;
-
-	if (!dsi_ctrl_validate_host_state(ctrl->ctrl))
-		return 1;
-
-	dcs_cmd_page[0] = cmd0;
-	dcs_cmd_page[1] = cmd1;
-	cmds = &dcs_read_cmd_page;
-	flags |= (DSI_CTRL_CMD_FETCH_MEMORY);
-
-	memset(rbuf, 0x0, SZ_4K);
-	if (cmds->last_command) {
-		cmds->msg.flags |= MIPI_DSI_MSG_LASTCOMMAND;
-		flags |= DSI_CTRL_CMD_LAST_COMMAND;
-	}
-	cmds->msg.rx_buf = NULL;
-	cmds->msg.rx_len = 0;
-
-	rc = dsi_ctrl_cmd_transfer(ctrl->ctrl, &cmds->msg, flags);
-	if (rc < 0) {
-		pr_err("rx cmd transfer failed rc=%d\n", rc);
-		return rc;
-	}
-
-	return rc;
- }
-#endif
-
 static int dsi_display_read_status(struct dsi_display_ctrl *ctrl,
 		struct dsi_panel *panel)
 {
@@ -1165,73 +1059,23 @@ int dsi_display_set_power(struct drm_connector *connector,
 {
 	struct dsi_display *display = disp;
 	int rc = 0;
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	struct msm_drm_notifier g_notify_data;
-	struct drm_device *dev = NULL;
-	int event = 0;
-#endif
 
 	if (!display || !display->panel) {
 		pr_err("invalid display/panel\n");
 		return -EINVAL;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-	    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL)) {
-		if (!connector || !connector->dev) {
-			pr_err("invalid connector/dev\n");
-			return -EINVAL;
-		} else {
-			dev = connector->dev;
-			event = dev->doze_state;
-		}
-		g_notify_data.data = &event;
-	}
-#endif
-
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-		if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-		    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-			msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
-#endif
 		rc = dsi_panel_set_lp1(display->panel);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-		if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-		    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-			msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
-#endif
 		break;
 	case SDE_MODE_DPMS_LP2:
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-		if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-		    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-			msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
-#endif
 		rc = dsi_panel_set_lp2(display->panel);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-		if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-		    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-			msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
-#endif
 		break;
 	case SDE_MODE_DPMS_ON:
 		if (display->panel->power_mode == SDE_MODE_DPMS_LP1 ||
-			display->panel->power_mode == SDE_MODE_DPMS_LP2) {
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-			if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-			    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-				msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &g_notify_data);
-#endif
+			display->panel->power_mode == SDE_MODE_DPMS_LP2)
 			rc = dsi_panel_set_nolp(display->panel);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-			if ((strnstr(saved_command_line, "tianma", strlen(saved_command_line)) != NULL) || 
-			    (strnstr(saved_command_line, "shenchao", strlen(saved_command_line)) != NULL))
-				msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &g_notify_data);
-#endif
-		}
 		break;
 	case SDE_MODE_DPMS_OFF:
 	default:
@@ -5028,10 +4872,9 @@ static int dsi_display_link_clk_force_update_ctrl(void *handle)
 	return rc;
 }
 
-int dsi_display_clk_ctrl(void *handle, u32 type, u32 state)
+int dsi_display_clk_ctrl(void *handle,
+	enum dsi_clk_type clk_type, enum dsi_clk_state clk_state)
 {
-	enum dsi_clk_type clk_type = (enum dsi_clk_type)type;
-	enum dsi_clk_state clk_state = (enum dsi_clk_state)state;
 	int rc = 0;
 
 	if (!handle) {
@@ -5137,84 +4980,8 @@ static ssize_t sysfs_dynamic_dsi_clk_write(struct device *dev,
 	mutex_unlock(&display->display_lock);
 
 	return rc;
+
 }
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static ssize_t dsi_display_get_whitepoint(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{
-	struct dsi_display_ctrl *ctrl = NULL;
-
-	ssize_t rc = 0;
-	struct dsi_display *display;
-
-	display = whitep_display;
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	if (display->tx_cmd_buf == NULL) {
-		rc = dsi_host_alloc_cmd_tx_buffer(display);
-		if (rc) {
-			pr_err("failed to allocate cmd tx buffer memory\n");
-			goto done;
-		}
-	}
-
-	rc = dsi_display_cmd_engine_enable(display);
-	if (rc) {
-		pr_err("cmd engine enable failed\n");
-		return -EPERM;
-	}
-
-	ctrl = &display->ctrl[display->cmd_master_idx];
-
-#if defined(CONFIG_TOUCHSCREEN_XIAOMI_C3J)
-	if ((strstr(g_lcd_id, "huaxing")!= NULL)) {
-		rc = dsi_display_write_reg_page(ctrl, 0x00, 0x60, buf, sizeof(buf));
-		rc = dsi_display_read_reg(ctrl, 0xf4, 0x00, buf, sizeof(buf));
-	} else {
-		rc = dsi_display_write_reg_page(ctrl, 0xff, 0x10, buf, sizeof(buf));
-		rc = dsi_display_read_reg(ctrl, 0xa1, 0, buf, sizeof(buf));
-	}
-#endif
-	if (rc <= 0) {
-		pr_err("get whitepoint failed rc=%zd\n", rc);
-		goto exit;
-	}
-	if (0 != buf[1])
-		rc = snprintf(buf, PAGE_SIZE, "val0=%d,val1=%d\n",buf[0],buf[1]);
-	else
-		rc = snprintf(buf, PAGE_SIZE, "val0=%d,val1=%d\n",buf[0],buf[2]);
-exit:
-	dsi_display_cmd_engine_disable(display);
-done:
-	return rc;
-}
-static DEVICE_ATTR(whitepoint, 0644, dsi_display_get_whitepoint, NULL);
-
-static struct kobject *msm_whitepoint;
-static int dsi_display_whitepoint_create_sysfs(void)
-{
-	int ret;
-	msm_whitepoint = kobject_create_and_add("android_whitepoint", NULL);
-	if (msm_whitepoint == NULL) {
-		pr_info("msm_whitepoint_create_sysfs_ failed\n");
-		ret = -ENOMEM;
-		return ret;
-	}
-
-	ret = sysfs_create_file(msm_whitepoint,&dev_attr_whitepoint.attr);
-	if (ret) {
-		pr_err("xinj:%s failed \n",__func__);
-		kobject_del(msm_whitepoint);
-		return ret;
-	}
-	pr_info("xinj:%s success\n",__func__);
-	return ret;
-}
-#endif
 
 static DEVICE_ATTR(dynamic_dsi_clock, 0644,
 			sysfs_dynamic_dsi_clk_read,
@@ -5264,7 +5031,6 @@ error:
 	return rc;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 static ssize_t sysfs_hbm_read(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -5368,13 +5134,10 @@ static DEVICE_ATTR(hbm, 0644,
 static DEVICE_ATTR(cabc, 0644,
 			sysfs_cabc_read,
 			sysfs_cabc_write);
-#endif
 
 static struct attribute *display_fs_attrs[] = {
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	&dev_attr_hbm.attr,
 	&dev_attr_cabc.attr,
-#endif
 	NULL,
 };
 
@@ -5410,7 +5173,6 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 	return 0;
 
 }
-
 
 /**
  * dsi_display_bind - bind dsi device with controlling device
@@ -5478,7 +5240,11 @@ static int dsi_display_bind(struct device *dev,
 		goto error;
 	}
 
-	dsi_display_debugfs_init(display);
+	rc = dsi_display_debugfs_init(display);
+	if (rc) {
+		pr_err("[%s] debugfs init failed, rc=%d\n", display->name, rc);
+		goto error;
+	}
 
 	atomic_set(&display->clkrate_change_pending, 0);
 	display->cached_clk_rate = 0;
@@ -5629,10 +5395,6 @@ static int dsi_display_bind(struct device *dev,
 
 	/* register te irq handler */
 	dsi_display_register_te_irq(display);
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	dsi_display_whitepoint_create_sysfs();
-#endif
 
 	goto error;
 
@@ -5844,9 +5606,7 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 	display->pdev = pdev;
 	display->boot_disp = boot_disp;
 	display->dsi_type = dsi_type;
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	display->is_prim_display = true;
-#endif
 
 	dsi_display_parse_cmdline_topology(display, index);
 
@@ -7443,9 +7203,6 @@ int dsi_display_prepare(struct dsi_display *display)
 		return -EINVAL;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	whitep_display = display;
-#endif
 	SDE_EVT32(SDE_EVTLOG_FUNC_ENTRY);
 	mutex_lock(&display->display_lock);
 
@@ -7894,7 +7651,7 @@ int dsi_display_enable(struct dsi_display *display)
 	mode = display->panel->cur_mode;
 
 	if (mode->dsi_mode_flags & DSI_MODE_FLAG_DMS) {
-		rc = dsi_panel_switch(display->panel);
+		rc = dsi_panel_post_switch(display->panel);
 		if (rc) {
 			pr_err("[%s] failed to switch DSI panel mode, rc=%d\n",
 				   display->name, rc);
@@ -7921,7 +7678,7 @@ int dsi_display_enable(struct dsi_display *display)
 	}
 
 	if (mode->dsi_mode_flags & DSI_MODE_FLAG_DMS) {
-		rc = dsi_panel_post_switch(display->panel);
+		rc = dsi_panel_switch(display->panel);
 		if (rc)
 			pr_err("[%s] failed to switch DSI panel mode, rc=%d\n",
 				   display->name, rc);

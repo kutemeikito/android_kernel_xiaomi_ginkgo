@@ -73,10 +73,8 @@ struct msm_gem_vma;
 
 #define TEARDOWN_DEADLOCK_RETRY_MAX 5
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 extern atomic_t resume_pending;
 extern wait_queue_head_t resume_wait_q;
-#endif
 
 struct msm_file_private {
 	/* update the refcount when user driver calls power_ctrl IOCTL */

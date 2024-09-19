@@ -24,13 +24,6 @@
 #include "dsi_ctrl_hw.h"
 #include "dsi_parser.h"
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-char g_lcd_id[128];
-extern bool panel_init_judge;
-
-bool backlight_val;
-#endif
-
 /**
  * topology is currently defined by a set of following 3 values:
  * 1. num of layer mixers
@@ -369,9 +362,6 @@ static int dsi_panel_reset(struct dsi_panel *panel)
 		}
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	usleep_range(12 * 1000, 12 * 1000);
-#endif
 	if (r_config->count) {
 		rc = gpio_direction_output(r_config->reset_gpio,
 			r_config->sequence[0].level);
@@ -481,7 +471,7 @@ exit:
 	return rc;
 }
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
+#ifdef CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI_C3J
 static bool lcd_reset_keep_high = false;
 void set_lcd_reset_gpio_keep_high(bool en)
 {
@@ -497,18 +487,11 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 	if (gpio_is_valid(panel->reset_config.disp_en_gpio))
 		gpio_set_value(panel->reset_config.disp_en_gpio, 0);
 
-	if (gpio_is_valid(panel->reset_config.reset_gpio)) {
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_C3J
-		if (lcd_reset_keep_high)
-			pr_warn("%s: lcd-reset-gpio keep high\n", __func__);
-		else {
-			gpio_set_value(panel->reset_config.reset_gpio, 0);
-			pr_err("[NVT-ts] lcd-reset_gpio = 0\n");
-		}
-#else
-		gpio_set_value(panel->reset_config.reset_gpio, 0);
+#ifdef CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI_C3J
+	if (!lcd_reset_keep_high)
 #endif
-	}
+		if (gpio_is_valid(panel->reset_config.reset_gpio))
+			gpio_set_value(panel->reset_config.reset_gpio, 0);
 
 	if (gpio_is_valid(panel->reset_config.lcd_mode_sel_gpio))
 		gpio_set_value(panel->reset_config.lcd_mode_sel_gpio, 0);
@@ -636,7 +619,10 @@ static int dsi_panel_wled_register(struct dsi_panel *panel,
 	return 0;
 }
 
-#ifndef CONFIG_MACH_XIAOMI_GINKGO
+#ifdef CONFIG_BACKLIGHT_KTD3136
+extern int sgm_brightness_set(uint16_t brightness);
+extern int backlight_hbm_set(int hbm_mode);
+#endif
 static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
 {
@@ -653,13 +639,16 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	if (panel->bl_config.bl_inverted_dbv)
 		bl_lvl = (((bl_lvl & 0xff) << 8) | (bl_lvl >> 8));
 
+#ifdef CONFIG_BACKLIGHT_KTD3136
+	sgm_brightness_set(bl_lvl);
+#else
 	rc = mipi_dsi_dcs_set_display_brightness(dsi, bl_lvl);
 	if (rc < 0)
 		pr_err("failed to update dcs backlight:%d\n", bl_lvl);
+#endif
 
 	return rc;
 }
-#endif
 
 static int dsi_panel_update_pwm_backlight(struct dsi_panel *panel,
 	u32 bl_lvl)
@@ -712,28 +701,6 @@ error:
 	return rc;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-extern int sgm_brightness_set(uint16_t brightness);
-extern int backlight_hbm_set(int hbm_mode);
-static int dsi_panel_update_backlight_external(struct dsi_panel *panel, u32 bl_lvl)
-{
-
-	pr_debug("backlight level :%d\n", bl_lvl);
-	if (bl_lvl > 0)
-		backlight_val = true;
-	else
-		backlight_val = false;
-
-	if (!panel || (bl_lvl > 0xffff)) {
-		pr_err("invalid params\n");
-		return -EINVAL;
-	}
-
-	sgm_brightness_set(bl_lvl);
-	return 0;
-}
-#endif
-
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
@@ -748,9 +715,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = backlight_device_set_brightness(bl->raw_bd, bl_lvl);
 		break;
 	case DSI_BACKLIGHT_DCS:
-#ifndef CONFIG_MACH_XIAOMI_GINKGO
 		rc = dsi_panel_update_backlight(panel, bl_lvl);
-#endif
 		break;
 	case DSI_BACKLIGHT_EXTERNAL:
 		break;
@@ -762,9 +727,6 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = -ENOTSUPP;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	rc = dsi_panel_update_backlight_external(panel, bl_lvl);
-#endif
 	return rc;
 }
 
@@ -1807,7 +1769,6 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command",
 	"qcom,mdss-dsi-qsync-on-commands",
 	"qcom,mdss-dsi-qsync-off-commands",
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	"qcom,mdss-dsi-hbm1-on-command",
 	"qcom,mdss-dsi-hbm2-on-command",
 	"qcom,mdss-dsi-hbm3-on-command",
@@ -1816,7 +1777,6 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-cabc_still-on-command",
 	"qcom,mdss-dsi-cabc_movie-on-command",
 	"qcom,mdss-dsi-cabc-off-command",
-#endif
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -1843,7 +1803,6 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-post-mode-switch-on-command-state",
 	"qcom,mdss-dsi-qsync-on-commands-state",
 	"qcom,mdss-dsi-qsync-off-commands-state",
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	"qcom,mdss-dsi-hbm1-on-command-state",
 	"qcom,mdss-dsi-hbm2-on-command-state",
 	"qcom,mdss-dsi-hbm3-on-command-state",
@@ -1852,7 +1811,6 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-cabc_still-on-command-state",
 	"qcom,mdss-dsi-cabc_movie-on-command-state",
 	"qcom,mdss-dsi-cabc-off-command-state",
-#endif
 };
 
 static int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -2129,10 +2087,6 @@ static int dsi_panel_parse_misc_features(struct dsi_panel *panel)
 {
 	struct dsi_parser_utils *utils = &panel->utils;
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	panel->ulps_feature_enabled = true;
-	panel->ulps_suspend_enabled = true;
-#else
 	panel->ulps_feature_enabled =
 		utils->read_bool(utils->data, "qcom,ulps-enabled");
 
@@ -2144,7 +2098,6 @@ static int dsi_panel_parse_misc_features(struct dsi_panel *panel)
 
 	pr_info("%s: ulps during suspend feature %s", __func__,
 		(panel->ulps_suspend_enabled ? "enabled" : "disabled"));
-#endif
 
 	panel->te_using_watchdog_timer = utils->read_bool(utils->data,
 					"qcom,mdss-dsi-te-using-wd");
@@ -3347,38 +3300,6 @@ end:
 	utils->node = panel->panel_of_node;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-static ssize_t msm_fb_lcd_name(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	ssize_t ret = 0;
-	sprintf(buf, "%s\n", g_lcd_id);
-	ret = strlen(buf) + 1;
-	return ret;
-}
-static DEVICE_ATTR(lcd_name, 0664, msm_fb_lcd_name, NULL);
-
-static struct kobject *msm_lcd_name;
-static int msm_lcd_name_create_sysfs(void)
-{
-	int ret;
-	msm_lcd_name = kobject_create_and_add("android_lcd", NULL);
-
-	if (msm_lcd_name == NULL) {
-		pr_info("msm_lcd_name_create_sysfs_ failed\n");
-		ret = -ENOMEM;
-		return ret;
-	}
-
-	ret = sysfs_create_file(msm_lcd_name, &dev_attr_lcd_name.attr);
-	if (ret) {
-		pr_info("%s failed \n",__func__);
-		kobject_del(msm_lcd_name);
-	}
-	return 0;
-}
-#endif
-
 struct dsi_panel *dsi_panel_get(struct device *parent,
 				struct device_node *of_node,
 				struct device_node *parser_node,
@@ -3405,11 +3326,6 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 				"qcom,mdss-dsi-panel-name", NULL);
 	if (!panel->name)
 		panel->name = DSI_PANEL_DEFAULT_LABEL;
-
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	strcpy(g_lcd_id,panel->name);
-	msm_lcd_name_create_sysfs();
-#endif
 
 	/*
 	 * Set panel type to LCD as default.
@@ -4381,21 +4297,15 @@ int dsi_panel_enable(struct dsi_panel *panel)
 	if (rc)
 		pr_err("[%s] failed to send DSI_CMD_SET_ON cmds, rc=%d\n",
 		       panel->name, rc);
-	else {
+	else
 		panel->panel_initialized = true;
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-		panel_init_judge = true;
-#endif
-	}
 	mutex_unlock(&panel->panel_lock);
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 	if (panel->hbm_mode)
 		dsi_panel_apply_hbm_mode(panel);
 
 	if (panel->cabc_mode)
 		dsi_panel_apply_cabc_mode(panel);
-#endif
 
 	return rc;
 }
@@ -4417,9 +4327,6 @@ int dsi_panel_post_enable(struct dsi_panel *panel)
 		       panel->name, rc);
 		goto error;
 	}
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	panel_init_judge = true;
-#endif
 error:
 	mutex_unlock(&panel->panel_lock);
 	return rc;
@@ -4445,10 +4352,6 @@ int dsi_panel_pre_disable(struct dsi_panel *panel)
 
 error:
 	mutex_unlock(&panel->panel_lock);
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	panel->panel_initialized = false;
-	panel_init_judge =  false;
-#endif
 	return rc;
 }
 
@@ -4491,9 +4394,6 @@ int dsi_panel_disable(struct dsi_panel *panel)
 	panel->panel_initialized = false;
 	panel->power_mode = SDE_MODE_DPMS_OFF;
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
-	panel_init_judge = false;
-#endif
 	mutex_unlock(&panel->panel_lock);
 	return rc;
 }
@@ -4543,7 +4443,6 @@ error:
 	return rc;
 }
 
-#ifdef CONFIG_MACH_XIAOMI_GINKGO
 int dsi_panel_apply_hbm_mode(struct dsi_panel *panel)
 {
 	static const enum dsi_cmd_set_type type_map[] = {
@@ -4595,4 +4494,3 @@ int dsi_panel_apply_cabc_mode(struct dsi_panel *panel)
 
 	return rc;
 }
-#endif
