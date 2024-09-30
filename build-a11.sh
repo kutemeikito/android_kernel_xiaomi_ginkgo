@@ -60,14 +60,14 @@ else
 fi
 
 # Set function for override kernel name and variants
-curl -kLSs "https://raw.githubusercontent.com/kutemeikito/KernelSU/main/kernel/setup.sh" | bash -s main
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 echo -e "\nKSU Support, let's Make it On\n"
+curl -kLSs "https://raw.githubusercontent.com/kutemeikito/KernelSU/main/kernel/setup.sh" | bash -s main
+sed -i 's/CONFIG_KSU=n/CONFIG_KSU=y/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
+sed -i 's/CONFIG_LOCALVERSION="-RyzenKernel"/CONFIG_LOCALVERSION="-RyzenKernel-KSU"/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
 sed -i 's/CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=y/#CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=is not set/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
 else
-echo -e "\nKSU not Support, let's Make it off\n"
-sed -i 's/CONFIG_KSU=y/CONFIG_KSU=n/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
-sed -i 's/CONFIG_LOCALVERSION="-RyzenKernel-KSU"/CONFIG_LOCALVERSION="-RyzenKernel"/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
+echo -e "\nKSU not Support, let's Skip\n"
 sed -i 's/CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=y/#CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=is not set/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
 fi
 
