@@ -164,6 +164,8 @@ __printf(2, 3) void bpf_verifier_log_write(struct bpf_verifier_log *log,
 void bpf_verifier_vlog(struct bpf_verifier_log *log, const char *fmt,
 		       va_list args);
 
+#define BPF_MAX_SUBPROGS 256
+
 /* single container for all structs
  * one verifier_env per bpf_check() call
  */
@@ -185,6 +187,11 @@ struct bpf_verifier_env {
 	bool allow_ptr_leaks;
 	bool seen_direct_write;
 	struct bpf_insn_aux_data *insn_aux_data; /* array of per-insn state */
+
+	struct bpf_verifier_log log;
+
+	u32 subprog_starts[BPF_MAX_SUBPROGS];
+	u32 subprog_cnt;
 };
 
 static inline struct bpf_reg_state *cur_regs(struct bpf_verifier_env *env)
