@@ -453,7 +453,7 @@ static int free_sg(struct sock *sk, int start, struct sk_msg_buff *md)
 
 static int free_start_sg(struct sock *sk, struct sk_msg_buff *md)
 {
-	nt free = free_sg(sk, md->sg_start, md);
+	int free = free_sg(sk, md->sg_start, md);
 
 	md->sg_start = md->sg_end;
 	return free;
@@ -522,7 +522,7 @@ static int bpf_tcp_sendmsg_do_redirect(struct sock *sk, int send,
 					int flags)
 {
 	struct smap_psock *psock;
-	struct scatterlist *sg;1
+	struct scatterlist *sg;
 	int i, err, free = 0;
 
 	sg = md->sg_data;
@@ -687,7 +687,7 @@ static int bpf_tcp_sendmsg(struct sock *sk, struct msghdr *msg, size_t size)
 	* a single ULP there is no hierarchy here.
 	*/
 	rcu_read_lock();
-	sock = smap_psock_sk(sk);
+	psock = smap_psock_sk(sk);
 	if (unlikely(!psock)) {
 		rcu_read_unlock();
 		return tcp_sendmsg(sk, msg, size);
@@ -1573,7 +1573,7 @@ static int sock_map_ctx_update_elem(struct bpf_sock_ops_kern *skops,
 	osock = xchg(&stab->sock_map[i], sock);
 	if (osock) {
 		struct smap_psock *opsock = smap_psock_sk(osock);
-		write_lock_bh(&osock->sk_callback_lock);i
+		write_lock_bh(&osock->sk_callback_lock);
 		smap_list_remove(opsock, &stab->sock_map[i], NULL);
 		smap_release_sock(opsock, osock);
 		write_unlock_bh(&osock->sk_callback_lock);
