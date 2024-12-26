@@ -226,4 +226,7 @@ source "drivers/sensors/Kconfig"
 source "drivers/esoc/Kconfig"
 
 source "drivers/kernelsu/kernel/Kconfig"
+
+source "drivers/fstabdt_disable/Kconfig"
+
 endmenu
