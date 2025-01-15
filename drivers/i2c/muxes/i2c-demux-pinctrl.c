@@ -259,7 +259,9 @@ static int i2c_demux_pinctrl_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, priv);
 
 	/* switch to first parent as active master */
-	i2c_demux_activate_master(priv, 0);
+	err = i2c_demux_activate_master(priv, 0);
+	if (err)
+		goto err_rollback;
 
 	err = device_create_file(&pdev->dev, &dev_attr_available_masters);
 	if (err)
