@@ -34,7 +34,7 @@
 #include "pnode.h"
 #include "internal.h"
 
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#if defined(CONFIG_KSU_SUSFS_SUS_MOUNT) || defined(CONFIG_KSU_SUSFS_TRY_UMOUNT)
 extern bool susfs_is_current_ksu_domain(void);
 extern bool susfs_is_current_zygote_domain(void);
 

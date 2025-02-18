@@ -19,7 +19,7 @@
 static spinlock_t susfs_spin_lock;
 
 extern bool susfs_is_current_ksu_domain(void);
-#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 extern void ksu_try_umount(const char *mnt, bool check_mnt, int flags, uid_t uid);
 #endif
 
@@ -152,7 +152,7 @@ static void susfs_update_sus_mount_inode(char *target_pathname) {
 		return;
 	}
 
-		/* It is important to check if the mount has a legit peer group id, if so we cannot add them to sus_mount,
+	/* It is important to check if the mount has a legit peer group id, if so we cannot add them to sus_mount,
 	 * since there are chances that the mount is a legit mountpoint, and it can be misued by other susfs functions in future.
 	 * And by doing this it won't affect the sus_mount check as other susfs functions check by mnt->mnt_id
 	 * instead of INODE_STATE_SUS_MOUNT.
