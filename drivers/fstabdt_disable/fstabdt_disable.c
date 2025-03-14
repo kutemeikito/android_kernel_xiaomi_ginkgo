@@ -13,6 +13,7 @@ module_param(delete_fstabdt, bool, 0444);
 static int __init modify_fstab_entry(void)
 {
 	struct device_node *fstab_node = NULL, *vendor_node = NULL;
+	struct device_node *android_node = NULL;
 	struct property *prop = NULL;
 	int ret = 0;
 
@@ -21,7 +22,26 @@ static int __init modify_fstab_entry(void)
 		delete_fstabdt = false;
 
 	if (!delete_fstabdt) {
-		fstabdt_info("fstabdt_keep is present. Skipping modification.\n");
+		fstabdt_info("fstabdt_keep is present. Removing boot_devices entry.\n");
+
+		android_node = of_find_node_by_path("/firmware/android");
+		if (!android_node) {
+			fstabdt_err("Failed to find /firmware/android node\n");
+			ret = -ENODEV;
+			goto out;
+		}
+
+		prop = of_find_property(android_node, "boot_devices", NULL);
+		if (!prop) {
+			fstabdt_info("boot_devices property not found. Nothing to remove.\n");
+		} else {
+			ret = of_remove_property(android_node, prop);
+			if (ret)
+				fstabdt_err("Failed to remove boot_devices property\n");
+			else
+				fstabdt_info("boot_devices property removed successfully\n");
+		}
+		of_node_put(android_node);
 		goto out;
 	}
 
