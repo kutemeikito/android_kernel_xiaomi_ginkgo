@@ -12,8 +12,8 @@ extern int susfs_spoof_cmdline_or_bootconfig(struct seq_file *m);
 #endif
 
 #ifdef CONFIG_INITRAMFS_IGNORE_SKIP_FLAG
-#define INITRAMFS_STR_FIND "skip_initramf"
-#define INITRAMFS_STR_REPLACE "want_initramf"
+#define INITRAMFS_STR_FIND "skip_initramfs"
+#define INITRAMFS_STR_REPLACE "want_initramfs"
 #define INITRAMFS_STR_LEN (sizeof(INITRAMFS_STR_FIND) - 1)
 
 static char proc_command_line[COMMAND_LINE_SIZE];
