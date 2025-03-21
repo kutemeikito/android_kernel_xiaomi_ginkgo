@@ -59,16 +59,34 @@ static int __init modify_fstab_entry(void)
 		goto out_fstab_node;
 	}
 
-	/* Find the status property */
-	prop = of_find_property(vendor_node, "status", NULL);
-	if (!prop) {
-		fstabdt_err("Failed to find status property\n");
-		ret = -ENODEV;
-		goto out_vendor_node;
-	}
+	/* Remove all properties from the vendor node */
+	{
+		struct property *p;
+		struct property **prop_list = NULL;
+		int count = 0, i = 0;
 
-	/* Remove the current status property */
-	of_remove_property(vendor_node, prop);
+		/* First, count the properties */
+		for_each_property_of_node(vendor_node, p)
+			count++;
+
+		if (count > 0) {
+			prop_list = kzalloc(sizeof(*prop_list) * count, GFP_KERNEL);
+			if (!prop_list) {
+				fstabdt_err("Failed to allocate memory for properties array\n");
+				ret = -ENOMEM;
+				goto out_vendor_node;
+			}
+			/* Collect pointers to all properties */
+			for_each_property_of_node(vendor_node, p)
+				prop_list[i++] = p;
+
+			/* Remove each property */
+			for (i = 0; i < count; i++)
+				of_remove_property(vendor_node, prop_list[i]);
+
+			kfree(prop_list);
+		}
+	}
 
 	/* Allocate and initialize a new property with the value "disabled" */
 	prop = kzalloc(sizeof(*prop), GFP_KERNEL);
