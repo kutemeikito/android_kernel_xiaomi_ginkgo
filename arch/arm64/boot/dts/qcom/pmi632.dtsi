@@ -528,6 +528,7 @@
 					  "all-ramp-down-done-irq",
 					  "all-ramp-up-done-irq";
 			qcom,short-circuit-det;
+			qcom,torch-realtime-brightness-control;
 			qcom,open-circuit-det;
 			qcom,vph-droop-det;
 			qcom,thermal-derate-en;
