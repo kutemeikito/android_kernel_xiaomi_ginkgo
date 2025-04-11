@@ -47,8 +47,6 @@
 		"WSA_SPK2 OUT", "VA_MCLK";
 	qcom,pri-mi2s-gpios = <&cdc_pri_mi2s_gpios>;
 	qcom,wsa-max-devs = <0>;
-	/delete-property/ qcom,cdc-dmic01-gpios;
-	/delete-property/ qcom,cdc-dmic23-gpios;
 	/delete-property/ qcom,wsa-devs;
 };
 
@@ -62,14 +60,6 @@
 		interleave_mode = <0>;
 		maxim,98927-reset-gpio = <&tlmm 27 0>;
 	};
-};
-
-&cdc_dmic01_gpios {
-	status = "disabled";
-};
-
-&cdc_dmic23_gpios {
-	status = "disabled";
 };
 
 &wsa_swr_gpios {
