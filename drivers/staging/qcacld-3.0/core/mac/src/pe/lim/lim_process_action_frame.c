@@ -1876,7 +1876,7 @@ void lim_process_action_frame(struct mac_context *mac_ctx,
 					mac_ctx, rx_pkt_info, session);
 			break;
 		default:
-			pe_warn("Spectrum mgmt action id: %d not handled",
+			pe_debug("Spectrum mgmt action id: %d not handled",
 				action_hdr->actionID);
 			break;
 		}
