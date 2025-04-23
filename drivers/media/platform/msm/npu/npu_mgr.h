@@ -60,6 +60,7 @@ struct npu_network {
 	bool is_valid;
 	bool is_active;
 	bool is_unloading;
+	bool is_executing;
 	bool fw_error;
 	bool cmd_pending;
 	bool cmd_async;
