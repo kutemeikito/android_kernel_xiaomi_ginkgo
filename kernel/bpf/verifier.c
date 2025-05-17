@@ -5198,8 +5198,6 @@ int bpf_check(struct bpf_prog **prog, union bpf_attr *attr)
 			goto err_unlock;
 
 		ret = -ENOMEM;
-	} else {
-		log->level = 0;
 	}
 
 	env->strict_alignment = !!(attr->prog_flags & BPF_F_STRICT_ALIGNMENT);
