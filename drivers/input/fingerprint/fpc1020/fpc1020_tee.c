@@ -773,12 +773,14 @@ static struct platform_driver fpc1020_driver = {
 
 static int __init fpc1020_init(void)
 {
+	int rc;
+
 	if (fpsensor != 1) {
 		pr_err("Macle fpc1020_probe failed as fpsensor=%d(1=fp)\n", fpsensor);
 		return -1;
 	}
 
-	int rc = platform_driver_register(&fpc1020_driver);
+	rc = platform_driver_register(&fpc1020_driver);
 
 	if (!rc)
 		pr_info("%s OK\n", __func__);
