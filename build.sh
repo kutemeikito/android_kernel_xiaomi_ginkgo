@@ -55,7 +55,6 @@ fi
 if [[ $1 = "-k" || $1 = "--ksu" ]]; then
 	echo -e "\nCleanup KernelSU first on local build\n"
 	rm -rf KernelSU drivers/kernelsu
-	git restore .
 else
 	echo -e "\nSet No KernelSU Install, just skip\n"
 fi
