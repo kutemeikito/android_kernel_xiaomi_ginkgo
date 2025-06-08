@@ -1,11 +1,10 @@
 &qupv3_se8_spi {
 	status = "ok";
-	device@1 {
-		compatible = "qcom,spi-msm-codec-slave";
-		#address-cells = <1>;
-		#size-cells = <1>;
+	irled@1 {
+		compatible = "ir-spi-led";
 		reg = <1>; /* Chip select 0 */
+
+		duty-cycle = <30>;
 		spi-max-frequency = <1000000>;
-		spi-cpol;
 	};
 };
