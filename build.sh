@@ -12,23 +12,20 @@
 
 SECONDS=0 # builtin bash timer
 LOCAL_DIR=/home/ryuzenn/
-ZIPNAME="RyzenKernel-AOSP-Dynamic-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
-ZIPNAME_KSU="RyzenKernel-AOSP-Dynamic-Ginkgo-KSU-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
+ZIPNAME="RyzenKernel-AOSP-Ginkgo-$(TZ=Asia/Jakarta date +"%Y%m%d-%H%M").zip"
 TC_DIR="${LOCAL_DIR}toolchain"
 CLANG_DIR="${TC_DIR}/clang-rastamod"
 GCC_64_DIR="${LOCAL_DIR}toolchain/aarch64-linux-android-4.9"
 GCC_32_DIR="${LOCAL_DIR}toolchain/arm-linux-androideabi-4.9"
-AK3_DIR="${LOCAL_DIR}/Dynamic/AnyKernel3"
+AK3_DIR="${LOCAL_DIR}AnyKernel3"
 DEFCONFIG="vendor/trinket-perf_defconfig"
 BASE_FRAGMENT="vendor/xiaomi-trinket.config"
 DEVICE_FRAGMENT="vendor/ginkgo.config"
 
-
 export PATH="$CLANG_DIR/bin:$PATH"
+export LD_LIBRARY_PATH="$CLANG_DIR/lib:$LD_LIBRARY_PATH"
 export KBUILD_BUILD_USER="Ryuzenn"
 export KBUILD_BUILD_HOST="RastaMod69"
-export LD_LIBRARY_PATH="$CLANG_DIR/lib:$LD_LIBRARY_PATH"
-export KBUILD_BUILD_VERSION="1"
 export LOCALVERSION
 
 if ! [ -d "${CLANG_DIR}" ]; then
@@ -67,20 +64,20 @@ make O=out ARCH=arm64 $DEFCONFIG $FRAGMENT $DEVICE_FRAGMENT
 
 echo -e "\nStarting compilation...\n"
 make -j$(nproc --all) O=out \
-					  ARCH=arm64 \
-					  CC=clang \
-					  LD=ld.lld \
-					  AR=llvm-ar \
-					  AS=llvm-as \
-					  NM=llvm-nm \
-					  OBJCOPY=llvm-objcopy \
-					  OBJDUMP=llvm-objdump \
-					  STRIP=llvm-strip \
-					  CROSS_COMPILE=aarch64-linux-android- \
-					  CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
-					  CLANG_TRIPLE=aarch64-linux-gnu- \
-					  Image.gz-dtb \
-					  dtbo.img
+					ARCH=arm64 \
+					CC=clang \
+					LD=ld.lld \
+					AR=llvm-ar \
+					AS=llvm-as \
+					NM=llvm-nm \
+					OBJCOPY=llvm-objcopy \
+					OBJDUMP=llvm-objdump \
+					STRIP=llvm-strip \
+					CROSS_COMPILE=aarch64-linux-android- \
+					CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+					CLANG_TRIPLE=aarch64-linux-gnu- \
+					Image.gz-dtb \
+					dtbo.img 2>&1 | tee log.txt
 
 if [ -f "out/arch/arm64/boot/Image.gz-dtb" ] && [ -f "out/arch/arm64/boot/dtbo.img" ]; then
 echo -e "\nKernel compiled succesfully! Zipping up...\n"
@@ -90,17 +87,16 @@ elif ! git clone -q -b dynamic https://github.com/kutemeikito/AnyKernel3; then
 echo -e "\nAnyKernel3 repo not found locally and cloning failed! Aborting..."
 exit 1
 fi
+
 cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3
 cp out/arch/arm64/boot/dtbo.img AnyKernel3
+
 rm -f *zip
 cd AnyKernel3
 git checkout dynamic &> /dev/null
-if [[ $1 = "-k" || $1 = "--ksu" ]]; then
-zip -r9 "../$ZIPNAME_KSU" * -x '*.git*' README.md *placeholder
-else
 zip -r9 "../$ZIPNAME" * -x '*.git*' README.md *placeholder
-fi
 cd ..
+
 rm -rf AnyKernel3
 rm -rf out/arch/arm64/boot
 echo -e "======================================="
@@ -113,11 +109,7 @@ echo -e "░█▀▄─ █▀▀ █▄▄▀ █──█ █▀▀ █──
 echo -e "░█─░█ ▀▀▀ ▀─▀▀ ▀──▀ ▀▀▀ ▀▀▀ "
 echo -e "======================================="
 echo -e "Completed in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
-if [[ $1 = "-k" || $1 = "--ksu" ]]; then
-echo "Zip: $ZIPNAME_KSU"
-else
 echo "Zip: $ZIPNAME"
-fi
 else
 echo -e "\nCompilation failed!"
 exit 1
