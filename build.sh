@@ -55,21 +55,11 @@ exit 1
 fi
 fi
 
-if [[ $1 = "-k" || $1 = "--ksu" ]]; then
-	echo -e "\nCleanup KernelSU first on local build\n"
-	rm -rf KernelSU drivers/kernelsu
+if [[ $1 = "-11" || $1 = "--a11" ]]; then
+	echo -e "\nFix for Android Camera\n"
+sed -i 's/CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=y/#CONFIG_MSM_CAMERA_BOOTCLOCK_TIMESTAMP=is not set/g' arch/arm64/configs/vendor/ginkgo.defconfig
 else
-	echo -e "\nSet No KernelSU Install, just skip\n"
-fi
-
-# Set function for override kernel name and variants
-if [[ $1 = "-k" || $1 = "--ksu" ]]; then
-echo -e "\nKSU Support, let's Make it On\n"
-curl -kLSs "https://raw.githubusercontent.com/kutemeikito/KernelSU-Next/next/kernel/setup.sh" | bash -s next
-sed -i 's/CONFIG_KSU=n/CONFIG_KSU=y/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
-sed -i 's/CONFIG_LOCALVERSION="-RyzenKernel-Dynamic"/CONFIG_LOCALVERSION="-RyzenKernel-Dynamic-KSU"/g' arch/arm64/configs/vendor/ginkgo-perf_defconfig
-else
-echo -e "\nKSU not Support, let's Skip\n"
+	echo -e "\nIt is not for A11, let's skip it\n"
 fi
 
 mkdir -p out
