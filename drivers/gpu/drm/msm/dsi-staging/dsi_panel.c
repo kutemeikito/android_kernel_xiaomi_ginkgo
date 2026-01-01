@@ -791,7 +791,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = backlight_device_set_brightness(bl->raw_bd, bl_lvl);
 		break;
 	case DSI_BACKLIGHT_DCS:
-#ifdef CONFIG_MACH_XIAOMI_C3J
+#ifndef CONFIG_MACH_XIAOMI_C3J
 		rc = dsi_panel_update_backlight(panel, bl_lvl);
 #endif
 		break;
@@ -805,7 +805,7 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		rc = -ENOTSUPP;
 	}
 
-#ifdef CONFIG_MACH_XIAOMI_C3J
+#ifndef CONFIG_MACH_XIAOMI_C3J
 	rc = dsi_panel_update_backlight_external(panel, bl_lvl);
 #endif
 	return rc;

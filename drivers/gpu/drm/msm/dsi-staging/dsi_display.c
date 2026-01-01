@@ -32,6 +32,8 @@
 #include "sde_dbg.h"
 #include "dsi_parser.h"
 #include "dsi_phy.h"
+#include <linux/msm_drm_notify.h>
+#include <linux/notifier.h>
 
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
 #define INT_BASE_10 10
@@ -1162,9 +1164,9 @@ int dsi_display_set_power(struct drm_connector *connector,
 {
 	struct dsi_display *display = disp;
 	int rc = 0;
+	struct drm_device *dev = NULL;
 #ifdef CONFIG_MACH_XIAOMI_C3J
 	struct drm_notify_data g_notify_data;
-	struct drm_device *dev = NULL;
 	int event = 0;
 #endif
 

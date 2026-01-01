@@ -36,6 +36,7 @@
 #define CCI_TIMEOUT msecs_to_jiffies(800)
 #else
 #define CCI_TIMEOUT msecs_to_jiffies(500)
+#endif
 
 /* TODO move this somewhere else */
 #define MSM_CCI_DRV_NAME "msm_cci"

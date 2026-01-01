@@ -5081,7 +5081,7 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	struct snd_soc_dapm_context *dapm = snd_soc_codec_get_dapm(codec);
 	struct snd_card *card;
 	struct snd_info_entry *entry;
-#ifdef CONFIG_MACH_XIAOMI_C3J
+#ifndef CONFIG_MACH_XIAOMI_C3J
 	struct snd_soc_component *aux_comp;
 #endif
 	struct msm_asoc_mach_data *pdata =
