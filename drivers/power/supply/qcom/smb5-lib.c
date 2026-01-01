@@ -30,6 +30,7 @@
 #include "step-chg-jeita.h"
 #include "storm-watch.h"
 #include "schgm-flash.h"
+#include <linux/moduleparam.h>
 
 #ifdef NS_QC3_CHG_WA
 #include <linux/jiffies.h>
@@ -4244,13 +4245,14 @@ static int smblib_handle_usb_current(struct smb_charger *chg,
 				 * Valid FLOAT charger, report the current
 				 * based of Rp.
 				 */
-#ifdef CONFIG_MACH_XIAOMI_C3J
+#ifndef CONFIG_MACH_XIAOMI_C3J
 				typec_mode = 0;
 				rp_ua = FLOAT_CURRENT_UA;
 #else
 				typec_mode = smblib_get_prop_typec_mode(chg);
 				rp_ua = get_rp_based_dcp_current(chg,
 								typec_mode);
+#endif
 				rc = vote(chg->usb_icl_votable,
 						SW_ICL_MAX_VOTER, true, rp_ua);
 				if (rc < 0)
