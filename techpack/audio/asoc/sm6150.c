@@ -5083,6 +5083,7 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	struct snd_info_entry *entry;
 #ifdef CONFIG_MACH_XIAOMI_C3J
 	struct snd_soc_component *aux_comp;
+#endif
 	struct msm_asoc_mach_data *pdata =
 				snd_soc_card_get_drvdata(rtd->card);
 
@@ -5127,7 +5128,7 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 	 */
 	dev_dbg(codec->dev, "%s: Number of aux devices: %d\n",
 		__func__, rtd->card->num_aux_devs);
-#ifdef CONFIG_MACH_XIAOMI_C3J
+#ifndef CONFIG_MACH_XIAOMI_C3J
 	if (rtd->card->num_aux_devs &&
 	    !list_empty(&rtd->card->aux_comp_list)) {
 		list_for_each_entry(aux_comp, &rtd->card->aux_comp_list,
@@ -5142,6 +5143,7 @@ static int msm_int_audrx_init(struct snd_soc_pcm_runtime *rtd)
 			}
 		}
 	}
+#endif
 	card = rtd->card->snd_card;
 	if (!pdata->codec_root) {
 		entry = snd_info_create_subdir(card->module, "codecs",
@@ -5200,6 +5202,7 @@ static void *def_wcd_mbhc_cal(void)
 	S(v_hs_max, 1700);
 #else
 	S(v_hs_max, 1600);
+#endif
 #undef S
 #define S(X, Y) ((WCD_MBHC_CAL_BTN_DET_PTR(wcd_mbhc_cal)->X) = (Y))
 	S(num_btn, WCD_MBHC_DEF_BUTTONS);
