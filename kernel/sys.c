@@ -1202,9 +1202,6 @@ static int override_version(struct new_utsname __user *name)
 	return ret;
 }
 
-#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
-extern void susfs_spoof_uname(struct new_utsname* tmp);
-#endif
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 {
 	struct new_utsname tmp;
@@ -1219,9 +1216,6 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 		pr_debug("fake uname: %s/%d release=%s\n",
 			current->comm, current->pid, tmp.release);
 	}
-#ifdef CONFIG_KSU_SUSFS_SPOOF_UNAME
-	susfs_spoof_uname(&tmp);
-#endif
 	up_read(&uts_sem);
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
